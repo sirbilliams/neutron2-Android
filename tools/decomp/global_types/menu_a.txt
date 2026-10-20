@@ -1,0 +1,64 @@
+# C2DInGameMenu part a (constructor 0x401380 / destructor 0x403fa0)
+# --- sprites (OMediaCanvasElementWrapper, 0xd8 bytes) created by the constructor, deleted by the destructor
+0x545854 ptr OMediaCanvasElementWrapper*
+0x5448e4 ptr OMediaCanvasElementWrapper*
+0x545968 ptr OMediaCanvasElementWrapper*
+0x5445e0 ptr OMediaCanvasElementWrapper*
+0x54584c ptr OMediaCanvasElementWrapper*
+0x5444d0 ptr OMediaCanvasElementWrapper*
+0x5444d4 ptr OMediaCanvasElementWrapper*
+0x544744 ptr OMediaCanvasElementWrapper*
+0x5448e0 ptr OMediaCanvasElementWrapper*
+0x5446f0 ptr OMediaCanvasElementWrapper*
+0x545848 ptr OMediaCanvasElementWrapper*
+0x544904 ptr OMediaCanvasElementWrapper*
+0x545c7c ptr OMediaCanvasElementWrapper*
+0x5445dc ptr OMediaCanvasElementWrapper*
+0x545a60 ptr OMediaCanvasElementWrapper*      # on the top 2D layer; used by the score display 0x410600
+0x5446ec ptr OMediaCanvasElementWrapper*
+0x5444bc ptr OMediaCanvasElementWrapper*      # top 2D layer, score display
+0x5444c4 ptr OMediaCanvasElementWrapper*      # top 2D layer, score display
+0x545850 ptr OMediaCanvasElementWrapper*
+0x545a68 ptr OMediaCanvasElementWrapper*
+0x544748 ptr OMediaCanvasElementWrapper*
+0x5448f0 ptr OMediaCanvasElementWrapper*
+0x5448f4 ptr OMediaCanvasElementWrapper*
+0x5448fc ptr OMediaCanvasElementWrapper*
+0x54472c ptr OMediaCanvasElementWrapper*
+0x544730 ptr OMediaCanvasElementWrapper*
+0x544734 ptr OMediaCanvasElementWrapper*
+0x544738 ptr OMediaCanvasElementWrapper*
+0x54473c ptr OMediaCanvasElementWrapper*
+0x544740 ptr OMediaCanvasElementWrapper*
+0x545844 ptr OMediaCanvasElementWrapper*
+0x545a64 ptr OMediaCanvasElementWrapper*
+# 14 sprites paired with the 14 static elements g_elt_544908[] (same index); g_menu_cur_item picks one
+0x5446f4 ptrarray OMediaCanvasElementWrapper* g_menu_item_sprites
+0x545d9c val int g_menu_cur_item
+# deleted by the destructor but never created anywhere in the exe (always NULL)
+0x544900 ptr OMediaCanvasElementWrapper*
+0x5448f8 ptr OMediaCanvasElementWrapper*
+0x5444c8 ptr OMediaCanvasElementWrapper*
+0x54595c ptr OMediaCanvasElementWrapper*
+0x5448e8 ptr OMediaCanvasElementWrapper*
+# created by a part-b/c slot (ParseBackground area), deleted by the destructor
+0x545d84 ptr OMediaCanvasElementWrapper*
+# the "HelpMenu" interface element (g_interface.Find right after Create)
+0x5444cc ptr InterfaceElt* g_help_menu_elt
+# strings
+0x545e7c array char
+0x545f14 array char
+0x545de4 array char
+# key bindings read from dat\keys.txt (0x465bc0): 6 key codes each (records 0x28 bytes apart)
+0x545fec array int g_key_speed
+0x546014 array int g_key_cutscene_bypass
+0x54603c array int g_key_climb_down
+0x546064 array int g_key_action
+0x54608c array int g_key_deactivate_item
+0x5460b4 array int g_key_turnaround
+0x5460dc array int g_key_turn_left
+0x546104 array int g_key_jump
+0x54612c array int g_key_back
+0x546154 array int g_key_go
+0x54617c array int g_key_turn_right
+0x5461a4 array int g_key_brake

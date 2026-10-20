@@ -3,7 +3,6 @@
 #include "../C2DInGameMenu.h"
 #include "../Todo.h"
 
-void C2DInGameMenu::UnInitObject()	{ NEG_TODO(0x4043d0, "C2DInGameMenu slot 8"); }
 void C2DInGameMenu::Process(float a2)	{ NEG_TODO(0x407740, "C2DInGameMenu slot 240"); }
 void C2DInGameMenu::v260()	{ NEG_TODO(0x40ac30, "C2DInGameMenu slot 260"); }
 void C2DInGameMenu::v270(int a2, int a3)	{ NEG_TODO(0x40b460, "C2DInGameMenu slot 270"); }
