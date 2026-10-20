@@ -13,7 +13,7 @@ class C3DSpriteType : public C3DSprite
 	C3DSpriteType();														// 0x473420
 	virtual ~C3DSpriteType();												// SLOT 0  0x473530 (thunks 0x473730 / 0x473500 / 0x473740)
 
-	virtual void AddTouching(int id);										// SLOT 16 0x4736f0 (= CGameObject's)
+	virtual void AddTouching(CGameObject *other);										// SLOT 16 0x4736f0 (= CGameObject's)
 	virtual void Process(float dt);											// SLOT 240 0x473700 (= C3DSprite's)
 	virtual void v242(float t);												// SLOT 242 0x473570 show again
 	virtual void v260(void);												// SLOT 260 0x473650 (re)load the sprite canvas, canvas flags 1

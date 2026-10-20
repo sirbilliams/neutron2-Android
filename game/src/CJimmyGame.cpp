@@ -6,6 +6,7 @@
     are the small TODO functions below, named after what the original does with them.        */
 
 #include "SaveGame.h"
+#include "Physics.h"
 #include "CJimmyGame.h"
 #include "C3DObject.h"
 #include "C2DInGameMenu.h"
@@ -336,9 +337,9 @@ void CJimmyGame::InitGame(void)												// 0x482910
 	f_564 = 0;
 	CGameType::InitGame();
 	neg::ClearTexScrolls();													// 0x497090
-	g_gravity_x = 0.0f;
-	g_gravity_y = -800.0f;
-	g_gravity_z = 0.0f;
+	g_gravity.x = 0.0f;											// 0x631198 (Physics.cpp)
+	g_gravity.y = -800.0f;
+	g_gravity.z = 0.0f;
 	f_554 = 1.0f;
 	f_558 = 1.0f;
 	g_layer_world->add_flags(omlayerf_SortElementBack2Front);				// 0x4b1880(layer, 0x20)

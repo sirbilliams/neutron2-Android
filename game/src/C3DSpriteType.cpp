@@ -13,9 +13,9 @@ C3DSpriteType::C3DSpriteType()								// 0x473420
 
 C3DSpriteType::~C3DSpriteType() {}							// 0x473530
 
-void C3DSpriteType::AddTouching(int id)						// 0x4736f0
+void C3DSpriteType::AddTouching(CGameObject *other)						// 0x4736f0
 {
-	CGameObject::AddTouching(id);
+	CGameObject::AddTouching(other);
 }
 
 void C3DSpriteType::Process(float dt)						// 0x473700

@@ -8,7 +8,6 @@
 
 namespace neg {
 
-void PhysicsRemoveObject(CGameObject *)	{ NEG_TODO(0x4b4070, "CPhysics::RemoveObject"); }
 void StopObjectSounds(CGameObject *)	{ NEG_TODO(0x4b8dc0, "StopObjectSounds"); }
 bool IsChannelPlaying(int)				{ NEG_TODO(0x4b89d0, "IsChannelPlaying"); return false; }
 

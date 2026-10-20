@@ -18,6 +18,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Physics.h"
 #include "gen/globals.h"
 
 #include "OMediaStringField.h"
@@ -219,7 +220,6 @@ static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 }
 
 // --- not reconstructed yet
-static void PhysicsReset(void)					{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
 using neg::CloseAllDatabases;							// 0x4a4870 (DatabaseCache.cpp)
 using neg::DatabaseName;								// 0x4a4a40
 // (the savegame functions ReadTaskFile 0x497b10, LoadTask 0x498af0, RestoreTask 0x498440: SaveGame.h)

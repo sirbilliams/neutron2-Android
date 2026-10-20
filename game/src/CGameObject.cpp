@@ -14,6 +14,7 @@
 #include <strings.h>
 #include <math.h>
 #include "Bridge.h"
+#include "OMediaTrigo.h"
 
 std::list<CGameObject *> g_objects;					// 0x56af34
 
@@ -337,39 +338,46 @@ void CGameObject::ResetObject(void)							// 0x4ab420: current values = initial 
 
 // --------------------------------------------------------------------------- collisions
 
-bool CGameObject::IsTouching(int id)						// 0x4ab940
+// The touch list holds the other objects (PhysicsCollideObjects passes them, as do C3DConveyor,
+// C3DMovingBlocks and C3DRope with the player object 0x56af7c).
+void CGameObject::v3(CGameObject *other)					// 0x4ab1a0
 {
-	for (std::list<int>::iterator i = m_touching.begin(); i != m_touching.end(); i++)
-		if (*i == id) return true;
+	AddTouching(other);									// vtable +0x40
+}
+
+bool CGameObject::IsTouching(CGameObject *other)			// 0x4ab940
+{
+	for (std::list<CGameObject *>::iterator i = m_touching.begin(); i != m_touching.end(); i++)
+		if (*i == other) return true;
 	return false;
 }
 
-void CGameObject::AddTouching(int id)						// 0x4ab970
+void CGameObject::AddTouching(CGameObject *other)			// 0x4ab970
 {
-	if (IsTouching(id) || f_006) return;
-	m_touching.push_back(id);
+	if (IsTouching(other) || f_006) return;
+	m_touching.push_back(other);
 	if (f_408 == -1)
-		f_408 = GameTypeTouchStart(this, id);			// g_gametype vtable +0x14c
+		f_408 = GameTypeTouchStart(this, other);		// g_gametype vtable +0x14c
 }
 
-void CGameObject::RemoveTouching(int id)					// 0x4aba00
+void CGameObject::RemoveTouching(CGameObject *other)		// 0x4aba00
 {
 	if (!v131() && v45()) v132(1);
-	m_touching.remove(id);
+	m_touching.remove(other);
 	if (f_410 == -1)
-		f_410 = GameTypeTouchEnd(this, id);			// g_gametype vtable +0x150
+		f_410 = GameTypeTouchEnd(this, other);			// g_gametype vtable +0x150
 }
 
-void CGameObject::v18(unsigned int a)						// 0x4abaa0
+void CGameObject::v18(CGameObject *other)					// 0x4abaa0
 {
 	if (f_40c == -1)
-		f_40c = GameTypeTouch154(this, a);			// g_gametype vtable +0x154
+		f_40c = GameTypeTouch154(this, other);			// g_gametype vtable +0x154
 }
 
-void CGameObject::Collide(CGameObject *other, unsigned int a)	// 0x4abad0
+void CGameObject::Collide(CGameObject *other, float dist)	// 0x4abad0
 {
 	if (other == this || other->v119()) return;
-	if (v131()) v262(other, a);							// vtable +0x418
+	if (v131()) v262(other, dist);						// vtable +0x418
 	if (v125()) v24(other);								// vtable +0x60
 }
 
@@ -399,11 +407,60 @@ void CGameObject::RequestEnd(void)							// 0x4ad4c0
 	}
 }
 
-void CGameObject::v220(float a, float b, float c, float d, unsigned int e)	// 0x48ef40
+void CGameObject::v219(float nx, float ny, float nz, float nw, OMedia3DPolygon *poly)	// 0x4ad520: hit a ceiling
 {
-	(void)e;
+	(void)nx; (void)ny; (void)nz; (void)nw; (void)poly;
+	float v[4];
+	v174(v);											// velocity: stop going up
+	if (v[1] > 0.0f) v175(v[0], 0, v[2], v[3]);			// vtable +0x2bc
+	v155(v);											// constant acceleration: the same
+	if (v[1] > 0.0f) v156(v[0], 0, v[2], v[3]);			// vtable +0x270
+}
+
+void CGameObject::v220(float a, float b, float c, float d, OMedia3DPolygon *poly)	// 0x48ef40
+{
+	(void)poly;
 	if (v117()) v221(a, b, c, d);
 }
+
+// 0x4ad800: rotate (x, y, z) by the object's angles v201 (degrees; OMT's 14-bit sin/cos tables)
+// and add the position. Rotation order as compiled: z, then x, then y.
+OMedia3DVector CGameObject::v224(float x, float y, float z)
+{
+	float rot[4];
+	v201(rot);											// vtable +0x324
+	const float kDegToAngle = 45.511112213134766f;		// 0x4cb228: 16384 / 360
+	omt_Angle ax = (omt_Angle)((int)(rot[0] * kDegToAngle) & omc_MaxAngleMask);
+	omt_Angle ay = (omt_Angle)((int)(rot[1] * kDegToAngle) & omc_MaxAngleMask);
+	omt_Angle az = (omt_Angle)((int)(rot[2] * kDegToAngle) & omc_MaxAngleMask);
+	OMediaCosSinTable &t = OMediaCosSinTable::global;
+	float sx = t.sin(ax), cx = t.cos(ax), sy = t.sin(ay), cy = t.cos(ay), sz = t.sin(az), cz = t.cos(az);
+	float a = cz * y - sz * x;							// about z
+	float b = sz * y + cz * x;
+	float c = cx * z - a * sx;							// about x
+	float rx = b * cy - c * sy;							// about y
+	float ry = a * cx + sx * z;
+	float rz = c * cy + b * sy;
+	float p[4];
+	v195(p);											// position, vtable +0x30c
+	return OMedia3DVector(p[0] + rx, p[1] + ry, p[2] + rz, 1.0f);
+}
+
+unsigned char CGameObject::v231(CGameObject *other)		// 0x410490: PhysicsCollideObjects asks both objects
+{
+	(void)other;
+	return 1;
+}
+
+// floor polygon and shape (PhysicsSnapToGround): initial values f_10c / f_114, current f_234 / f_23c
+OMedia3DPolygon *CGameObject::v95(void)			{ return f_10c; }						// 0x4ac620
+void CGameObject::v96(OMedia3DPolygon *poly)	{ f_10c = poly; v206(poly); }			// 0x4ac630
+OMedia3DShape *CGameObject::v99(void)			{ return f_114; }						// 0x4ac680
+void CGameObject::v100(OMedia3DShape *shape)	{ f_114 = shape; v210(shape); }			// 0x4ac690
+OMedia3DPolygon *CGameObject::v205(void)		{ return f_234; }						// 0x4ad400
+void CGameObject::v206(OMedia3DPolygon *poly)	{ f_234 = poly; }						// 0x4ad410
+OMedia3DShape *CGameObject::v209(void)			{ return f_23c; }						// 0x4ad440
+void CGameObject::v210(OMedia3DShape *shape)	{ f_23c = shape; }						// 0x4ad450
 
 void CGameObject::Link(CGameObject *other)					// 0x4ade00
 {
@@ -495,9 +552,9 @@ void CGameObject::RotateToDest(float dt)					// 0x4ae180: turn towards f_274.. a
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-void CGameObject::v262(CGameObject *other, unsigned int a)	// 0x4af030: push away unless other is a C3DWHEEL
+void CGameObject::v262(CGameObject *other, float dist)	// 0x4af030: push away unless other is a C3DWHEEL
 {
-	(void)other; (void)a;
+	(void)other; (void)dist;
 	NEG_TODO(0x4af030, "CGameObject slot 262");
 }
 

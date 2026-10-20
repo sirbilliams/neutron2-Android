@@ -3,6 +3,8 @@
 #include <stddef.h>
 class C2DInGameMenu;
 class CGameObject;
+class CPhysicsRay;
+class OMedia3DVector;
 class OMediaCanvasElementWrapper;
 class OMediaDataBase;
 class OMediaElement;
@@ -435,10 +437,14 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_5407dc (&neg::g_data[0xe7dc])		// address only
 #define g_540b60 (&neg::g_data[0xeb60])		// address only
 #define g_540b64 (&neg::g_data[0xeb64])		// address only
-#define g_540b68 (*(char *)&neg::g_data[0xeb68])
-#define g_540b69 (*(char *)&neg::g_data[0xeb69])
-#define g_540b6b (*(char *)&neg::g_data[0xeb6b])
+#define g_540b68 (*(bool *)&neg::g_data[0xeb68])
+#define g_phys_objects_on (*(bool *)&neg::g_data[0xeb68])
+#define g_540b69 (*(bool *)&neg::g_data[0xeb69])
+#define g_phys_terrain_on (*(bool *)&neg::g_data[0xeb69])
+#define g_540b6b (*(bool *)&neg::g_data[0xeb6b])
+#define g_phys_on (*(bool *)&neg::g_data[0xeb6b])
 #define g_540b70 (*(int *)&neg::g_data[0xeb70])
+#define g_terrain_memory (*(int *)&neg::g_data[0xeb70])
 #define g_540c50 (*(int *)&neg::g_data[0xec50])
 #define g_540c54 (*(int *)&neg::g_data[0xec54])
 #define g_music_volume (*(int *)&neg::g_data[0xec54])
@@ -1145,7 +1151,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_56af41 (*(char *)&neg::g_data[0x38f41])
 #define g_56af42 (*(char *)&neg::g_data[0x38f42])
 #define g_56af43 (*(char *)&neg::g_data[0x38f43])
-#define g_56af44 (*(char *)&neg::g_data[0x38f44])
+#define g_56af44 (*(bool *)&neg::g_data[0x38f44])
+#define g_terrain_poly_claimed (*(bool *)&neg::g_data[0x38f44])
 #define g_56af94 (neg::g_ptrs[0xe3e5])		// pointer
 #define g_56af98 (*(int *)&neg::g_data[0x38f98])
 #define g_56afa0 (*(float *)&neg::g_data[0x38fa0])
@@ -1204,12 +1211,10 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_631188 (*(float *)&neg::g_data[0xff188])
 #define g_63118c (*(float *)&neg::g_data[0xff18c])
 #define g_631190 (neg::g_ptrs[0x3fc64])		// pointer
-#define g_631198 (*(float *)&neg::g_data[0xff198])
-#define g_gravity_x (*(float *)&neg::g_data[0xff198])
+#define g_631198 (*(OMedia3DVector *)&neg::g_data[0xff198])
+#define g_gravity (*(OMedia3DVector *)&neg::g_data[0xff198])
 #define g_63119c (*(float *)&neg::g_data[0xff19c])
-#define g_gravity_y (*(float *)&neg::g_data[0xff19c])
 #define g_6311a0 (*(float *)&neg::g_data[0xff1a0])
-#define g_gravity_z (*(float *)&neg::g_data[0xff1a0])
 #define g_6311a8 (*(unsigned int *)&neg::g_data[0xff1a8])
 #define g_6311ac (*(unsigned int *)&neg::g_data[0xff1ac])
 #define g_6311b0 (*(unsigned int *)&neg::g_data[0xff1b0])
@@ -1220,7 +1225,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_6311c4 (*(unsigned int *)&neg::g_data[0xff1c4])
 #define g_6311cc (neg::g_ptrs[0x3fc73])		// pointer
 #define g_6311d0 (*(int *)&neg::g_data[0xff1d0])
-#define g_6311d8 (*(float *)&neg::g_data[0xff1d8])
+#define g_6311d8 (*(CPhysicsRay *)&neg::g_data[0xff1d8])
+#define g_phys_ray (*(CPhysicsRay *)&neg::g_data[0xff1d8])
 #define g_6311dc (*(float *)&neg::g_data[0xff1dc])
 #define g_6311e0 (*(unsigned int *)&neg::g_data[0xff1e0])
 #define g_6311e4 (*(unsigned int *)&neg::g_data[0xff1e4])
@@ -1244,7 +1250,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_6f72e4 (neg::g_ptrs[0x714b9])		// pointer
 #define g_6f72ec (*(int *)&neg::g_data[0x1c52ec])
 #define g_6f72f0 (*(int *)&neg::g_data[0x1c52f0])
-#define g_6f72f4 (neg::g_ptrs[0x714bd])		// pointer
+#define g_6f72f4 (*(float *)&neg::g_data[0x1c52f4])
+#define g_closest_face_t (*(float *)&neg::g_data[0x1c52f4])
 #define g_6f72f8 (*(float *)&neg::g_data[0x1c52f8])
 #define g_6f7300 (*(int *)&neg::g_data[0x1c5300])
 #define g_6f7308 (*(int *)&neg::g_data[0x1c5308])

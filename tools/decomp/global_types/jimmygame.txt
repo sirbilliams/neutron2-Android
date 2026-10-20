@@ -15,9 +15,6 @@
 0x532500 val int g_score_box_y                     # y of the score box sprite (set with each promotion)
 0x545f0d val char g_score_box2_on                  # top rank reached: the menu shows score box 2
 
-0x631198 val float g_gravity_x                     # (0, -800, 0) from CJimmyGame::InitGame
-0x63119c val float g_gravity_y
-0x6311a0 val float g_gravity_z
 
 0x54a470 val float g_frame_rate_now                # SmoothFrameRate: 1 / dt
 0x54a474 val float g_frame_rate                    # SmoothFrameRate: running average (2% per frame)

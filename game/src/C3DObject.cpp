@@ -3,15 +3,12 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Physics.h"
 #include "OMediaWorld.h"
 #include "OMediaLayer.h"
 
 using namespace neg;
 
-static void PhysicsAddObject(CGameObject *o)				// 0x4b4ae0
-{
-	(void)o; NEG_TODO(0x4b4ae0, "CPhysics::AddObject");
-}
 
 C3DObject::C3DObject()										// 0x49a920
 {
@@ -88,7 +85,7 @@ void C3DObject::InitPhysics(void)							// 0x49acb0
 	v90(x, y, z);											// position from the element (+0x44..)
 	const float k = 360.0f / 16384.0f;						// 0x4cb1f8: OMT angle units -> degrees
 	v92((float)anglex * k, (float)angley * k, (float)anglez * k);
-	PhysicsAddObject(this);
+	PhysicsAddObject(this);									// 0x4b4ae0 Add3DObject
 }
 
 void C3DObject::UnInitPhysics(void)							// 0x49ad60

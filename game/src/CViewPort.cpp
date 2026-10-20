@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Physics.h"
 #include <SDL.h>
 #include <string.h>
 
@@ -20,7 +21,6 @@ using namespace neg;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-static void PhysicsProcess(float dt)		{ (void)dt; NEG_TODO(0x4b4c60, "CPhysics::Process"); }
 static void UpdateTextureAnims(float dt)	{ (void)dt; NEG_TODO(0x4a28c0, "texture animations (list 0x56ad7c)"); }
 static void UpdateInput(void)				{ NEG_TODO(0x4b35d0, "input / joystick poll"); }
 static void UpdateSounds(float dt)			{ (void)dt; NEG_TODO(0x4b8a30, "sound channel bookkeeping"); }
