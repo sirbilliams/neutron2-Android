@@ -13,6 +13,7 @@
 #include "../CanvasWrapper.h"
 #include "../Game.h"
 #include "../Todo.h"
+#include "../Sound.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaFilePath.h"
@@ -148,37 +149,10 @@ static void CopyFileDos(const char *src, const char *dst)
 
 // ---- other systems (not reconstructed yet)
 
-static void StopChannel(int channel, bool release)						// 0x4b88e0
-{
-	NEG_TODO(0x4b88e0, "StopChannel"); (void)channel; (void)release;
-}
-
-static int PlaySoundIndex(int channel, int index, int a)				// 0x4b8240
-{
-	NEG_TODO(0x4b8240, "PlaySound (by index)"); (void)channel; (void)index; (void)a;
-	return -1;
-}
-
-static int PlaySoundName(int channel, std::string name, int a)			// 0x4b8380
-{
-	NEG_TODO(0x4b8380, "PlaySound (by name)"); (void)channel; (void)name; (void)a;
-	return -1;
-}
-
-static void PlaySfx(int channel, std::string name, int a)				// 0x48f420 (plays if 0x54a4b8 and the sfx volume)
-{
-	NEG_TODO(0x48f420, "PlaySfx"); (void)channel; (void)name; (void)a;
-}
-
-static void *LoadMusic(const char *omt_name)							// 0x4a4180
+static OMediaDataBase *LoadMusic(const char *omt_name)							// 0x4a4180
 {
 	NEG_TODO(0x4a4180, "LoadMusic"); (void)omt_name;
 	return NULL;
-}
-
-static void PlayMusic(void *music, int channel, int a, bool b)			// 0x4b8850
-{
-	NEG_TODO(0x4b8850, "PlayMusic"); (void)music; (void)channel; (void)a; (void)b;
 }
 
 static void ShowMouseCursor(bool show)									// 0x4a38c0 (ShowCursor + flags 0x56aec9..)
@@ -839,15 +813,15 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 					f_5a4 = 1;
 					if (++g_music_volume >= 10) g_music_volume = 10;
 					g_6f7518 = g_music_volume;
-					g_6f759c = LoadMusic("musiclogo.omt");
-					if (g_6f759c) PlayMusic(g_6f759c, -1, 0, true);
+					g_music_db = LoadMusic("musiclogo.omt");
+					if (g_music_db) PlayMusic(g_music_db, -1, 0, true);	// 0x4b8850
 					break;
 				case 2:					// music softer
 					f_5a4 = 1;
 					if (--g_music_volume <= 0) g_music_volume = 0;
 					g_6f7518 = g_music_volume;
-					g_6f759c = LoadMusic("musiclogo.omt");
-					if (g_6f759c) PlayMusic(g_6f759c, -1, 0, true);
+					g_music_db = LoadMusic("musiclogo.omt");
+					if (g_music_db) PlayMusic(g_music_db, -1, 0, true);	// 0x4b8850
 					break;
 				case 3:					// back
 					f_5a4 = 1;
@@ -860,14 +834,14 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 					f_5a4 = 1;
 					if (++g_sfx_volume >= 10) g_sfx_volume = 10;
 					g_54a4b8 = true;
-					PlaySfx(-1, "bubble boing", 0);
+					PlayGameSound(-1, "bubble boing", false);	// 0x48f420
 					g_54a4b8 = false;
 					break;
 				case 5:					// sound softer
 					f_5a4 = 1;
 					if (--g_sfx_volume <= 0) g_sfx_volume = 0;
 					g_54a4b8 = true;
-					PlaySfx(-1, "bubble boing", 0);
+					PlayGameSound(-1, "bubble boing", false);	// 0x48f420
 					g_54a4b8 = false;
 					break;
 				case 6:					// harder
@@ -981,7 +955,7 @@ void C2DInGameMenu::PlayMenuSound(const char *name)					// 0x40b370
 	if (strcasecmp(f_524, name))
 	{
 		if (IsChannelPlaying(f_588)) StopChannel(f_588, false);
-		f_588 = PlaySoundName(-1, name, 0);
+		f_588 = PlaySound(-1, name, false);		// 0x4b8380
 		strcpy(f_524, name);
 	}
 }
@@ -999,7 +973,7 @@ void C2DInGameMenu::PlayMenuSoundIndex(int index)						// 0x40b2c0
 	if (f_520 != index)
 	{
 		if (IsChannelPlaying(f_588)) StopChannel(f_588, false);
-		f_588 = PlaySoundIndex(-1, index, 0);
+		f_588 = PlaySoundIndex(-1, index, false);	// 0x4b8240
 		f_520 = index;
 	}
 }

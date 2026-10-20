@@ -1,0 +1,10 @@
+# Sound and music (game/src/Sound.cpp, 0x4b7db0..0x4b8e30 and 0x48f030..0x48f420)
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x540c50 val int g_music_channel                     # channel the song plays on, -1 = none
+0x540c5c val float g_sound_falloff                   # 3D sounds lose this much volume (of 255) per world unit; 0.03, C3DJimmy sets 0.02 / 0.09
+0x540c60 val bool g_sound_on                         # cleared with the two below when there is no sound device
+0x540c61 val bool g_music_on                         # music allowed (PlayMusic, CGameType::PlaySong)
+0x540c62 val bool g_sfx_on                           # sound effects allowed (every other sound call)
+0x54a3d4 val bool g_sound_skipped                    # a sound could not be played because sound is off
+0x54a4b8 val bool g_sfx_db_loaded                    # SoundEffects.omt is open as g_active_sound_db (gates the 0x48f... helpers)
+0x6f759c ptr OMediaDataBase* g_music_db              # database the song channel plays from (purged from it when stopped)

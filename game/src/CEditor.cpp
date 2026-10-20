@@ -16,6 +16,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Sound.h"
 #include "gen/globals.h"
 
 #include "OMediaStringField.h"
@@ -229,7 +230,6 @@ static bool ReadTaskFile(const char *name)		// 0x497b10: reads save\<name>'s hea
 }
 static void LoadTask(const char *name, int a)	{ NEG_TODO(0x498af0, "LoadTask (savegame)"); (void)name; (void)a; }
 static void RestoreTask(const char *name)		{ NEG_TODO(0x498440, "RestoreTask (savegame state after a level load)"); (void)name; }
-static void PlaySoundNamed(int channel, const char *name, int a)	{ NEG_TODO(0x4b8380, "PlaySound"); (void)channel; (void)name; (void)a; }
 static void MenuDrawCountdown(int a, int b, int c)	{ NEG_TODO(0x409d50, "C2DInGameMenu 0x409d50 (level-change countdown)"); (void)a; (void)b; (void)c; }
 static void CutsceneCameraPlay(CGameObject *o)	{ NEG_TODO(0x4a64e2, "C3DCutSceneCamera element slot 59"); (void)o; }
 static void MultiCutscenePlay(CGameObject *o)	{ NEG_TODO(0x4a6520, "C3DMultiCutScene element slot 61"); (void)o; }
@@ -779,7 +779,7 @@ void CEditor::SaveGame(char *name)
 	strcat(path, name);
 	OMediaFilePath fp(path, 'null', 'null');
 	OMediaFileStream fs;
-	PlaySoundNamed(-1, "neutron", 0);						// 0x4b8380
+	PlaySound(-1, "neutron", false);						// 0x4b8380
 	fs.setpath(&fp);
 	fs.open(omcfp_Write, true, true);
 

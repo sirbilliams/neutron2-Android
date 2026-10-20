@@ -42,6 +42,7 @@ OMediaSound::~OMediaSound()
 {
 	db_update();
 
+	purge();		// frees the sample and stops the channels playing it (port: was leaked)
 	delete retarget;
 }
 

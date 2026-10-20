@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Sound.h"
 #include "gen/globals.h"
 #include "OMediaWorld.h"
 #include "OMediaLayer.h"
@@ -45,15 +46,9 @@ using namespace neg;
 static void ResetParticles(void)			{ NEG_TODO(0x49b260, "C3DParticle::Reset"); }
 static void ResetTextureAnims(void)			{ NEG_TODO(0x4a2270, "Reset() texture animation list 0x56ad7c"); }
 static void CaptureMouse(bool capture)		{ (void)capture; NEG_TODO(0x4a3930, "CaptureMouse"); }
-static void StopAllChannels(void)			{ NEG_TODO(0x4b8990, "stop all sound channels"); }
 // OMediaMouseCursor::hide() (OMT2.dll); the SDL build of OMT has no OMediaMouseCursor.
 static void HideMouseCursor(void)			{ SDL_ShowCursor(SDL_DISABLE); }
 static void ClearPolyTerrains(void)			{ NEG_TODO(0x4b49c0, "ClearPolyTerrains"); }
-static void PlayMusic(OMediaDataBase *db, int channel, unsigned int id, int loop)
-{
-	(void)db; (void)channel; (void)id; (void)loop;
-	NEG_TODO(0x4b8850, "PlayMusic");
-}
 static void SetupShapeMaterials(OMediaDataBase *db, OMedia3DShape *shape)
 {
 	(void)db; (void)shape;
@@ -457,8 +452,8 @@ void CGameType::SetInputDevice(short player, unsigned int device)			// 0x4b0a70
 
 void CGameType::PlaySong(void)												// 0x4b0ae0
 {
-	if (g_540c61 && g_song_db)				// music enabled
-		PlayMusic(g_song_db, g_540c50, g_song_id, 1);	// 0x4b8850 (0x540c50: music channel)
+	if (g_music_on && g_song_db)
+		PlayMusic(g_song_db, g_music_channel, (int)g_song_id, true);	// 0x4b8850
 }
 
 void CGameType::ToggleHelp(void)											// 0x4b0cd0

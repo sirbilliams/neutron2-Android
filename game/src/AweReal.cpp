@@ -1,6 +1,6 @@
 /*  CAweReal, omt_main and start-up helpers.  Reconstructed from Neutron2.exe.
     0x4a3c00 omt_main   0x4a3380 CAweReal::listen_to_message   0x4b3260 CInput::CInput
-    0x4b7db0 InitSoundEngine   0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
+    0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
 
 #include "Game.h"
 #include "CGameType.h"
@@ -9,10 +9,10 @@
 #include "Todo.h"
 #include "gen/globals.h"
 #include "CEditor.h"
+#include "Sound.h"
 #include "OMediaWindow.h"
 #include "OMediaEventManager.h"
 #include "OMediaEngineFactory.h"
-#include "OMediaSoundEngine.h"
 #include "OMediaInputEngine.h"
 #include "OMediaDefMessages.h"
 #include "OMediaError.h"
@@ -123,20 +123,6 @@ void neg::SetWindowTitle(void)			// 0x496110
 bool neg::CheckCD(void)					// 0x496200: "Please insert the Jimmy Neutron 2 CDROM"
 {
 	return true;						// no CD on this port
-}
-
-void neg::InitSoundEngine(void)			// 0x4b7db0
-{
-	SDL_Log("InitSoundEngine()");
-	// The original probes DirectSoundCreate first and disables sound if it fails, then prefers an
-	// engine with omseaf_NoChannelLimitation and reserves 32 channels.
-	OMediaEngineFactory *f = OMediaEngineFactory::get_factory();
-	omt_EngineID id = f->sound_engines.empty() ? ommeic_Best : f->sound_engines.front();
-	for (omt_EngineList::iterator i = f->sound_engines.begin(); i != f->sound_engines.end(); i++)
-		if (f->get_sound_engine_attr(*i) & omseaf_NoChannelLimitation) { id = *i; break; }
-	g_sound = f->create_sound_engine(id, g_window);
-	if (g_sound) g_sound->set_nchannels(0x20);
-	// 0x6f751c / 0x6f7334 / 0x6f73d4: three 32-entry tables cleared (channel bookkeeping)
 }
 
 static void PhysicsReset(void)			{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }

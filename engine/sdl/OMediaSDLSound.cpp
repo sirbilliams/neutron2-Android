@@ -1,6 +1,9 @@
 /*  OMT SDL platform layer - sound objects, software mixer, sound engine.  LGPL.
     OMT's DirectSound engine duplicated a buffer per channel; here every channel is a voice in
-    one SDL audio callback that resamples + mixes 8/16-bit mono/stereo PCM to S16 stereo. */
+    one SDL audio callback that resamples + mixes 8/16-bit mono/stereo PCM to S16 stereo.
+    Volume and pan follow OMediaDXSoundChannel (OMT2.dll 0x1003e380 / 0x1003e450): volume 0..255
+    maps to DirectSound hundredths of a dB (0 = silent, 255 = 0 dB, else -2700 - ftol(v * -2700/255)),
+    pan is passed through as DirectSound pan (hundredths of a dB taken off the other side). */
 
 #include "OMediaSDLRetarget.h"
 #include "OMediaSound.h"
@@ -9,6 +12,9 @@
 #include "OMediaError.h"
 #include "OMediaEndianSupport.h"
 #include <string.h>
+#include <math.h>
+
+static void omf_stop_voices_playing(const char *buffer, unsigned int size);
 
 // ---------------------------------------------------------------------------
 // OMediaSound: keep the RIFF image, locate fmt/data chunks properly.
@@ -92,7 +98,8 @@ unsigned int OMediaSound::get_approximate_size(void)
 void OMediaSound::purge()
 {
 	OMediaSDLRtgSound *rtg = (OMediaSDLRtgSound*)retarget;
-	delete_imp_slaves();
+	delete_imp_slaves();				// (DirectSound: releasing the buffers stops them)
+	omf_stop_voices_playing(rtg->sound, rtg->sound_size);
 	delete [] rtg->sound;
 	rtg->sound = NULL; rtg->sound_size = 0;
 	rtg->pcm = NULL; rtg->pcm_length = 0;
@@ -108,7 +115,7 @@ struct OMediaSDLVoice
 	unsigned int		frames;
 	double				pos, step;
 	int					channels, bits;
-	int					volume;		// 0..255
+	float				gain_l, gain_r;		// from the channel's volume and pan
 	bool				loop, active;
 };
 
@@ -141,8 +148,8 @@ static void SDLCALL omf_audio_cb(void *, Uint8 *stream, int len)
 				if (v->loop) { v->pos -= v->frames; f = (unsigned int)v->pos; }
 				else { v->active = false; continue; }
 			}
-			l += omf_sample(v, f, 0) * v->volume / 255;
-			r += omf_sample(v, f, 1) * v->volume / 255;
+			l += (int)((float)omf_sample(v, f, 0) * v->gain_l);
+			r += (int)((float)omf_sample(v, f, 1) * v->gain_r);
 			v->pos += v->step;
 		}
 		if (l > 32767) l = 32767; if (l < -32768) l = -32768;
@@ -150,6 +157,19 @@ static void SDLCALL omf_audio_cb(void *, Uint8 *stream, int len)
 		out[i * 2] = (Sint16)l; out[i * 2 + 1] = (Sint16)r;
 	}
 }
+
+static void omf_stop_voices_playing(const char *buffer, unsigned int size)
+{
+	if (!buffer) return;
+	if (omg_audio_dev) SDL_LockAudioDevice(omg_audio_dev);
+	const unsigned char *b = (const unsigned char*)buffer;
+	for (size_t i = 0; i < omg_voices.size(); i++)
+		if (omg_voices[i]->pcm >= b && omg_voices[i]->pcm < b + size) omg_voices[i]->active = false;
+	if (omg_audio_dev) SDL_UnlockAudioDevice(omg_audio_dev);
+}
+
+// DirectSound attenuation (hundredths of a dB, <= 0) as an amplitude factor; -10000 is silence.
+static inline float omf_ds_gain(long att) { return att <= -10000 ? 0.0f : powf(10.0f, (float)att / 2000.0f); }
 
 static void omf_open_audio(void)
 {
@@ -173,7 +193,9 @@ class OMediaSDLSoundChannel : public OMediaSoundChannel
 	public:
 	OMediaSDLSoundChannel()
 	{
-		voice.active = false; voice.frames = 0; voice.pcm = NULL; voice.volume = 255;
+		voice.active = false; voice.frames = 0; voice.pcm = NULL;
+		ds_volume = 0; ds_pan = 0;
+		update_gains();
 		if (omg_audio_dev) SDL_LockAudioDevice(omg_audio_dev);
 		omg_voices.push_back(&voice);
 		if (omg_audio_dev) SDL_UnlockAudioDevice(omg_audio_dev);
@@ -199,7 +221,7 @@ class OMediaSDLSoundChannel : public OMediaSoundChannel
 		voice.frames = s->pcm_length / (s->channels * (s->bits / 8));
 		voice.pos = 0;
 		voice.step = double(frequence ? frequence : s->freq) / double(omg_out_freq);
-		voice.volume = volume; voice.loop = loop; voice.active = true;
+		voice.loop = loop; voice.active = true;
 		if (omg_audio_dev) SDL_UnlockAudioDevice(omg_audio_dev);
 		last_played = sound;
 		current_looped = loop;
@@ -238,15 +260,47 @@ class OMediaSDLSoundChannel : public OMediaSoundChannel
 		start(q.sound, q.loop);
 	}
 
-	virtual void set_volume(short v) { volume = v; voice.volume = v; }
+	// OMediaDXSoundChannel::set_volume: the value is kept, and a level DirectSound refuses
+	// (above 0 dB, from volumes over 255) leaves the buffer's volume unchanged.
+	virtual void set_volume(short v)
+	{
+		volume = v;
+		long att;
+		if (v == 0) att = -10000;
+		else if (v == 255) att = 0;
+		else att = -2700 - (long)((double)v * -10.588235294117647);
+		if (att > 0 || att < -10000) return;
+		ds_volume = att;
+		update_gains();
+	}
+
+	virtual void set_pan(long p)
+	{
+		pan = p;
+		if (p > 10000 || p < -10000) return;		// DSERR_INVALIDPARAM
+		ds_pan = p;
+		update_gains();
+	}
+
+	void update_gains(void)
+	{
+		float g = omf_ds_gain(ds_volume);
+		float l = ds_pan > 0 ? g * omf_ds_gain(-ds_pan) : g;
+		float r = ds_pan < 0 ? g * omf_ds_gain(ds_pan) : g;
+		if (omg_audio_dev) SDL_LockAudioDevice(omg_audio_dev);
+		voice.gain_l = l; voice.gain_r = r;
+		if (omg_audio_dev) SDL_UnlockAudioDevice(omg_audio_dev);
+	}
 
 	virtual void set_frequency(unsigned int f)
 	{
+		if (f && (f < 100 || f > 100000)) return;		// outside DSBFREQUENCY_MIN..MAX: DirectSound refuses it
 		frequence = f;
 		if (f && voice.active) voice.step = double(f) / double(omg_out_freq);
 	}
 
 	OMediaSDLVoice voice;
+	long ds_volume, ds_pan;				// what DirectSound accepted last
 };
 
 // ---------------------------------------------------------------------------

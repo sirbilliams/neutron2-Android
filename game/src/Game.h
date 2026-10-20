@@ -69,7 +69,6 @@ void DeleteAllObjects(void);								// 0x4ae4a0
 void OpenDebugLog(void);									// 0x4b3ac0
 void SetWindowTitle(void);									// 0x496110
 bool CheckCD(void);											// 0x496200
-void InitSoundEngine(void);									// 0x4b7db0
 void LoadNewLevel(unsigned int which);						// omt_main / AWEMSG_LOAD
 void SDLKeyToVK(int sdl_scancode, bool down);				// SDL replacement for WM_KEYDOWN/UP
 }
