@@ -23,7 +23,6 @@ using namespace neg;
 // --------------------------------------------------------------------------- not reconstructed yet
 
 static void UpdateTextureAnims(float dt)	{ (void)dt; NEG_TODO(0x4a28c0, "texture animations (list 0x56ad7c)"); }
-static void UpdateInput(void)				{ NEG_TODO(0x4b35d0, "input / joystick poll"); }
 static void UpdateFrameRate(float dt)		{ (void)dt; NEG_TODO(0x4b2d90, "frame rate average / debug overlay"); }
 static void SetClearLayerViewMatrix(void)
 {
@@ -93,7 +92,7 @@ void CViewPort::render_viewport(OMediaRendererInterface *rdr_i)				// 0x4b96a0
 			PhysicsProcess(g_frame_time);	// 0x4b4c60
 			UpdateTextureAnims(g_frame_time);	// 0x4a28c0
 		}
-		UpdateInput();						// 0x4b35d0
+		UpdateInput();						// 0x4b35d0 joystick poll (Input.cpp)
 		UpdateSounds();						// 0x4b8a30
 		PreUpdateObjects();					// 0x4ae5b0
 		UpdateObjects();					// 0x4ae580

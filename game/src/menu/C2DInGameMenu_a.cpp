@@ -23,16 +23,6 @@ using namespace neg;
 
 #define COUNTOF(a) ((int)(sizeof(a) / sizeof((a)[0])))
 
-// --------------------------------------------------------------------------- other systems
-
-// 0x4b3460 FindDevice(type): (re)selects the OMT input device of the given type (CInput).
-static unsigned char FindDevice(unsigned int type)
-{
-	(void)type;
-	NEG_TODO(0x4b3460, "FindDevice (input device selection)");
-	return 0;
-}
-
 // --------------------------------------------------------------------------- helpers
 
 static unsigned int fbits(float f) { unsigned int u; memcpy(&u, &f, 4); return u; }
@@ -181,7 +171,7 @@ C2DInGameMenu::C2DInGameMenu()
 	SetName(tag);
 	Log("C2DInGameMenu()");
 	CLocalGameObject::InitObject();
-	FindDevice(2);
+	FindDevice(2);								// 0x4b3460 (Input.cpp): the first joystick (omhidtc_Joystick)
 	v64(0.3f);
 	m_object_id = 'NEM2';
 
