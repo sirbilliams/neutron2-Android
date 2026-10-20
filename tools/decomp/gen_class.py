@@ -26,8 +26,8 @@ from fields import load, this_scale, num, analyse
 GT = {'uint': 'U', 'int': 'I', 'uchar': 'B', 'char': 'B', 'bool': 'B', 'byte': 'B', 'float': 'F', 'float10': 'F',
       'int32_t': 'I', 'uint32_t': 'U', 'int16_t': 'S', 'uint16_t': 'S', 'ushort': 'S', 'short': 'S',
       'uint8_t': 'B', 'int8_t': 'B', 'undefined4': 'U', 'undefined': 'B'}
-CT = {'F': 'float', 'B': 'unsigned char', 'S': 'short', 'I': 'int', 'U': 'unsigned int'}
-RANK = 'FBSIU'                    # strongest evidence first
+CT = {'P': 'void *', 'F': 'float', 'B': 'unsigned char', 'S': 'short', 'I': 'int', 'U': 'unsigned int'}
+RANK = 'PFBSIU'                   # strongest evidence first (pointers: 8 bytes on 64-bit)
 
 SIG = re.compile(r'^\s*(?P<ret>[\w ]+?\s*\**)\s*(?:__thiscall|__fastcall|__cdecl|__stdcall)?\s*(?P<name>[\w.]+)\s*\((?P<args>[^)]*)\)', re.S)
 FIELD = re.compile(r'\*\s*\(\s*(?P<t>\w+)\s*\*+\s*\)\s*\(\s*(?P<cast>\(int\)\s*)?param_1\s*\+\s*(?P<k>0x[0-9a-f]+|\d+)\s*\)|\bparam_1\s*\[\s*(?P<i>0x[0-9a-f]+|\d+)\s*\]|\*\s*\(\s*(?P<t0>\w+)\s*\*+\s*\)\s*param_1\b(?!\s*\[)')
@@ -79,6 +79,7 @@ class Gen:
         s.uf = UF()
         s.vt = classes[cls]['vtables'][0]['methods']
         s.fields_used = set()
+        s.ftype_override = {}
 
     def slotname(s, slot):
         return s.names.get(slot) or f'v{slot}'
@@ -107,6 +108,7 @@ class Gen:
                     elif t in ('char', 'uchar', 'bool'): s.uf.e(('F', r['off']), 'B')
                     elif t in ('short', 'ushort', 'int16_t'): s.uf.e(('F', r['off']), 'S')
                     elif t in ('int', 'int32_t'): s.uf.e(('F', r['off']), 'I')
+                    elif t == 'ptr': s.uf.e(('F', r['off']), 'P')
                 d = r.get('default')
                 if isinstance(d, str) and d.startswith('0x') and len(d) >= 9:
                     v = int(d, 16)
@@ -313,9 +315,13 @@ def main():
     hdrtext = ''.join(open(fn).read() for fn in hand_files if not fn.endswith('.cpp'))
     if hdrtext:
         # `// TYPE <off> <ctype>`: a field type known from hand-written code (authoritative)
-        CK = {'float': 'F', 'int': 'I', 'unsigned': 'U', 'uint': 'U', 'uchar': 'B', 'short': 'S'}
-        for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+(\w+)', hdrtext):
-            g.uf.ev[g.uf.f(('F', num(o)))] = {CK[t]}
+        CK = {'float': 'F', 'int': 'I', 'unsigned': 'U', 'uint': 'U', 'uchar': 'B', 'short': 'S', 'ptr': 'P'}
+        for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+([^\n]+)', hdrtext):
+            t = t.strip()
+            if t in CK: g.uf.ev[g.uf.f(('F', num(o)))] = {CK[t]}
+            else:
+                g.uf.ev[g.uf.f(('F', num(o)))] = {'P'}
+                g.ftype_override[num(o)] = t
         TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
         for d in re.finditer(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*SLOT\s+(?P<n>\d+)', hdrtext):
             si = int(d.group('n'))
@@ -366,18 +372,19 @@ def main():
     allf = {k for k in (set(g.fields_used) | {r['off'] for r in fieldrows if r['sub'] == 0 and r['off'] >= 4}) if k >= max(4, base_size)}
     with open(f'{a.out}/{a.cls}_fields.inc', 'w') as fh:
         fh.write(hdr)
-        SZ = {'float': 4, 'unsigned int': 4, 'int': 4, 'unsigned char': 1, 'short': 2}
+        SZ = {'float': 4, 'unsigned int': 4, 'int': 4, 'unsigned char': 1, 'short': 2, 'void *': 8}
         end = None
         for k in sorted(allf):
             if claimed(k):
                 end = None; continue
             t = g.uf.t(('F', k))
+            if k in g.ftype_override: t = g.ftype_override[k]
             if end is not None and k < end:
                 fh.write(f'\t// f_{k:03x} overlaps the previous field\n'); continue
             if end is not None and k > end and not any(claimed(x) for x in range(end, k)):
                 fh.write(f'\tunsigned char  _gap_{end:03x}[{k - end}];\n')
             fh.write(f'\t{t:<14} f_{k:03x};\n')
-            end = k + SZ[t]
+            end = k + (4 if '*' in t else SZ[t])          # original size: pointers were 4 bytes
     with open(f'{a.out}/{a.cls}_slots.inc', 'w') as fh:
         fh.write(hdr)
         for si in sorted(set(gen) | set(todo)):

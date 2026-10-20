@@ -32,7 +32,7 @@ struct CProperty
 
 enum { PROP_NONE = 0, PROP_ALPHA = 1, PROP_BOOL = 2, PROP_FLOAT = 3, PROP_SPECIFIC = 4, PROP_5 = 5, PROP_LONG = 6 };
 
-class CGameObject : public OMediaClassStreamer
+class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the original (vbptr at +4)
 {
 	public:
 	CGameObject();															// 0x4aa960

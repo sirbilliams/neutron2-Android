@@ -56,6 +56,19 @@ ACC_IDX = re.compile(r'\bparam_1\s*\[\s*(0x[0-9a-f]+|\d+)\s*\]')
 PROP = re.compile(r'0x3fc\)\)\s*\(\s*"([^"]+)"\s*,\s*(\(int\)\s*)?param_1\s*(?:\+\s*(0x[0-9a-f]+|\d+))?\s*,\s*(\d+)')
 
 
+K_ = r'(?:\(\s*(?P<cast>\(int\)\s*)?param_1\s*\+\s*(?P<k>0x[0-9a-f]+|\d+)\s*\)|param_1\s*\[\s*(?P<i>0x[0-9a-f]+|\d+)\s*\])'
+I_ = r'param_1\s*\[\s*(?P<i>0x[0-9a-f]+|\d+)\s*\](?P<cast>)(?P<k>)'
+PTR_PATTERNS = [
+    re.compile(r'\*\s*\(\s*\w+\s*\*\*+\s*\)\s*' + K_),                                  # *(T **)(this+K)
+    re.compile(r'\*\s*\(\s*\w+\s*\*+\s*\)\s*\(\s*\*\s*\(\s*\w+\s*\*+\s*\)\s*' + K_ + r'\s*\+'),  # *(T*)(*(U*)(this+K) + n)
+    re.compile(r'\*\s*\(\s*\w+\s*\*+\s*\)\s*\(\s*' + I_ + r'\s*\+'),                  # *(T*)(this[K] + n)
+    re.compile(r'\*\s*\(\s*\w+\s*\*+\s*\)\s*' + I_),                                     # *(T*)this[K]
+    re.compile(r'\(\s*\w+\s*\*+\s*\)\s*' + I_ + r'(?!\s*[+\-*/\[])'),                   # (T*)this[K]
+    re.compile(r'\(\s*\*\s*\(\s*\w+\s*\*+\s*\)\s*' + K_ + r'\s*\)\s*\['),         # (*(T*)(this+K))[n]
+    re.compile(r'\*\*\s*\(\s*\w+\s*\*\*+\s*\)\s*' + K_),                               # **(T **)(this+K)
+]
+
+
 def scan(body, scale):
     acc = []
     for m in ACC_CAST.finditer(body):
@@ -63,6 +76,11 @@ def scan(body, scale):
         acc.append((k, m.group(1), m.start()))
     for m in ACC_IDX.finditer(body):
         acc.append((num(m.group(1)) * scale, None, m.start()))
+    for pat in PTR_PATTERNS:
+        for m in pat.finditer(body):
+            if m.group('i'): k = num(m.group('i')) * scale
+            else: k = num(m.group('k')) * (1 if m.group('cast') else scale)
+            if k: acc.append((k, 'ptr', m.start()))
     props = []
     for m in PROP.finditer(body):
         k = num(m.group(3)) if m.group(3) else 0
@@ -141,8 +159,9 @@ def analyse(cls, classes, funcs):
                 out[(sub, k)]['names'].add(f'{pname}:{PROP_TYPES.get(pt, pt)}')
     # constructors / destructors: functions that install this class's own vtable
     want = f'vtable.{cls}.0;'
+    vnum = f"*param_1 = {classes[cls]['vtables'][-1]['addr']};"
     for a, (name, body) in funcs.items():
-        if name.startswith('fcn.') and ('*param_1 = ' + want in body or '= (int)' + want in body):
+        if name.startswith('fcn.') and ('*param_1 = ' + want in body or '= (int)' + want in body or vnum in body):
             sc = this_scale(body) or 4
             acc, props = scan(body, sc)
             for k, t, _ in acc:
@@ -157,7 +176,8 @@ def ctor_defaults(cls, classes, funcs):
     want = f'vtable.{cls}.0;'
     d = {}
     for a, (name, body) in funcs.items():
-        if want in body and name.startswith('fcn.') and ('*param_1 = ' + want in body or '= (int)' + want in body):
+        vnum = f"*param_1 = {c['vtables'][-1]['addr']};"
+        if name.startswith('fcn.') and (('*param_1 = ' + want in body or '= (int)' + want in body) or vnum in body):
             sc = this_scale(body) or 4
             for m in re.finditer(r'(\*\s*\(\s*\w+\s*\*+\s*\)\s*\(\s*(?:\(int\)\s*)?param_1\s*\+\s*(?:0x[0-9a-f]+|\d+)\s*\)|\bparam_1\s*\[\s*(?:0x[0-9a-f]+|\d+)\s*\])\s*=\s*(-?0x[0-9a-f]+|-?\d+)\s*;', body):
                 lhs = m.group(1)
