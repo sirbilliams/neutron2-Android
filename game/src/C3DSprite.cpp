@@ -1,4 +1,5 @@
 /*  C3DSprite - see C3DSprite.h. Also the sprite canvas loaders 0x4b2600 / 0x4b2750. */
+#include "DatabaseCache.h"
 #include "C3DSprite.h"
 #include "Game.h"
 #include "Todo.h"
@@ -21,19 +22,9 @@ static void PhysicsAddObject(CGameObject *o)				// 0x4b4ae0
 	(void)o; NEG_TODO(0x4b4ae0, "CPhysics::AddObject");
 }
 
-// 0x4a4180: the level's database cache (list 0x56aef4): returns the open database of
-// "omt\<name>" (falls back to "c:\omt\<name>"), opening and caching it on first use;
-// "Icons.omt" goes to the permanent cache (0x4a4560) instead.
-static OMediaDataBase *GetDatabase(const char *name)
-{
-	(void)name; NEG_TODO(0x4a4180, "GetDatabase (level database cache 0x56aef4)"); return NULL;
-}
-
-// 0x4a4560: the same for the databases kept over level changes (list 0x56aee4).
-static OMediaDataBase *GetPermanentDatabase(const char *name)
-{
-	(void)name; NEG_TODO(0x4a4560, "GetPermanentDatabase (permanent database cache 0x56aee4)"); return NULL;
-}
+// 0x4a4180 / 0x4a4560: the level and permanent database caches (DatabaseCache.cpp).
+using neg::GetDatabase;
+using neg::GetPermanentDatabase;
 
 // The game's paths are DOS-style and relative (".\omt\x.omt"), as in Alpha.cpp.
 static std::string port_path(const std::string &dos)

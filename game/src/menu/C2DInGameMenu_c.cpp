@@ -9,6 +9,7 @@
 
     Menu numbers (MenuIndex): -1 NO_MENU, 0 INV_MENU, 1 PHONE_MENU, 2 PICKUPS_MENU, 3 MAIN_MENU,
     4 SAVE_MENU, 5 OPTIONS_MENU, 6 CREDITS_MENU.                                                */
+#include "../DatabaseCache.h"
 #include "../C2DInGameMenu.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
@@ -169,10 +170,9 @@ static void PlaySfx(int channel, std::string name, int a)				// 0x48f420 (plays 
 	NEG_TODO(0x48f420, "PlaySfx"); (void)channel; (void)name; (void)a;
 }
 
-static void *LoadMusic(const char *omt_name)							// 0x4a4180
+static void *LoadMusic(const char *omt_name)							// 0x4a4180 GetDatabase: the music lives in its own .omt
 {
-	NEG_TODO(0x4a4180, "LoadMusic"); (void)omt_name;
-	return NULL;
+	return neg::GetDatabase(omt_name);
 }
 
 static void PlayMusic(void *music, int channel, int a, bool b)			// 0x4b8850

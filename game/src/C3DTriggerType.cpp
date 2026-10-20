@@ -1,4 +1,5 @@
 /*  C3DTriggerType - see C3DTriggerType.h. */
+#include "DatabaseCache.h"
 #include "C3DTriggerType.h"
 #include "CGameType.h"
 #include "CEditor.h"
@@ -26,11 +27,8 @@ static CGameObject *FindObjectByTag(const char *tag)
 	return NULL;
 }
 
-// 0x4a4180: the level's database cache (see C3DSprite.cpp).
-static OMediaDataBase *GetDatabase(const char *name)
-{
-	(void)name; NEG_TODO(0x4a4180, "GetDatabase (level database cache 0x56aef4)"); return NULL;
-}
+// 0x4a4180: the level's database cache (DatabaseCache.cpp).
+using neg::GetDatabase;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 

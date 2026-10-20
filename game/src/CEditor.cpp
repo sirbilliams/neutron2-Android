@@ -6,6 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "DatabaseCache.h"
 #include "CEditor.h"
 #include "CDefaultGame.h"
 #include "CViewPort.h"
@@ -218,8 +219,8 @@ static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 
 // --- not reconstructed yet
 static void PhysicsReset(void)					{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
-static void CloseAllDatabases(void)				{ NEG_TODO(0x4a4870, "CloseAllDatabases (object database cache 0x56aef4)"); }
-static const char *DatabaseName(int i)			{ NEG_TODO(0x4a4a40, "DatabaseName (object database cache 0x56aef4)"); (void)i; return NULL; }
+using neg::CloseAllDatabases;							// 0x4a4870 (DatabaseCache.cpp)
+using neg::DatabaseName;								// 0x4a4a40
 static bool ReadTaskFile(const char *name)		// 0x497b10: reads save\<name>'s header; true when it is usable
 {
 	NEG_TODO(0x497b10, "ReadTaskFile (savegame header)");
