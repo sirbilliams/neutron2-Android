@@ -8,6 +8,9 @@
 #pragma once
 #include "CLocalGameObject.h"
 #include "gen/globals.h"
+#include "InterfaceElement.h"
+
+class OMediaFileStream;
 
 class C2DInGameMenu : public CLocalGameObject
 {
@@ -20,5 +23,9 @@ class C2DInGameMenu : public CLocalGameObject
 #include "menu/C2DInGameMenu_c.inc"
 #include "menu/C2DInGameMenu_d.inc"
 #include "gen/C2DInGameMenu_slots.inc"
+
+	// TYPE 0x4c8 OMediaFileStream *
+	// FIELD 0x524 100
+	char			f_524[100];			// 0x524  a name, compared with _stricmp
 #include "gen/C2DInGameMenu_fields.inc"
 };
