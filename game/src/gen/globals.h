@@ -399,7 +399,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54048f (&neg::g_data[0xe48f])		// address only
 #define g_540590 (*(char *)&neg::g_data[0xe590])
 #define g_540594 (*(float *)&neg::g_data[0xe594])
-#define g_540598 ((unsigned int *)&neg::g_data[0xe598])		// array, stride 4
 #define g_5405b8 (&neg::g_data[0xe5b8])		// address only
 #define g_5406e0 ((int *)&neg::g_data[0xe6e0])		// array, stride 4
 #define g_5407dc (&neg::g_data[0xe7dc])		// address only
@@ -854,7 +853,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_5461d0 ((int *)&neg::g_data[0x141d0])		// array, stride 260
 #define g_5461d8 (&neg::g_data[0x141d8])		// address only
 #define g_54a3d4 (*(char *)&neg::g_data[0x183d4])
-#define g_54a3d8 (*(char *)&neg::g_data[0x183d8])
 #define g_54a3dc (&neg::g_data[0x183dc])		// address only
 #define g_54a400 (*(float *)&neg::g_data[0x18400])
 #define g_54a414 (neg::g_ptrs[0x6105])		// pointer
@@ -1020,27 +1018,10 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_56af24 (neg::g_ptrs[0xe3c9])		// pointer
 #define g_56af34 (neg::g_ptrs[0xe3cd])		// pointer
 #define g_56af38 (*(int *)&neg::g_data[0x38f38])
-#define g_56af3c (*(unsigned int *)&neg::g_data[0x38f3c])
 #define g_56af41 (*(char *)&neg::g_data[0x38f41])
 #define g_56af42 (*(char *)&neg::g_data[0x38f42])
 #define g_56af43 (*(char *)&neg::g_data[0x38f43])
 #define g_56af44 (*(char *)&neg::g_data[0x38f44])
-#define g_56af45 (*(unsigned char *)&neg::g_data[0x38f45])
-#define g_56af48 (*(int *)&neg::g_data[0x38f48])
-#define g_56af4c (*(int *)&neg::g_data[0x38f4c])
-#define g_56af50 (neg::g_ptrs[0xe3d4])		// pointer
-#define g_56af54 (*(int *)&neg::g_data[0x38f54])
-#define g_56af58 (neg::g_ptrs[0xe3d6])		// pointer
-#define g_56af5c (*(int *)&neg::g_data[0x38f5c])
-#define g_56af60 (*(int *)&neg::g_data[0x38f60])
-#define g_56af64 (*(int *)&neg::g_data[0x38f64])
-#define g_56af68 (*(int *)&neg::g_data[0x38f68])
-#define g_56af6c (*(int *)&neg::g_data[0x38f6c])
-#define g_56af70 (*(int *)&neg::g_data[0x38f70])
-#define g_56af74 (*(int *)&neg::g_data[0x38f74])
-#define g_56af7c (neg::g_ptrs[0xe3df])		// pointer
-#define g_56af80 (neg::g_ptrs[0xe3e0])		// pointer
-#define g_56af86 (*(char *)&neg::g_data[0x38f86])
 #define g_56af94 (neg::g_ptrs[0xe3e5])		// pointer
 #define g_56af98 (*(int *)&neg::g_data[0x38f98])
 #define g_56afa0 (*(float *)&neg::g_data[0x38fa0])
@@ -1152,16 +1133,9 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_6f7518 (neg::g_ptrs[0x71546])		// pointer
 #define g_6f751c ((float *)&neg::g_data[0x1c551c])		// array, stride 4
 #define g_6f759c (neg::g_ptrs[0x71567])		// pointer
-#define g_6f75a0 (neg::g_ptrs[0x71568])		// pointer
 #define g_6f75a8 (*(char *)&neg::g_data[0x1c55a8])
 #define g_6f75ac (*(unsigned short *)&neg::g_data[0x1c55ac])
-#define g_6f75b0 (*(unsigned int *)&neg::g_data[0x1c55b0])
 #define g_6f75b4 (*(int *)&neg::g_data[0x1c55b4])
-#define g_6f75b8 (*(unsigned int *)&neg::g_data[0x1c55b8])
-#define g_6f75c0 (*(int *)&neg::g_data[0x1c55c0])
-#define g_6f75c8 (*(float *)&neg::g_data[0x1c55c8])
-#define g_6f75cc (*(int *)&neg::g_data[0x1c55cc])
-#define g_6f75dc (neg::g_ptrs[0x71577])		// pointer
 #define g_6f75e0 (*(int *)&neg::g_data[0x1c55e0])
 #define g_6f75e4 (*(unsigned short *)&neg::g_data[0x1c55e4])
 #define g_6f75e8 (*(int *)&neg::g_data[0x1c55e8])
