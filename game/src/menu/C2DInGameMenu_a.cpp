@@ -53,7 +53,7 @@ static OMediaCanvasElementWrapper *NewSprite(OMediaLayer *layer)
 // is an `int` there); this is the one call to adapt once part b gives v290 its real signature.
 static void PlaceSprite(C2DInGameMenu *m, OMediaCanvasElementWrapper *s, float x, float y, int canvas_id)
 {
-	m->v290((int)(intptr_t)s, fbits(x), fbits(y), (unsigned int)canvas_id, fbits(1.0f), 1.0f, 0);
+	m->SetupSprite(s, x, y, canvas_id, 1.0f, true, 0.0f);
 }
 
 // The fields the constructor writes into a static interface element (what Create would set).
@@ -193,7 +193,7 @@ C2DInGameMenu::C2DInGameMenu()
 	f_4c8 = InitFileStream("omt\\screens.omt");
 	g_screens_db = InitDatabase(f_4c8);
 	f_4ce = -1;
-	v295();											// builds the menu pages
+	CreateMenuPages();											// builds the menu pages
 	f_590 = -1;
 
 	// Full screen: most frame sprites are drawn additively (dest blend One).

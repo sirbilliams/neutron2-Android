@@ -18,6 +18,7 @@ class C2DInGameMenu : public CLocalGameObject
 	C2DInGameMenu();														// 0x401380
 	virtual ~C2DInGameMenu();												// SLOT 0  0x403f80 / 0x403fa0
 
+#include "menu/C2DInGameMenu_types.inc"
 #include "menu/C2DInGameMenu_a.inc"
 #include "menu/C2DInGameMenu_b.inc"
 #include "menu/C2DInGameMenu_c.inc"

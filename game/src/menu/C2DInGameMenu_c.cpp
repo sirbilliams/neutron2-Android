@@ -48,8 +48,7 @@ static inline float screen_sy(void) { return (float)(short)g_screen_h * (1.0f / 
 // (OMediaCanvasElementWrapper *, float x, float y, int id, float, bool scaled, float z).
 static void PlaceSprite(C2DInGameMenu *m, OMediaCanvasElementWrapper *e, float x, float y, int canvas_id)
 {
-	m->v290((int)(intptr_t)e, (unsigned int)(int)x, (unsigned int)(int)y, (unsigned int)canvas_id,
-			0x3f800000u, 1.0f, 0);
+	m->SetupSprite(e, x, y, canvas_id, 1.0f, true, 0.0f);
 }
 
 // The element's "show, whatever the hide count" idiom: if (hide_count) { hide_count = 1; hide(false); }
@@ -576,7 +575,7 @@ void C2DInGameMenu::ShowMainMenuInfo(int item)							// 0x405e30
 	if (f_4ce != MENU_MAIN) return;
 	if (g_main_menu_over == item) return;
 	g_main_menu_over = item;
-	v287();
+	ResetInterface();
 
 	const char *text;
 	InterfaceElt *wire, *pic;
@@ -604,7 +603,7 @@ void C2DInGameMenu::ShowMainMenuInfo(int item)							// 0x405e30
 	g_5324f4 = 40.0f;
 	g_545e4c = 0;
 	g_545e48 = 0;
-	v303();
+	PlayPdaIntro();
 	QueueItemInfo(wire, pic);
 	if (item == 16 || item == 33)
 	{
@@ -621,17 +620,17 @@ void C2DInGameMenu::MainMenuAction(short item)							// 0x40faf0
 	switch (item)
 	{
 		case 1:			// EXIT: quit confirmation
-			v287();
-			v294();
+			ResetInterface();
+			DeactivateActiveMenu();
 			OpenDialog(g_dlg_quit, 7);
 			break;
 		case 2:			// RETURN
-			v294();
+			DeactivateActiveMenu();
 			GameTypeSetMenuMode(false);
 			break;
 		case 3:			// LOAD / SAVE: read the header of each save slot
 		{
-			v293(4);
+			ActivateActiveMenu(4);
 			char keep1[120], keep2[120];
 			strcpy(keep1, (char *)g_54e6a4);
 			strcpy(keep2, (char *)g_54e71c);
@@ -653,23 +652,23 @@ void C2DInGameMenu::MainMenuAction(short item)							// 0x40faf0
 			break;
 		}
 		case 4:			// OPTIONS
-			v293(5);
+			ActivateActiveMenu(5);
 			break;
 		case 6:			// CREDITS
-			v293(6);
+			ActivateActiveMenu(6);
 			break;
 		case 12:
-			v293(0);
+			ActivateActiveMenu(0);
 			break;
 		case 13:		// PICKUPS
-			v293(2);
+			ActivateActiveMenu(2);
 			break;
 		default:		// a level
 			v342(item);
 			GameTypeSetMenuMode(false);
 			break;
 	}
-	v287();
+	ResetInterface();
 }
 
 // --------------------------------------------------------------------------- clicks
@@ -748,7 +747,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 			f_5a5 = 1;
 			v132(1);
 			if (f_590 == -1) break;
-			v293(3);
+			ActivateActiveMenu(3);
 			f_590 = 3;
 			break;
 
@@ -756,7 +755,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 			if (f_5a5) break;
 			f_5a5 = 1;
 			v132(1);
-			v294();
+			DeactivateActiveMenu();
 			v342(over);
 			GameTypeSetMenuMode(false);
 			break;
@@ -766,8 +765,8 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 			if (f_5a5) break;
 			f_5a5 = 1;
 			v132(1);
-			v294();
-			v293(3);
+			DeactivateActiveMenu();
+			ActivateActiveMenu(3);
 			f_590 = 3;
 			break;
 
@@ -775,7 +774,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 			if (f_5a9) break;			// (always clear: reset just above)
 			f_5a9 = 1;
 			v132(1);
-			v294();
+			DeactivateActiveMenu();
 			MainMenuAction(over);
 			break;
 
@@ -787,30 +786,30 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 			{
 				case 1:					// back
 					f_5a6 = 1;
-					v294();
-					if (f_590 != -1) v293(3);
+					DeactivateActiveMenu();
+					if (f_590 != -1) ActivateActiveMenu(3);
 					else GameTypeSetMenuMode(false);
 					break;
 				case 2:
 					f_5a6 = 1;
-					v294();
+					DeactivateActiveMenu();
 					OpenDialog(g_dlg_11, 11);
 					break;
 				case 3:
 					f_5a6 = 1;
 					if (!SlotUsed()) break;
-					v294();
+					DeactivateActiveMenu();
 					OpenDialog(g_dlg_9, 9);
 					break;
 				case 4:					// save: over a used slot asks first
 					f_5a6 = 1;
 					if (SlotUsed())
 					{
-						v294();
+						DeactivateActiveMenu();
 						OpenDialog(g_dlg_8, 8);
 						break;
 					}
-					v294();
+					DeactivateActiveMenu();
 					SaveToSlot();
 					PlayMenuSound("pickup2");
 					GameTypeSetMenuMode(false);
@@ -818,7 +817,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 				case 5:
 					f_5a6 = 1;
 					if (!SlotUsed()) break;
-					v294();
+					DeactivateActiveMenu();
 					OpenDialog(g_dlg_13, 13);
 					PlayMenuSound("toilet1");
 					break;
@@ -853,8 +852,8 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 				case 3:					// back
 					f_5a4 = 1;
 					v132(1);
-					v294();
-					v293(3);
+					DeactivateActiveMenu();
+					ActivateActiveMenu(3);
 					f_590 = 3;
 					break;
 				case 4:					// sound louder

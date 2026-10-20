@@ -1,0 +1,46 @@
+# C2DInGameMenu part b (Process, game-mode changes, pages, sprite helpers)
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+
+# menu pages (C2DInGameMenu::MenuPage *, read through C2DInGameMenu::GetPage)
+0x545da8 ptrarray MenuPage* g_menu_pages
+0x545dac ptr void* g_menu_page1
+
+# HUD sprites (OMediaCanvasElementWrapper, created by the constructor 0x401380)
+0x545854 ptr OMediaCanvasElementWrapper* g_545854
+0x5448e4 ptr OMediaCanvasElementWrapper* g_hud_health_bar          # sized/coloured by slot 310
+0x545968 ptr OMediaCanvasElementWrapper* g_545968
+0x5446f4 ptrarray OMediaCanvasElementWrapper* g_help_icons         # [14], indexed by g_help_index
+0x5446ec ptr OMediaCanvasElementWrapper* g_5446ec
+0x5444bc ptr OMediaCanvasElementWrapper* g_score_box               # canvas 0x221 (shown by 0x409d50 / 0x410600)
+0x5444c4 ptr OMediaCanvasElementWrapper* g_score_box2              # canvas 0x222 (when 0x545f0d is set)
+0x545a60 ptr OMediaCanvasElementWrapper* g_545a60
+0x545844 ptr OMediaCanvasElementWrapper* g_545844
+0x545a64 ptr OMediaCanvasElementWrapper* g_545a64
+0x5445dc ptr OMediaCanvasElementWrapper* g_5445dc
+# the yes/no dialog (0x40a170; open while 0x545dd4 is set)
+0x5448e0 ptr OMediaCanvasElementWrapper* g_dialog_5448e0
+0x5446f0 ptr OMediaCanvasElementWrapper* g_dialog_5446f0
+0x544904 ptr OMediaCanvasElementWrapper* g_dialog_544904
+0x545c7c ptr OMediaCanvasElementWrapper* g_dialog_545c7c
+0x545850 ptr OMediaCanvasElementWrapper* g_dialog_545850
+0x545848 ptr OMediaCanvasElementWrapper* g_dialog_545848
+0x544748 ptr OMediaCanvasElementWrapper* g_dialog_no_hi             # highlighted while the cursor is on "no"
+0x545a68 ptr OMediaCanvasElementWrapper* g_dialog_yes_hi            # highlighted while the cursor is on "yes"
+# the 3 + 6 indicator sprites faded by UpdateIndicator (slot 311), set by 0x40ac50
+0x5448f0 ptr OMediaCanvasElementWrapper* g_ind_a0
+0x5448f4 ptr OMediaCanvasElementWrapper* g_ind_a1
+0x5448fc ptr OMediaCanvasElementWrapper* g_ind_a2
+0x54472c ptr OMediaCanvasElementWrapper* g_ind_b0
+0x544730 ptr OMediaCanvasElementWrapper* g_ind_b1
+0x544734 ptr OMediaCanvasElementWrapper* g_ind_b2
+0x544738 ptr OMediaCanvasElementWrapper* g_ind_b3
+0x54473c ptr OMediaCanvasElementWrapper* g_ind_b4
+0x544740 ptr OMediaCanvasElementWrapper* g_ind_b5
+
+0x5444cc ptr InterfaceElt* g_help_menu_elt                         # g_interface.Find("HelpMenu")
+0x545d9c val int g_help_index                                       # index into g_help_icons / g_elt_544908
+0x53b5ac val float g_health                                         # drawn "%d" by Process, passed to slot 310
+0x53b5b4 val int g_game_mode                                        # 0 Starting 1 Loading 2 Saving 3 CutScene 4 Menu 5 Playing 6 Paused 9 None
+0x53b5b8 val int g_prev_game_mode
+0x545ee0 array char g_game_mode_name                                # "Playing", ... (set by slot 270)
+0x544750 array int g_pickup_counts                                  # [50][2]: count of pickup i at [2*i]
