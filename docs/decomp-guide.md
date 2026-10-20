@@ -201,3 +201,10 @@ comparison, a file name) are code, and are fine.
   omelf_SecondPass | omelf_DisableRotate | omelf_FaceViewport and omcanef_FreeWorldSize; the
   canvas pattern `+0x60 = 1, +0x64 = 1, (+0x24 vtable)[4]()` is `set_filtering(omtfc_Linear,
   omtfc_Linear)`. OMediaCosSinTable: sin table at +0, cos table at +0x10004.
+
+## Signed char
+
+MSVC's `char` is signed; arm64's (Android) is unsigned. The game target is built with
+`-fsigned-char` everywhere, so `char` comparisons against negative values behave as in the
+original. Still prefer the exact type the machine code uses (`signed char` / `unsigned char`)
+when a member or global is compared or sign-extended.
