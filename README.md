@@ -38,10 +38,14 @@ Flies a camera through the game's levels, rendered by the game's own engine.
 
 1. Install `Negatron-Viewer.apk` and open it once. It shows "Game files not found"; that's expected.
 2. On your PC, copy everything **inside** the game's `Program_Executable_Files` folder
-   (`omt/`, `gam/`, `grn/`, `ase/`, `png/`, `dat/` ...) into `Android/data/com.sirbilliams.negatron/files/`
+   (`omt/`, `gam/`, `grn/`, `ase/`, `png/`, `dat/` ... and `Neutron2.exe`) into `Android/data/com.sirbilliams.negatron/files/`
    on the Thor (USB file transfer). Copying the `Program_Executable_Files` folder itself also works.
    The files come from the game's install CD (`data1.cab`, extractable with `unshield`) or an installed copy.
 3. Open the app again.
+
+The reconstructed game reads its built-in data (text, tables, default values) from your own
+`Neutron2.exe` at start-up, and checks it is the original retail exe. This repository contains
+no game files and no bytes copied from the exe.
 
 Log: `Android/data/com.sirbilliams.negatron/files/omt-log.txt` (rewritten each launch).
 

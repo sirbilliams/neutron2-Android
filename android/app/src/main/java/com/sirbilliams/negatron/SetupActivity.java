@@ -109,7 +109,8 @@ public class SetupActivity extends Activity {
         message.setGravity(Gravity.CENTER);
         message.setPadding(0, dp(20), 0, dp(24));
         message.setText("Game files needed.\n\nChoose Negatron-GameFiles.zip (the game's "
-                + "Program_Executable_Files folder, zipped). It is unpacked into the app, about 270 MB.");
+                + "Program_Executable_Files folder, zipped, including Neutron2.exe). It is unpacked "
+                + "into the app, about 270 MB.");
         root.addView(message, wrap());
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -249,6 +250,9 @@ public class SetupActivity extends Activity {
     private static String gamePath(String name) {
         String n = name.replace('\\', '/');
         String low = n.toLowerCase(Locale.ROOT);
+        // The game reads its built-in data (text, tables, defaults) from the player's own
+        // Neutron2.exe; the source tree has none of it. Other programs and DLLs aren't needed.
+        if (low.equals("neutron2.exe") || low.endsWith("/neutron2.exe")) return "Neutron2.exe";
         if (low.endsWith(".exe") || low.endsWith(".dll")) return null;
         String[] parts = n.split("/");
         for (int i = 0; i < parts.length - 1; i++) {

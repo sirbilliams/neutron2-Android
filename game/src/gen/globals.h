@@ -9,7 +9,8 @@ namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
 extern unsigned char g_data[DATA_SIZE];
 extern void *g_ptrs[DATA_SIZE / 4];
-void InitDataPointers(void);	// pointer slots the exe initialised (strings)
+extern const unsigned int g_exe_init_size, g_exe_init_crc, g_string_slots[];
+bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs from Neutron2.exe
 }
 
 #define g_532000 (&neg::g_data[0x0])		// address only

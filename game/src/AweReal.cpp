@@ -226,6 +226,17 @@ class CTextTest : public OMediaPeriodical
 void omt_main(void)
 {
 	OpenDebugLog();
+	// Not in the original (Windows loaded the exe's data for it): the data section's initial
+	// values come from the player's own Neutron2.exe. See ExeData.cpp.
+	{
+		char why[512];
+		if (!neg::LoadExeData(why, sizeof why))
+		{
+			SDL_Log("ExeData: %s", why);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Jimmy Neutron vs. Jimmy Negatron", why, NULL);
+			return;
+		}
+	}
 	// (Windows: refuses to start twice - FindWindow("OMT SingleWindow") titled "Jimmy Neutron 2")
 	try
 	{
