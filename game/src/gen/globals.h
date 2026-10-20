@@ -5,6 +5,7 @@ class C2DInGameMenu;
 class CLocalGameObject;
 class OMediaCanvasElementWrapper;
 class OMediaDataBase;
+class OMediaElement;
 namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
 extern unsigned char g_data[DATA_SIZE];
@@ -845,7 +846,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_trig_text_len (*(int *)&neg::g_data[0x13e4c])
 #define g_545e50 (*(OMediaDataBase* *)&neg::g_ptrs[0x4f94])
 #define g_screens_db (*(OMediaDataBase* *)&neg::g_ptrs[0x4f94])
-#define g_545e57 (*(char *)&neg::g_data[0x13e57])
+#define g_545e57 (*(bool *)&neg::g_data[0x13e57])
 #define g_545e58 (*(char *)&neg::g_data[0x13e58])
 #define g_545e59 (*(char *)&neg::g_data[0x13e59])
 #define g_545e5b (*(bool *)&neg::g_data[0x13e5b])
@@ -866,7 +867,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_545ee0 ((char *)&neg::g_data[0x13ee0])
 #define g_game_mode_name ((char *)&neg::g_data[0x13ee0])
 #define g_545ef4 (*(int *)&neg::g_data[0x13ef4])
-#define g_545ef8 (*(char *)&neg::g_data[0x13ef8])
+#define g_545ef8 (*(bool *)&neg::g_data[0x13ef8])
 #define g_545efc (*(unsigned int *)&neg::g_data[0x13efc])
 #define g_545f00 (*(int *)&neg::g_data[0x13f00])
 #define g_545f04 (*(int *)&neg::g_data[0x13f04])
@@ -886,7 +887,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_545f38 (*(int *)&neg::g_data[0x13f38])
 #define g_545f3c (*(char *)&neg::g_data[0x13f3c])
 #define g_545f40 (*(int *)&neg::g_data[0x13f40])
-#define g_545f44 (neg::g_ptrs[0x4fd1])		// pointer
+#define g_545f44 (*(OMediaElement* *)&neg::g_ptrs[0x4fd1])
+#define g_cutscene_element (*(OMediaElement* *)&neg::g_ptrs[0x4fd1])
 #define g_545f48 (*(int *)&neg::g_data[0x13f48])
 #define g_545f4c (*(int *)&neg::g_data[0x13f4c])
 #define g_545f50 (*(int *)&neg::g_data[0x13f50])
@@ -949,7 +951,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_5461ce (*(char *)&neg::g_data[0x141ce])
 #define g_5461d0 ((int *)&neg::g_data[0x141d0])		// array, stride 260
 #define g_5461d8 (&neg::g_data[0x141d8])		// address only
-#define g_54a3d4 (*(char *)&neg::g_data[0x183d4])
+#define g_54a3d4 (*(bool *)&neg::g_data[0x183d4])
+#define g_cutscene_skipped (*(bool *)&neg::g_data[0x183d4])
 #define g_54a3dc (&neg::g_data[0x183dc])		// address only
 #define g_54a400 (*(float *)&neg::g_data[0x18400])
 #define g_54a418 (*(int *)&neg::g_data[0x18418])
@@ -980,7 +983,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_54a48c (*(unsigned int *)&neg::g_data[0x1848c])
 #define g_54a490 (*(float *)&neg::g_data[0x18490])
 #define g_54a494 (*(float *)&neg::g_data[0x18494])
-#define g_54a498 (*(char *)&neg::g_data[0x18498])
+#define g_54a498 (*(bool *)&neg::g_data[0x18498])
 #define g_54a4a8 (&neg::g_data[0x184a8])		// address only
 #define g_54a4ac (neg::g_ptrs[0x612b])		// pointer
 #define g_54a4b0 (*(unsigned int *)&neg::g_data[0x184b0])
