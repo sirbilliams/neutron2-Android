@@ -41,9 +41,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <float.h>
 #include <math.h>
 #include <algorithm>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 // ---------------------------------------------------------------------------
 // Touch input collected by an SDL event watch (OMT's event manager owns the event queue)

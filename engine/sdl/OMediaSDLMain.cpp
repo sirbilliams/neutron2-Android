@@ -19,10 +19,8 @@
 #include <sys/stat.h>
 #ifdef __ANDROID__
 #include <android/log.h>
-#include <GLES2/gl2.h>
-#else
-#include <GL/gl.h>
 #endif
+// GL comes from OMediaSysDefs.h: system GL on desktop, gl4es's headers (and gl4es itself) on Android.
 
 extern void omt_main(void);
 

@@ -83,8 +83,12 @@ void OMediaSDLVideoEngine::set_widescreen(int height)
 	omf_SDLInit();
 	SDL_DisplayMode dm;
 	logical_height = height;
-	if (SDL_GetDesktopDisplayMode(0, &dm) == 0 && dm.h > 0)
-		logical_width = (int)(height * float(dm.w) / float(dm.h) + 0.5f) & ~1;
+	if (SDL_GetDesktopDisplayMode(0, &dm) == 0 && dm.h > 0 && dm.w > 0)
+	{
+		// Landscape game: use long side / short side (Android may report portrait at start-up).
+		float lo = float(dm.w < dm.h ? dm.w : dm.h), hi = float(dm.w > dm.h ? dm.w : dm.h);
+		logical_width = (int)(height * hi / lo + 0.5f) & ~1;
+	}
 }
 
 OMediaSDLVideoEngine::OMediaSDLVideoEngine(OMediaWindow *master_window) :
