@@ -8,7 +8,6 @@ void InitDataPointers(void)
 {
 }
 // initial pointers to code/vtables, to set up by hand where they matter:
-//   0x53b5ac = 0x42480000
 //   0x540c54 = 0x0000000a
 //   0x540ec8 = 0x004ba3fb
 //   0x540f50 = 0x004bb6b6
