@@ -188,8 +188,8 @@ class Viewer : public OMediaApplication, public OMediaPeriodical
 		{
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Game files not readable",
 				"The game's level files (omt/level1.omt ...) could not be opened.\n"
-				"Copy the game's omt, gam, grn ... folders into\n  Android/data/com.sirbilliams.negatron/files/\n"
-				"and see omt-log.txt in that folder for details.", NULL);
+				"Clear the app's storage (App info > Storage) and start it again to import\n"
+				"Negatron-GameFiles.zip. Details: Android/data/com.sirbilliams.negatron/files/omt-log.txt", NULL);
 			omd_EXCEPTION(omcerr_CantOpen);
 		}
 		sort(names.begin(), names.end(), nocase_less);

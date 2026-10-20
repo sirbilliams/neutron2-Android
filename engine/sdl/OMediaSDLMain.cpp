@@ -76,6 +76,8 @@ static string omf_find_data_dir(void)
 	if (ext)
 	{
 		string base = ext;
+		// files/game is written by the in-app importer (SetupActivity) and always readable.
+		if (omf_isdir(base + "/game/omt")) return base + "/game";
 		if (omf_isdir(base + "/omt")) return base;
 		if (omf_isdir(base + "/Program_Executable_Files/omt")) return base + "/Program_Executable_Files";
 		return base;      // nothing copied yet; the app reports it
