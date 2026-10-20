@@ -259,17 +259,24 @@ void CGameObject::WriteProperties(OMediaStreamOperators &s)	// 0x4ae7d0
 
 // --------------------------------------------------------------------------- identity
 
-void CGameObject::SetName(char *tag)						// 0x4ab1b0
+// The original upper-cases its argument in place (_strupr). Callers pass string literals, which
+// MSVC 6 placed in writable memory; here they are read-only, so the upper-casing works on a copy.
+// The only difference: the caller's string is not modified.
+void CGameObject::SetName(char *tag_in)						// 0x4ab1b0
 {
-	for (char *c = tag; *c; c++) *c = toupper(*c);		// _strupr
+	char tag[100];
+	strncpy(tag, tag_in, sizeof tag - 1); tag[sizeof tag - 1] = 0;
+	for (char *c = tag; *c; c++) *c = (char)toupper(*c);	// _strupr
 	strcat(m_name, "_");								// 0x540140
 	strcat(m_name, tag);
 	strcpy(m_tag, tag);
 }
 
-bool CGameObject::NameContains(char *s)						// 0x4ab260
+bool CGameObject::NameContains(char *s_in)					// 0x4ab260 (same note as SetName)
 {
-	for (char *c = s; *c; c++) *c = toupper(*c);
+	char s[256];
+	strncpy(s, s_in, sizeof s - 1); s[sizeof s - 1] = 0;
+	for (char *c = s; *c; c++) *c = (char)toupper(*c);
 	return strstr(m_name, s) != NULL;
 }
 
