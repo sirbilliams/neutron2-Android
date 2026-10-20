@@ -43,16 +43,12 @@ using namespace neg;
 // StopAllChannels 0x4b8990, UpdateSounds 0x4b8a30, PlayMusic 0x4b8850)
 static OMediaDataBase *LoadMusic(const char *omt_name)	{ return GetDatabase(omt_name); }	// 0x4a4180
 // 0x4a4730: close the cached database opened from `name` (object database cache 0x56aef4)
-static void CloseDatabaseByName(const char *name)	{ (void)name; NEG_TODO(0x4a4730, "close database by name (cache 0x56aef4)"); }
+static void CloseDatabaseByName(const char *name)	{ neg::CloseDatabase(name); }	// DatabaseCache.cpp
 
-// Tasks (CTaskList, 0x54e69c)
-static void SetTaskValue(const char *task, int v)	// 0x497980 (also tells every object with that TaskName, slot 267)
-{
-	(void)task; (void)v;
-	NEG_TODO(0x497980, "SetTaskValue");
-}
-static int  GetTaskValue(const char *task)		{ (void)task; NEG_TODO(0x497a40, "GetTaskValue"); return 0; }
-static void LoadTask(const char *name, int a)	{ (void)name; (void)a; NEG_TODO(0x498af0, "LoadTask (savegame)"); }
+// Tasks (CTaskList, 0x54e69c): SaveGame.cpp
+static void SetTaskValue(const char *task, int v)	{ neg::SetTaskState(task, v); }		// 0x497980
+static int  GetTaskValue(const char *task)		{ return neg::GetTaskState(task); }		// 0x497a40
+static void LoadTask(const char *name, int a)	{ neg::LoadTask(name, a != 0); }		// 0x498af0
 
 // Granny (RAD); g_granny is 0 on this port.
 static void GrannyAdvanceTime(unsigned int ver, double t)	{ (void)ver; (void)t; NEG_TODO(0x4ca464, "GrannyAdvanceTime"); }
