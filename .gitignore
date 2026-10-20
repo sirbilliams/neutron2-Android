@@ -24,3 +24,4 @@ Program_Executable_Files/
 # Granny dumps (game assets)
 *.gdmp
 tools/granny/*.exe
+__pycache__/
