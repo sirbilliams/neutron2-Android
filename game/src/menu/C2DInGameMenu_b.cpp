@@ -12,6 +12,7 @@
 #include "../C2DInGameMenu.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
+#include "../SaveGame.h"
 #include "../Todo.h"
 #include "../CGameType.h"
 #include "OMediaCanvas.h"
@@ -81,8 +82,7 @@ static void CenterMouse(void)				{ NEG_TODO(0x4b1d50, "centre the mouse in the v
 
 // CJimmyGame (ecx = g_gametype): score and "+N" pop-up text.
 static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame score / pop-up text"); }
-// Game over: delete the autosaves, reload level1d.gam, reset pickups (savegame system).
-static void NewGameAfterGameOver(void)	{ NEG_TODO(0x498c70, "new game after game over"); }
+// (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 // Menu helper 0x40c0f0 (letterbox in/out around cut scenes), used by SetGameMode.
 static void CutsceneLetterbox(bool on)	{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
 // g_editor->f_74c = 0 (CEditor not reconstructed).
