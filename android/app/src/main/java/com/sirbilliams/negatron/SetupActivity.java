@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.view.Gravity;
 import android.view.View;
@@ -32,8 +33,8 @@ import java.util.zip.ZipInputStream;
 
 /**
  * First screen. If the game files are readable it starts the engine straight away; otherwise it lets
- * the user pick Negatron-GameFiles.zip (or any zip of the game's Program_Executable_Files folder)
- * and unpacks it into files/game, which the app owns. Files copied in over USB can be visible to
+ * the user pick the game's CD image (.iso), which is installed like the CD's setup does, or a zip of
+ * the game's Program_Executable_Files folder, and puts the files into files/game, which the app owns. Files copied in over USB can be visible to
  * the app but not readable on some Android builds; files the app writes itself always are.
  */
 public class SetupActivity extends Activity {
@@ -108,9 +109,9 @@ public class SetupActivity extends Activity {
         message.setTextSize(17);
         message.setGravity(Gravity.CENTER);
         message.setPadding(0, dp(20), 0, dp(24));
-        message.setText("Game files needed.\n\nChoose Negatron-GameFiles.zip (the game's "
-                + "Program_Executable_Files folder, zipped, including Neutron2.exe). It is unpacked "
-                + "into the app, about 270 MB.");
+        message.setText("Game files needed.\n\nChoose the game's CD image (Jimmy Neutron vs. Jimmy "
+                + "Negatron.iso): the game is installed from it, about 270 MB. A zip of an installed "
+                + "game's Program_Executable_Files folder works too.");
         root.addView(message, wrap());
 
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -121,7 +122,7 @@ public class SetupActivity extends Activity {
         root.addView(progress, pl);
 
         choose = new Button(this);
-        choose.setText("Choose game files…");
+        choose.setText("Choose the game's .iso…");
         choose.setTextSize(18);
         choose.setOnClickListener(v -> pickZip());
         root.addView(choose, wrap());
@@ -141,7 +142,8 @@ public class SetupActivity extends Activity {
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType("*/*");
         i.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
-                "application/zip", "application/x-zip-compressed", "application/octet-stream" });
+                "application/x-iso9660-image", "application/x-cd-image", "application/zip",
+                "application/x-zip-compressed", "application/octet-stream" });
         startActivityForResult(i, PICK_ZIP);
     }
 
@@ -156,6 +158,7 @@ public class SetupActivity extends Activity {
     // ------------------------------------------------------------------ import
 
     private void importZip(final Uri uri) {
+        if (isIso(uri)) { importIso(uri); return; }
         choose.setEnabled(false);
         progress.setVisibility(View.VISIBLE);
         progress.setProgress(0);
@@ -183,6 +186,71 @@ public class SetupActivity extends Activity {
                 error = "Couldn't unpack the zip: " + e.getMessage();
             } finally {
                 deleteTree(tmp);
+            }
+            final String err = error;
+            ui.post(() -> {
+                if (err == null) {
+                    startGame();
+                } else {
+                    progress.setVisibility(View.GONE);
+                    message.setText(err + "\n\nChoose another file to try again.");
+                    choose.setEnabled(true);
+                    choose.requestFocus();
+                }
+            });
+        }).start();
+    }
+
+    // ------------------------------------------------------------------ import from the CD image
+
+    private boolean isIso(Uri uri) {
+        try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r")) {
+            return pfd != null && GameImporter.isIso(pfd.getFd());
+        } catch (IOException | RuntimeException | UnsatisfiedLinkError e) {
+            return false;
+        }
+    }
+
+    private void importIso(final Uri uri) {
+        choose.setEnabled(false);
+        progress.setVisibility(View.VISIBLE);
+        progress.setProgress(0);
+        message.setText("Installing from the CD image…");
+
+        new Thread(() -> {
+            String error;
+            File base = getExternalFilesDir(null);
+            File tmp = new File(base, "game.import");
+            File cab = new File(base, "game.import-cab");
+            File dest = new File(base, "game");
+            try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r")) {
+                deleteTree(tmp);
+                deleteTree(cab);
+                if (pfd == null) throw new IOException("can't open the file");
+                final int[] last = { -1 };
+                error = GameImporter.importIso(pfd.getFd(), tmp.getPath(), cab.getPath(), (stage, done, total) -> {
+                    int p = total > 0 ? (int) (stage * 500 + done * 500 / total) : stage * 500;
+                    if (p != last[0]) {
+                        last[0] = p;
+                        final String what = stage == 0 ? "Copying the installer off the CD image…" : "Unpacking the game files…";
+                        ui.post(() -> { progress.setProgress(p); message.setText(what); });
+                    }
+                    return false;
+                });
+                if (error == null) {
+                    if (!canRead(new File(new File(tmp, "omt"), "level1.omt"))) {
+                        error = "The CD image was unpacked but the game files are missing (omt/level1.omt).";
+                    } else {
+                        deleteTree(dest);
+                        if (!tmp.renameTo(dest)) throw new IOException("could not move files into place");
+                    }
+                }
+            } catch (IOException | SecurityException e) {
+                error = "Couldn't read the CD image: " + e.getMessage()
+                        + "\nIf it is on a cloud drive, copy it to the device first.";
+            } finally {
+                deleteTree(tmp);
+                deleteTree(cab);
             }
             final String err = error;
             ui.post(() -> {

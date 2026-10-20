@@ -3,8 +3,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(negatron C CXX)
 
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/SDL/CMakeLists.txt OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/gl4es/CMakeLists.txt)
-  message(FATAL_ERROR "SDL and gl4es sources are missing - run ./fetch-deps.sh from the repo root first")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/SDL/CMakeLists.txt OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/gl4es/CMakeLists.txt OR NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unshield/lib/libunshield.h)
+  message(FATAL_ERROR "SDL, gl4es or unshield sources are missing - run ./fetch-deps.sh from the repo root first")
 endif()
 
 # --- SDL2 (shared libSDL2.so, loaded by SDLActivity)
