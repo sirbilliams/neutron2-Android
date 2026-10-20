@@ -3,6 +3,7 @@
     0x4b7db0 InitSoundEngine   0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
 
 #include "Game.h"
+#include "CEditor.h"
 #include "OMediaWindow.h"
 #include "OMediaEventManager.h"
 #include "OMediaEngineFactory.h"
@@ -71,6 +72,10 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 			break;
 		}
 
+		case omsg_ViewPortClicked:			// -600: picks go to the editor while it is on
+			if (g_editor && g_editor->m_editing) g_editor->ViewportClicked((OMediaPickRequest *)param);	// vtable +0xcc
+			break;
+
 		case omsg_Event:					// -0x65: game event switch (0x56ad9c / 0x56aea6 flags)
 			// TODO(0x4a3380): cases 1..4
 			break;
@@ -127,7 +132,13 @@ void neg::LoadNewLevel(unsigned int which)	// "+LoadNewLevel()" ... "-LoadNewLev
 	CGfx::UnInitAlpha();				// 0x4a0ef0 = UnInitAlpha + InitAlpha
 	CGfx::InitAlpha();
 	// TODO(0x4b9b60) clear list 0x6f75dc
-	// TODO(0x480230) create the game type for 'which' ('MAIN' = CDefaultGame main menu)
+	// TODO(0x480230) create the game type for 'which' ('MAIN' = CDefaultGame main menu). After
+	// creating it 0x480230 has the editor open omt\Editor.omt and show splash 3:
+	if (g_editor)
+	{
+		g_editor->OpenEditorDatabase();		// CEditor vtable +0x118
+		g_editor->DrawSplash(3);			// CEditor vtable +0x12c
+	}
 	// 0x4b9600: QueryPerformanceCounter -> frame timer reset
 	SDL_Log("-LoadNewLevel()");
 }
@@ -205,7 +216,9 @@ void omt_main(void)
 		CGfx::SetDisplayMode(g_screen_w, g_screen_h, g_screen_depth, g_windowed);	// 0x4b18a0
 		CInput *input = new CInput;				// 0x4b3260
 
-		// TODO(0x4a4aa0): g_game = new CJimmyGame(1)  (0x82c bytes) - the game manager
+		g_editor = new CEditor;					// 0x4a4aa0 (0x82c bytes): level loader / editor; sets g_editor itself
+		// (the original runs the rest only when g_editor was created, and the main loop only when
+		// LoadNewLevel produced a game type - not reconstructed yet, so the loop runs regardless)
 		LoadNewLevel('MAIN');
 
 		CTextTest *text_test = getenv("NEG_TEXT_TEST") ? new CTextTest : NULL;
@@ -215,6 +228,11 @@ void omt_main(void)
 		SDL_Log("EXITING GAME");
 		// TODO(0x4ae4a0, 0x4a0e10, 0x4a4870, 0x4a4960): delete objects, alpha, object/sound databases
 		delete text_test;
+		if (g_editor)
+		{
+			delete g_editor;
+			g_editor = NULL;
+		}
 		delete input;
 		delete gfx;
 		delete app;

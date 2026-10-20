@@ -75,7 +75,8 @@ the value is a pointer (assigned from `new`, a database, a canvas...), add a lin
 ```
 
 and regenerate. Use the name in code. Already named by hand: everything in `game/src/Globals.h`,
-`Game.h`, `CGameObject.h` (`g_objects`), `Text.cpp` (fonts, DrawText), `Alpha.cpp`.
+`Game.h`, `CGameObject.h` (`g_objects`), `Text.cpp` (fonts, DrawText), `Alpha.cpp`, `CEditor.h`
+(`g_splash`, `g_editor_*`; level loading: `g_editor->RequestLevel(name)` / `LoadGame`).
 
 Existing reconstructed helpers you should call instead of re-implementing:
 `neg::DrawText / ClearText / PlaceGlyph` (0x4a0f60 / 0x4a0f00 / 0x4a2010), `neg::InitFileStream`

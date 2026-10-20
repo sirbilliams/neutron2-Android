@@ -1,0 +1,16 @@
+# CEditor (game/src/CEditor*.cpp) - shared globals it uses; editor-owned ones are real variables in CEditor.h
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x53f570 array char g_editor_menu           # 32-byte entries "Select Object", ... "" (exe data)
+0x53f810 array char g_editor_toggles        # 32-byte entries "Sky", "Far Plane", ... ""
+0x53c618 array char g_object_catalogue      # {int id; char class[32]} x 0x24, id -1 ends
+0x53d818 array char g_level_table           # {int id; char file[32]} x 0x24, id -1 ends
+0x54e6a4 array char g_game_file             # .gam file of the running game (LoadGame)
+0x54e71c array char g_task_file             # savegame (.tsk) being restored
+0x53b5b4 val int g_game_state               # SetGameState 0x485360
+0x53b5b8 val int g_prev_game_state
+0x54a469 val char g_level_requested         # RequestLevel: skip the "loading" fade once
+0x54a3d8 val char g_static_objects_created  # CreateStaticObjects 0x480320 (3JIM)
+0x545e54 val char g_level1c_loaded          # 0x482b40, set when level1_c.gam is loaded
+0x56ad9c val char g_mouse_down              # omsg_Event 1/2
+0x56aea6 val char g_mouse_rdown             # omsg_Event 3/4
+0x56aeb4 val char g_mouse_captured          # 0x4a3930

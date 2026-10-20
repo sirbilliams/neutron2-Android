@@ -8,7 +8,6 @@
 
 namespace neg {
 
-bool EditorIsEditing(void)				{ NEG_TODO(0x4a4aa0, "CEditor +0x8c (editing)"); return false; }
 bool GameIsRunning(void)				{ NEG_TODO(0x4b0ca0, "GameIsRunning"); return true; }
 int  GameTypeTouchStart(CGameObject *, int)	{ NEG_TODO(0x14c, "CGameType vtable +0x14c"); return -1; }
 int  GameTypeTouchEnd(CGameObject *, int)	{ NEG_TODO(0x150, "CGameType vtable +0x150"); return -1; }

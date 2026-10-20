@@ -130,9 +130,9 @@ void CLocalGameObject::PauseAll(bool pause)					// 0x48f6a0
 	}
 }
 
-unsigned char CLocalGameObject::v281(void *a, unsigned int b, unsigned int c, unsigned int d)	// 0x48f900
+unsigned char CLocalGameObject::v281(OMediaViewPort *vp, float *pos, float *sx, float *sy)	// 0x48f900
 {
-	(void)a; (void)b; (void)c; (void)d;
+	(void)vp; (void)pos; (void)sx; (void)sy;
 	NEG_TODO(0x48f900, "CLocalGameObject slot 281 (project to screen)");
 	return 0;
 }

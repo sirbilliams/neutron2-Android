@@ -6,6 +6,7 @@
 
 class OMediaDataBase;
 class OMediaStream;
+class OMediaViewPort;
 
 class CLocalGameObject : public CGameObject
 {
@@ -26,7 +27,7 @@ class CLocalGameObject : public CGameObject
 	virtual void OpenObjectDatabase(void);									// SLOT 274 0x48f5f0
 	virtual int  CountObjectsWithID(int id);								// SLOT 276 0x48f700
 	virtual void PauseAll(bool pause);										// SLOT 279 0x48f6a0
-	virtual unsigned char v281(void *a, unsigned int b, unsigned int c, unsigned int d);	// SLOT 281 0x48f900 (TODO body)
+	virtual unsigned char v281(OMediaViewPort *vp, float *pos, float *sx, float *sy);	// SLOT 281 0x48f900 (TODO body) project pos to screen
 	virtual void WriteState(OMediaStreamOperators &s);						// SLOT 284 0x48fbb0
 	virtual void ReadState(OMediaStreamOperators &s);						// SLOT 285 0x48fbf0
 
