@@ -30,3 +30,8 @@ class C2DInGameMenu : public CLocalGameObject
 	char			f_524[100];			// 0x524  a name, compared with _stricmp
 #include "gen/C2DInGameMenu_fields.inc"
 };
+
+namespace neg {
+void SetGameMode(int mode);			// 0x485360 (C2DInGameMenu_b.cpp): 0 Starting 1 Loading 2 Saving 3 CutScene 4 Menu 5 Playing 6 Paused 9 None
+void SetLevelItems(int which);		// 0x40a860 (C2DInGameMenu_b.cpp): the level items page for a level-progress value
+}

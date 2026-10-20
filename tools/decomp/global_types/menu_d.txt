@@ -1,7 +1,7 @@
 # C2DInGameMenu part d (menu.dat parser, menu texts, fades, level warp, pickups)
 # address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
 0x545da8 ptrarray MenuPage* g_menu_pages                     # [7] C2DInGameMenu::MenuPage*, index = v314(page name); use C2DInGameMenu::Page(i)
-0x545fd0 ptr CLocalGameObject* g_jimmy                   # the C3DJimmy (its CLocalGameObject base, object + 0xc0), set by its constructor 0x443830
+0x545fd0 ptr CGameObject* g_jimmy                   # the C3DJimmy (its CLocalGameObject base, object + 0xc0), set by its constructor 0x443830
 0x545844 ptr OMediaCanvasElementWrapper* g_fade_sprite   # full-screen fade quad (canvas 544) of fade states 0, 1
 0x545a64 ptr OMediaCanvasElementWrapper* g_fade_sprite2  # the same, fade states 2..5
 0x545e60 ptr OMediaCanvasElementWrapper* g_fade_cur      # the quad v341 is fading

@@ -63,14 +63,14 @@ static void SetupShapeMaterials(OMediaDataBase *db, OMedia3DShape *shape)
 // --------------------------------------------------------------------------- shape helpers (0x4b2xxx)
 
 // 0x4b2d70. Quirk: the chunk type argument is ignored, the test is always made for '3DSh'.
-static bool ShapeExists(OMediaDataBase *db, omt_ChunkType type, int id)
+bool neg::ShapeExists(OMediaDataBase *db, unsigned int type, int id)
 {
 	(void)type;
 	return db->object_exists('3DSh', id);
 }
 
 // 0x4b2c80 "Load3DShape(%d)"
-static OMedia3DShape *Load3DShape(OMediaDataBase *db, int id)
+OMedia3DShape *neg::Load3DShape(OMediaDataBase *db, int id)
 {
 	OMedia3DShape *shape = NULL;
 	if (db)
@@ -112,7 +112,7 @@ static void SetShapeLightMode(OMedia3DShape *shape, omt_MaterialLightMode mode)	
 		if ((*p).get_material()) (*p).get_material()->set_light_mode(mode);
 }
 
-static void MakeShapeUnLit(OMedia3DShape *shape)							// 0x4b2520 "MakeShapeUnLit()"
+void neg::MakeShapeUnLit(OMedia3DShape *shape)							// 0x4b2520 "MakeShapeUnLit()"
 {
 	if (!shape) return;
 	omt_PolygonList *polys = shape->get_polygons();

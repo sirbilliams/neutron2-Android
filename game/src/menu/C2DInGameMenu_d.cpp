@@ -53,7 +53,6 @@ static int GameTypeLevelID(void)		{ NEG_TODO(0x40fe7f, "CGameType +0x490 (level 
 // 0x4b1d50: puts the cursor in the middle of the viewport (g_viewport +0xd4..0xe0, world +0x38 ...).
 static void CenterCursor(void)			{ NEG_TODO(0x4b1d50, "centre the cursor"); }
 // 0x485360: the game mode (0x53b5b4), told to every object (vtable +0x438).
-static void SetGameMode(int mode)		{ NEG_TODO(0x485360, "SetGameMode"); (void)mode; }
 // A C3DTriggerType (element vtable +0xdc, its CGameObject base at +0xc8) activated by name.
 static void TriggerTypeActivate(CGameObject *o, const char *name, int a)
 {
@@ -64,19 +63,19 @@ static void FlyingCameraStart(CGameObject *o)	{ NEG_TODO(0x406cd4, "C3DFlyingCam
 // A C3DPickupItem (element vtable +0xec, its CGameObject base at +0xc8).
 static void PickupItemCollect(CGameObject *o)	{ NEG_TODO(0x408dce, "C3DPickupItem element slot 59"); (void)o; }
 // C3DJimmy (element vtable +0x1e4): go to `file` at start point `start`.
-static void JimmyLoadLevel(CLocalGameObject *jimmy, const char *file, const char *start,
+static void JimmyLoadLevel(CGameObject *jimmy, const char *file, const char *start,
 						   const char *file2, const char *start2, int a)
 {
 	NEG_TODO(0x41038c, "C3DJimmy element slot 121 (load level)");
 	(void)jimmy; (void)file; (void)start; (void)file2; (void)start2; (void)a;
 }
 // C3DJimmy (element vtable +0x228)(menu, jimmy, 3, 13.0) before level1_C.gam.
-static void JimmySlot138(CLocalGameObject *jimmy, C2DInGameMenu *menu, CLocalGameObject *jimmy_go, int a, float b)
+static void JimmySlot138(CGameObject *jimmy, C2DInGameMenu *menu, CGameObject *jimmy_go, int a, float b)
 {
 	NEG_TODO(0x410315, "C3DJimmy element slot 138"); (void)jimmy; (void)menu; (void)jimmy_go; (void)a; (void)b;
 }
 // C3DJimmy +0xcbc: an object whose vtable +0xdc is called after a warp (if set).
-static void JimmyAfterWarp(CLocalGameObject *jimmy)	{ NEG_TODO(0x4103a6, "C3DJimmy +0xcbc vtable +0xdc"); (void)jimmy; }
+static void JimmyAfterWarp(CGameObject *jimmy)	{ NEG_TODO(0x4103a6, "C3DJimmy +0xcbc vtable +0xdc"); (void)jimmy; }
 
 // --------------------------------------------------------------------------- menu helpers
 

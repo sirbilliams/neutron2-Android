@@ -14,6 +14,7 @@
 #include "../CanvasWrapper.h"
 #include "../Game.h"
 #include "../Todo.h"
+#include "../CGameType.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaFilePath.h"
@@ -185,9 +186,9 @@ static void ShowMouseCursor(bool show)									// 0x4a38c0 (ShowCursor + flags 0
 	NEG_TODO(0x4a38c0, "ShowMouseCursor"); (void)show;
 }
 
-static void GameTypeSetMenuMode(bool on)								// CGameType vtable +0x110
+static void GameTypeSetMenuMode(bool on)								// CGameType vtable +0x110: PauseGame
 {
-	NEG_TODO(0x110, "CGameType vtable +0x110 (menu on/off)"); (void)on;
+	g_gametype->PauseGame(on);
 }
 
 static bool ReadSaveHeader(const char *file)							// 0x497b10: fills 0x54e6a4.. 0x54e820
@@ -203,7 +204,7 @@ static void LoadGame(const char *file, bool b)							// 0x498af0
 
 static void SetGameState(int state)										// 0x485360
 {
-	NEG_TODO(0x485360, "SetGameState"); (void)state;
+	SetGameMode(state);
 }
 
 // 0x4b1d10: the mouse position, window pixels (the original asks the object at 0x56afe4 for its
