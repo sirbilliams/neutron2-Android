@@ -193,7 +193,7 @@ void OMediaSDLVideoEngine::update_renderer_defs(void)
 					 omcrdattr_Texture | omcrdattr_Accelerated;
 	def.zbuffer_depth = omfzbc_16Bits | omfzbc_24Bits;
 	def.pixel_format = ompixfc_RGB888 | ompixfc_ARGB8888;
-	def.name = "OpenGL (SDL)";
+	def.name = "OpenGL";
 	renderer_list.push_back(def);
 
 	def.private_id = (void*)0;
