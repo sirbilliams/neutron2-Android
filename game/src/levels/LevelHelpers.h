@@ -1,12 +1,8 @@
 /*  Small pieces the level game types (CLevelXXGame, game/src/levels) share: the original
-    repeats them inline in every InitGame (0x486730..0x48e150).
-
-    The sky ('3SKY', C3DSky, 0x49b8a0) is not reconstructed yet, so CreateObject('3SKY') gives
-    NULL in this port; the levels test the sky pointer where the original does not (marked
-    "port:") so the rest of InitGame still runs.                                              */
+    repeats them inline in every InitGame (0x486730..0x48e150).                              */
 #pragma once
 #include "../CJimmyGame.h"
-#include "../C3DObject.h"
+#include "../C3DSky.h"
 #include "../CGameObject.h"
 #include "../Globals.h"
 #include "../Todo.h"
@@ -18,19 +14,18 @@
 namespace levels {
 
 // CreateObject('3SKY') and its element (the original subtracts 0xc0; NULL stays NULL).
-static inline C3DObject *CreateSky(void)
+static inline C3DSky *CreateSky(void)
 {
 	CGameObject *o = neg::CreateObject('3SKY');
-	return o ? dynamic_cast<C3DObject *>(o) : NULL;
+	return o ? dynamic_cast<C3DSky *>(o) : NULL;
 }
 
 // C3DSky element slot 58 (+0xe8, 0x49bcc0): open the sky database `file` and put its shape on
 // the sky; `alt` picks the "sky1alt".. textures and the "fogcoloralt" fog colour (0x54e860).
-// Every level passes false.
+// Every level passes false. (m_sky is kept as a C3DObject; it is always a '3SKY'.)
 static inline void SkyLoad(C3DObject *sky, std::string file, bool alt)
 {
-	(void)sky; (void)file; (void)alt;
-	NEG_TODO(0x49bcc0, "C3DSky element slot 58 (load the sky database)");
+	static_cast<C3DSky *>(sky)->LoadSky(file, alt);
 }
 
 // 0x4a3930 (as in CEditor.cpp): every InitGame ends with CaptureMouse(true).

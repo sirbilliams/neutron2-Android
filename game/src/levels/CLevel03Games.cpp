@@ -63,16 +63,13 @@ void CLevel03AGame::InitGame(void)											// 0x4896c0
 	v107(0);
 	CreateTerrain();										// element +0xf4 (lit)
 	m_sky = CreateSky();
-	if (m_sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(m_sky, "omt\\bluesky3.omt", false);			// sky element +0xe8
-		m_sky->place(0.0f, 0.0f, 0.0f);
-		m_sky->InitPhysics();								// (empty for a C3DSky)
-		m_sky->v67(1.0f);									// radius
-		m_sky->v152(1.0f);
-		m_sky->ev51();										// element +0xcc
-		m_sky->HideAgain();									// element +0xdc: the sky is not drawn
-	}
+	SkyLoad(m_sky, "omt\\bluesky3.omt", false);				// sky element +0xe8
+	m_sky->place(0.0f, 0.0f, 0.0f);
+	m_sky->InitPhysics();									// (empty for a C3DSky)
+	m_sky->v67(1.0f);										// radius
+	m_sky->v152(1.0f);
+	m_sky->ev51();											// element +0xcc
+	m_sky->HideAgain();										// element +0xdc: the sky is not drawn
 	ViewportToOrigin();
 	SetFog(0.3f, 0.76f, 0.85f, 0.0f, 500.0f, 9500.0f, 11500.0f, true);
 	CaptureMouse(true);
@@ -134,15 +131,12 @@ void CLevel03CGame::InitGame(void)											// 0x489d30
 	v107(0);
 	CreateTerrainUnLit();
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\skylevel5.omt", false);
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();
-		sky->v67(1.0f);
-		sky->v152(1.0f);
-		sky->ev51();
-	}
+	SkyLoad(sky, "omt\\skylevel5.omt", false);
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();
+	sky->v67(1.0f);
+	sky->v152(1.0f);
+	sky->ev51();
 	ViewportToOrigin();
 	SetFog(0.71f, 0.75f, 0.76f, 0.0f, 1000.0f, 7000.0f, 10000.0f, true);
 	CaptureMouse(true);

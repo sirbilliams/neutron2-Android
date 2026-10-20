@@ -61,15 +61,12 @@ void CLevelVR01::InitGame(void)												// 0x48de20
 	InitTerrainDatabase("vr01.omt");
 	v107(0);
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\skyvr01.omt", false);			// sky element +0xe8
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();									// (empty for a C3DSky)
-		sky->v67(1.0f);										// radius
-		sky->v152(1.0f);
+	SkyLoad(sky, "omt\\skyvr01.omt", false);				// sky element +0xe8
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();										// (empty for a C3DSky)
+	sky->v67(1.0f);											// radius
+	sky->v152(1.0f);
 		// (no element slot 51 here, as for level 5c's sky)
-	}
 	CreateTerrainUnLit();
 	ViewportToOrigin();
 	SetFog(0.0f, 0.0f, 0.0f, 0.0f, 16000.0f, 19500.0f, 20000.0f, true);

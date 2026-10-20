@@ -378,8 +378,7 @@ static void BuildTerrain(CJimmyGame *game, TerrainMode mode, float r, float g, f
 		if (name.find("3d") == 0) continue;								// 0x53b648 "3d"
 		g_56af44 = 0;
 		CGameObject *o = CreateObject('3TER');
-		C3DObject *t = o ? dynamic_cast<C3DObject *>(o) : NULL;
-		if (!t) continue;													// port: no C3DTerrain yet ('3TER' makes nothing)
+		C3DObject *t = o ? dynamic_cast<C3DObject *>(o) : NULL;			// (a C3DTerrain)
 		t->InitObject();													// (no NULL test in the original)
 		t->set_shape(shape);												// element +0xac
 		const bool nc = NameChar(name, 0) == 'n' && NameChar(name, 1) == 'c';	// "nc...": no collision

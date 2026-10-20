@@ -96,15 +96,12 @@ void CLevel07Game::InitGame(void)											// 0x48d7c0
 	InitTerrainDatabase("level7.omt");
 	v107(0);
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\space.omt", false);				// sky element +0xe8
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();									// (empty for a C3DSky)
-		sky->v67(1.0f);										// radius
-		sky->v152(1.0f);
-		sky->ev51();										// element +0xcc
-	}
+	SkyLoad(sky, "omt\\space.omt", false);					// sky element +0xe8
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();										// (empty for a C3DSky)
+	sky->v67(1.0f);											// radius
+	sky->v152(1.0f);
+	sky->ev51();											// element +0xcc
 	CreateTerrainUnLit();
 	ViewportToOrigin();
 	const OMediaFARGBColor c = RGBA(0.0f, 0.0f, 0.0f, 0.0f);
