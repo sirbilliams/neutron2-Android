@@ -470,7 +470,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_541bb8 (&neg::g_data[0xfbb8])		// address only
 #define g_541d78 (*(unsigned int *)&neg::g_data[0xfd78])
 #define g_541d88 (*(unsigned int *)&neg::g_data[0xfd88])
-#define g_541da0 (&neg::g_ptrs[0x3f68])		// pointer array, stride 100
 #define g_541da4 ((int *)&neg::g_data[0xfda4])		// array, stride 100
 #define g_541da8 (&neg::g_data[0xfda8])		// address only
 #define g_541dac (&neg::g_data[0xfdac])		// address only
@@ -564,7 +563,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_5448fc (neg::g_ptrs[0x4a3f])		// pointer
 #define g_544900 (neg::g_ptrs[0x4a40])		// pointer
 #define g_544904 (neg::g_ptrs[0x4a41])		// pointer
-#define g_544908 (&neg::g_data[0x12908])		// address only
 #define g_544910 (*(unsigned short *)&neg::g_data[0x12910])
 #define g_544912 (*(unsigned short *)&neg::g_data[0x12912])
 #define g_544914 (*(short *)&neg::g_data[0x12914])
@@ -691,13 +689,11 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545658 (*(unsigned int *)&neg::g_data[0x13658])
 #define g_54565c (*(unsigned int *)&neg::g_data[0x1365c])
 #define g_545670 (*(unsigned int *)&neg::g_data[0x13670])
-#define g_545740 (&neg::g_data[0x13740])		// address only
 #define g_545844 (neg::g_ptrs[0x4e11])		// pointer
 #define g_545848 (neg::g_ptrs[0x4e12])		// pointer
 #define g_54584c (neg::g_ptrs[0x4e13])		// pointer
 #define g_545850 (neg::g_ptrs[0x4e14])		// pointer
 #define g_545854 (neg::g_ptrs[0x4e15])		// pointer
-#define g_545858 (neg::g_ptrs[0x4e16])		// pointer
 #define g_545860 (*(short *)&neg::g_data[0x13860])
 #define g_545862 (*(unsigned short *)&neg::g_data[0x13862])
 #define g_545864 (*(unsigned short *)&neg::g_data[0x13864])
@@ -717,7 +713,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545a60 (neg::g_ptrs[0x4e98])		// pointer
 #define g_545a64 (neg::g_ptrs[0x4e99])		// pointer
 #define g_545a68 (neg::g_ptrs[0x4e9a])		// pointer
-#define g_545a70 (neg::g_ptrs[0x4e9c])		// pointer
 #define g_545a78 (*(short *)&neg::g_data[0x13a78])
 #define g_545a7a (*(unsigned short *)&neg::g_data[0x13a7a])
 #define g_545a7c (*(unsigned short *)&neg::g_data[0x13a7c])
@@ -746,7 +741,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545d98 (*(char *)&neg::g_data[0x13d98])
 #define g_545d9c (neg::g_ptrs[0x4f67])		// pointer
 #define g_545da0 (*(unsigned char *)&neg::g_data[0x13da0])
-#define g_545da4 (*(int *)&neg::g_data[0x13da4])
 #define g_545da8 (&neg::g_ptrs[0x4f6a])		// pointer array, stride 4
 #define g_545dac (*(unsigned int *)&neg::g_data[0x13dac])
 #define g_545db0 (neg::g_ptrs[0x4f6c])		// pointer
@@ -767,7 +761,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545e4c (*(int *)&neg::g_data[0x13e4c])
 #define g_545e50 (*(OMediaDataBase* *)&neg::g_ptrs[0x4f94])
 #define g_screens_db (*(OMediaDataBase* *)&neg::g_ptrs[0x4f94])
-#define g_545e54 (*(char *)&neg::g_data[0x13e54])
 #define g_545e57 (*(char *)&neg::g_data[0x13e57])
 #define g_545e58 (*(char *)&neg::g_data[0x13e58])
 #define g_545e59 (*(char *)&neg::g_data[0x13e59])
@@ -857,7 +850,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a3d8 (*(char *)&neg::g_data[0x183d8])
 #define g_54a3dc (&neg::g_data[0x183dc])		// address only
 #define g_54a400 (*(float *)&neg::g_data[0x18400])
-#define g_54a414 (neg::g_ptrs[0x6105])		// pointer
 #define g_54a418 (*(int *)&neg::g_data[0x18418])
 #define g_54a424 (*(float *)&neg::g_data[0x18424])
 #define g_54a428 (*(float *)&neg::g_data[0x18428])
@@ -872,9 +864,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a44c (*(short *)&neg::g_data[0x1844c])
 #define g_54a450 (neg::g_ptrs[0x6114])		// pointer
 #define g_54a454 (*(int *)&neg::g_data[0x18454])
-#define g_54a458 (*(int *)&neg::g_data[0x18458])
-#define g_54a45c (*(int *)&neg::g_data[0x1845c])
-#define g_54a460 (*(float *)&neg::g_data[0x18460])
 #define g_54a464 (*(int *)&neg::g_data[0x18464])
 #define g_54a468 (*(char *)&neg::g_data[0x18468])
 #define g_54a469 (*(char *)&neg::g_data[0x18469])
