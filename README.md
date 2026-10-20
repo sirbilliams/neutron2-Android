@@ -5,8 +5,15 @@ aimed at the **AYN Thor** and other Android handhelds.
 
 The game runs on the **Open Media Toolkit (OMT)**, an LGPL C++ engine. This repo has OMT ported
 off Windows/DirectX onto **SDL2**, made 64-bit and ARM clean, with **gl4es** translating its
-OpenGL 1.x renderer onto OpenGL ES 2. Nothing from the game is in this repo; you use your own
-copy of the game files.
+OpenGL 1.x renderer onto OpenGL ES 2. The game's code is being reconstructed as C++ source
+(`game/src`) from the retail executable.
+
+Nothing from the game is in this repo: no game files, no data or code bytes copied from the exe.
+You need your own copy of the game; the app installs it from the game's CD image.
+
+This is an unofficial fan project, not affiliated with or endorsed by Nickelodeon, THQ or AWE Games.
+*Jimmy Neutron* is a trademark of its owners. The OMT engine is LGPL (`engine/LICENSE-LGPL.txt`);
+unshield (fetched at build time) is MIT.
 
 ## Status
 
