@@ -237,6 +237,7 @@ class OMediaSDLMouseElement : public OMediaHIDElement
 //
 //   leftx          X Axis       axis X     -1 left .. +1 right
 //   lefty          Y Axis       axis Y     +1 up .. -1 down (negated, as OMT 2002 did)
+//                  (port: the d-pad also drives X/Y at full travel, see read_data)
 //   lefttrigger    Z Axis       axis Z     -1 released .. +1 pressed (a DirectInput trigger axis)
 //   rightx         X Rotation   axis rX    -1 left .. +1 right
 //   righty         Y Rotation   axis rY    -1 up .. +1 down (not negated, as in 2002)
@@ -349,6 +350,19 @@ class OMediaSDLPadElement : public OMediaHIDElement
 			case omsdlpe_GCAxis:			// DirectInput value = SDL value + 32768, range 0..65535
 				data.axis = omf_dx_axis(long(SDL_GameControllerGetAxis(gc, (SDL_GameControllerAxis)idx)) + 32768, 0, 65535);
 				if (axis_type == omhtdat_Y) data.axis = -data.axis;
+				// Port: a held d-pad direction drives the left stick's X/Y at full travel, as on the
+				// digital PC gamepads of 2002 (DirectInput reported their pads as X/Y axes). The game
+				// only reads the X/Y axes; the hat element below is still there for completeness.
+				if (idx == SDL_CONTROLLER_AXIS_LEFTX)
+				{
+					if (SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_LEFT)) data.axis = -1.0f;
+					else if (SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) data.axis = 1.0f;
+				}
+				else if (idx == SDL_CONTROLLER_AXIS_LEFTY)
+				{
+					if (SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_UP)) data.axis = 1.0f;			// (+1 up after the negation)
+					else if (SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) data.axis = -1.0f;
+				}
 				break;
 
 			case omsdlpe_GCTrigger:			// range 0..32767
