@@ -8,6 +8,7 @@
 #include "CViewPort.h"
 #include "Todo.h"
 #include "gen/globals.h"
+#include "CEditor.h"
 #include "OMediaWindow.h"
 #include "OMediaEventManager.h"
 #include "OMediaEngineFactory.h"
@@ -86,6 +87,10 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 			break;
 		}
 
+		case omsg_ViewPortClicked:			// -600: picks go to the editor while it is on
+			if (g_editor && g_editor->m_editing) g_editor->ViewportClicked((OMediaPickRequest *)param);	// vtable +0xcc
+			break;
+
 		case omsg_Event:					// -0x65: game event switch (0x56ad9c / 0x56aea6 flags)
 			// TODO(0x4a3380): cases 1..4
 			break;
@@ -139,7 +144,7 @@ static void PhysicsReset(void)			{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
 // 0x4ae4a0: every object is un-initialised, then loses its databases, then is deleted (each
 // destructor takes itself off g_objects). The running game type is one of them; g_gametype is left
 // pointing at it until the next game type is made.
-static void DeleteAllObjects(void)
+void neg::DeleteAllObjects(void)
 {
 	SDL_Log("+DeleteAllObjects()");
 	// "+UnInitObjects()"
@@ -242,8 +247,9 @@ void omt_main(void)
 		CGfx::SetDisplayMode(g_screen_w, g_screen_h, g_screen_depth, g_windowed);	// 0x4b18a0
 		CInput *input = new CInput;				// 0x4b3260
 
-		// TODO(0x4a4aa0): g_editor = new CEditor(1) (0x82c bytes). The original loads the level and
-		// runs only when it exists; until CEditor is reconstructed this runs without it.
+		g_editor = new CEditor;					// 0x4a4aa0 (0x82c bytes): level loader / editor; sets g_editor itself
+		// (the original runs the rest only when g_editor was created, and the main loop only when
+		// LoadNewLevel produced a game type - not reconstructed yet, so the loop runs regardless)
 		LoadNewLevel('MAIN');
 		SDL_Log("omtmain 1");
 
@@ -261,6 +267,11 @@ void omt_main(void)
 		SDL_Log("EXITING GAME");
 		// TODO(0x4a4870, 0x4a4960): object / sound databases;  TODO(0x4a4aa0): delete g_editor
 		delete text_test;
+		if (g_editor)
+		{
+			delete g_editor;
+			g_editor = NULL;
+		}
 		delete input;
 		delete gfx;
 		delete app;

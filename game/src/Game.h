@@ -65,6 +65,7 @@ void ClearText(void);										// 0x4a0f00
 void DrawText(short x, short y, int font, const char *fmt, ...);	// 0x4a0f60  font: 'SMAL' 'MED' 'LARG' 'BIG' 'TIME'
 OMediaCanvasElement *PlaceGlyph(short x, short y, OMediaCanvas *c);	// 0x4a2010
 
+void DeleteAllObjects(void);								// 0x4ae4a0
 void OpenDebugLog(void);									// 0x4b3ac0
 void SetWindowTitle(void);									// 0x496110
 bool CheckCD(void);											// 0x496200

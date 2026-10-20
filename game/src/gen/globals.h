@@ -334,7 +334,9 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_53b5ac (neg::g_ptrs[0x256b])		// pointer
 #define g_53b5b0 (*(int *)&neg::g_data[0x95b0])
 #define g_53b5b4 (*(int *)&neg::g_data[0x95b4])
+#define g_game_state (*(int *)&neg::g_data[0x95b4])
 #define g_53b5b8 (*(int *)&neg::g_data[0x95b8])
+#define g_prev_game_state (*(int *)&neg::g_data[0x95b8])
 #define g_53b5bc (*(int *)&neg::g_data[0x95bc])
 #define g_53b5c0 (*(unsigned char *)&neg::g_data[0x95c0])
 #define g_53b648 (*(char *)&neg::g_data[0x9648])
@@ -344,7 +346,11 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_53c544 (&neg::g_data[0xa544])		// address only
 #define g_53c550 (*(unsigned int *)&neg::g_data[0xa550])
 #define g_53c60c (&neg::g_data[0xa60c])		// address only
+#define g_53c618 ((char *)&neg::g_data[0xa618])
+#define g_object_catalogue ((char *)&neg::g_data[0xa618])
 #define g_53c61c (&neg::g_data[0xa61c])		// address only
+#define g_53d818 ((char *)&neg::g_data[0xb818])
+#define g_level_table ((char *)&neg::g_data[0xb818])
 #define g_53d81c (&neg::g_data[0xb81c])		// address only
 #define g_53dc50 (&neg::g_data[0xbc50])		// address only
 #define g_53e5b4 (&neg::g_data[0xc5b4])		// address only
@@ -364,8 +370,10 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_53f270 (&neg::g_data[0xd270])		// address only
 #define g_53f27c (*(int *)&neg::g_data[0xd27c])
 #define g_53f538 (&neg::g_data[0xd538])		// address only
-#define g_53f570 (&neg::g_data[0xd570])		// address only
-#define g_53f810 (&neg::g_data[0xd810])		// address only
+#define g_53f570 ((char *)&neg::g_data[0xd570])
+#define g_editor_menu ((char *)&neg::g_data[0xd570])
+#define g_53f810 ((char *)&neg::g_data[0xd810])
+#define g_editor_toggles ((char *)&neg::g_data[0xd810])
 #define g_53f8e8 (&neg::g_data[0xd8e8])		// address only
 #define g_53fa8c (&neg::g_data[0xda8c])		// address only
 #define g_53fad8 (&neg::g_data[0xdad8])		// address only
@@ -881,6 +889,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a464 (*(int *)&neg::g_data[0x18464])
 #define g_54a468 (*(char *)&neg::g_data[0x18468])
 #define g_54a469 (*(char *)&neg::g_data[0x18469])
+#define g_level_requested (*(char *)&neg::g_data[0x18469])
 #define g_54a46c (neg::g_ptrs[0x611b])		// pointer
 #define g_54a470 (*(float *)&neg::g_data[0x18470])
 #define g_54a474 (*(float *)&neg::g_data[0x18474])
@@ -908,8 +917,10 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54e68c (*(float *)&neg::g_data[0x1c68c])
 #define g_54e69c (neg::g_ptrs[0x71a7])		// pointer
 #define g_54e6a0 (*(int *)&neg::g_data[0x1c6a0])
-#define g_54e6a4 (&neg::g_data[0x1c6a4])		// address only
-#define g_54e71c (*(char *)&neg::g_data[0x1c71c])
+#define g_54e6a4 ((char *)&neg::g_data[0x1c6a4])
+#define g_game_file ((char *)&neg::g_data[0x1c6a4])
+#define g_54e71c ((char *)&neg::g_data[0x1c71c])
+#define g_task_file ((char *)&neg::g_data[0x1c71c])
 #define g_54e794 (&neg::g_data[0x1c794])		// address only
 #define g_54e80c (*(unsigned char *)&neg::g_data[0x1c80c])
 #define g_54e810 (*(int *)&neg::g_data[0x1c810])
@@ -957,6 +968,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_56ad80 (*(int *)&neg::g_data[0x38d80])
 #define g_56ad84 (&neg::g_data[0x38d84])		// address only
 #define g_56ad9c (*(char *)&neg::g_data[0x38d9c])
+#define g_mouse_down (*(char *)&neg::g_data[0x38d9c])
 #define g_56adad (*(char *)&neg::g_data[0x38dad])
 #define g_56adb0 (*(char *)&neg::g_data[0x38db0])
 #define g_56adb1 (*(char *)&neg::g_data[0x38db1])
@@ -993,9 +1005,11 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_56ae10 (*(char *)&neg::g_data[0x38e10])
 #define g_56ae60 (*(char *)&neg::g_data[0x38e60])
 #define g_56aea6 (*(char *)&neg::g_data[0x38ea6])
+#define g_mouse_rdown (*(char *)&neg::g_data[0x38ea6])
 #define g_56aea8 (*(float *)&neg::g_data[0x38ea8])
 #define g_56aead (*(unsigned int *)&neg::g_data[0x38ead])
 #define g_56aeb4 (*(char *)&neg::g_data[0x38eb4])
+#define g_mouse_captured (*(char *)&neg::g_data[0x38eb4])
 #define g_56aeb5 (*(char *)&neg::g_data[0x38eb5])
 #define g_56aeb6 (*(unsigned short *)&neg::g_data[0x38eb6])
 #define g_56aeb8 (*(unsigned short *)&neg::g_data[0x38eb8])
@@ -1012,15 +1026,6 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_56aee8 (*(int *)&neg::g_data[0x38ee8])
 #define g_56aef4 (neg::g_ptrs[0xe3bd])		// pointer
 #define g_56aef8 (*(int *)&neg::g_data[0x38ef8])
-#define g_56af00 (*(unsigned int *)&neg::g_data[0x38f00])
-#define g_56af04 (neg::g_ptrs[0xe3c1])		// pointer
-#define g_56af08 (*(unsigned char *)&neg::g_data[0x38f08])
-#define g_56af10 (neg::g_ptrs[0xe3c4])		// pointer
-#define g_56af14 (*(int *)&neg::g_data[0x38f14])
-#define g_56af18 (*(int *)&neg::g_data[0x38f18])
-#define g_56af1c (neg::g_ptrs[0xe3c7])		// pointer
-#define g_56af20 (neg::g_ptrs[0xe3c8])		// pointer
-#define g_56af24 (neg::g_ptrs[0xe3c9])		// pointer
 #define g_56af34 (neg::g_ptrs[0xe3cd])		// pointer
 #define g_56af38 (*(int *)&neg::g_data[0x38f38])
 #define g_56af41 (*(char *)&neg::g_data[0x38f41])

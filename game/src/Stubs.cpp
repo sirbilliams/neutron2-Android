@@ -8,7 +8,6 @@
 
 namespace neg {
 
-bool EditorIsEditing(void)				{ NEG_TODO(0x4a4aa0, "CEditor +0x8c (editing)"); return false; }
 void PhysicsRemoveObject(CGameObject *)	{ NEG_TODO(0x4b4070, "CPhysics::RemoveObject"); }
 void StopObjectSounds(CGameObject *)	{ NEG_TODO(0x4b8dc0, "StopObjectSounds"); }
 bool IsChannelPlaying(int)				{ NEG_TODO(0x4b89d0, "IsChannelPlaying"); return false; }

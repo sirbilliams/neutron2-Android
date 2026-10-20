@@ -62,4 +62,4 @@ extern unsigned int			*g_random_seed;		// 0x56afd8
 // Windows messages / OMT 2002 messages the original code handles
 const omt_Message omsg_neg_Activate		= -118;		// OMT 2002
 const omt_Message omsg_neg_DeActivate	= -119;		// OMT 2002
-// (-600 omsg_ViewPortClicked -> CJimmyGame vtable +0xcc; -500 omsg_ScreenModeChanged -> 0x4ae450)
+// (-600 omsg_ViewPortClicked -> CEditor::ViewportClicked, vtable +0xcc; -500 omsg_ScreenModeChanged -> 0x4ae450)
