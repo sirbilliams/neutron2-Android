@@ -8,6 +8,7 @@ class OMedia3DVector;
 class OMediaCanvasElementWrapper;
 class OMediaDataBase;
 class OMediaElement;
+class OMediaFileStream;
 class OMediaHumanInterfaceDevice;
 namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
@@ -1070,9 +1071,12 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_demo_key_time (*(float *)&neg::g_data[0x1c838])
 #define g_54e844 (neg::g_ptrs[0x7211])		// pointer
 #define g_54e84c (neg::g_ptrs[0x7213])		// pointer
-#define g_54e858 (*(int *)&neg::g_data[0x1c858])
-#define g_54e85c (*(int *)&neg::g_data[0x1c85c])
-#define g_54e860 (*(char *)&neg::g_data[0x1c860])
+#define g_54e858 (*(OMediaDataBase* *)&neg::g_ptrs[0x7216])
+#define g_sky_db (*(OMediaDataBase* *)&neg::g_ptrs[0x7216])
+#define g_54e85c (*(OMediaFileStream* *)&neg::g_ptrs[0x7217])
+#define g_sky_stream (*(OMediaFileStream* *)&neg::g_ptrs[0x7217])
+#define g_54e860 (*(bool *)&neg::g_data[0x1c860])
+#define g_sky_alt (*(bool *)&neg::g_data[0x1c860])
 #define g_54e8ac (&neg::g_data[0x1c8ac])		// address only
 #define g_54e8b0 (&neg::g_data[0x1c8b0])		// address only
 #define g_54e8b4 (&neg::g_data[0x1c8b4])		// address only

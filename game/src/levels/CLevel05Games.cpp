@@ -148,14 +148,11 @@ static void InitLevel5c(CJimmyGame *game)
 	game->InitTerrainDatabase("level5c.omt");
 	game->v107(0);											// not written to the .gam (f_00b)
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\skydowntown.omt", false);		// sky element +0xe8
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();									// (empty for a C3DSky)
-		sky->v67(1.0f);										// radius
-		sky->v152(1.0f);
-	}
+	SkyLoad(sky, "omt\\skydowntown.omt", false);			// sky element +0xe8
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();										// (empty for a C3DSky)
+	sky->v67(1.0f);											// radius
+	sky->v152(1.0f);
 	game->CreateTerrainUnLit();
 	ViewportToOrigin();
 	game->SetFog(0.678f, 0.83f, 0.94f, 0.0f, 18000.0f, 20000.0f, 20000.0f, true);

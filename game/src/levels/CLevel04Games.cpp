@@ -94,15 +94,12 @@ void CLevel04AGame::InitGame(void)											// 0x48a9f0
 	CJimmyGame::InitGame();
 	v107(0);
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\nightsky.omt", false);
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();
-		sky->v67(1.0f);
-		sky->v152(1.0f);
-		sky->ev51();
-	}
+	SkyLoad(sky, "omt\\nightsky.omt", false);
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();
+	sky->v67(1.0f);
+	sky->v152(1.0f);
+	sky->ev51();
 	InitTerrainDatabase("level4a.omt");
 	CreateTerrainUnLit();
 	ViewportToOrigin();
@@ -226,15 +223,12 @@ void CLevel04DGame::InitGame(void)
 	CJimmyGame::InitGame();
 	v107(0);
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\nightsky.omt", false);
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();
-		sky->v67(1.0f);
-		sky->v152(1.0f);
-		sky->ev51();
-	}
+	SkyLoad(sky, "omt\\nightsky.omt", false);
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();
+	sky->v67(1.0f);
+	sky->v152(1.0f);
+	sky->ev51();
 	InitTerrainDatabase("level4d.omt");
 	CreateTerrainUnLit();
 	ViewportToOrigin();

@@ -38,15 +38,12 @@ void CLevel01DGame::InitGame(void)											// 0x487d50
 	v107(0);												// not written to the .gam (f_00b)
 
 	C3DObject *sky = CreateSky();							// a local: m_sky stays NULL (no sky rotation)
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\skylevel1d.omt", false);			// sky element +0xe8
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();									// (empty for a C3DSky)
-		sky->v67(1.0f);										// radius
-		sky->v152(1.0f);
-		sky->ev51();										// element +0xcc
-	}
+	SkyLoad(sky, "omt\\skylevel1d.omt", false);				// sky element +0xe8
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();										// (empty for a C3DSky)
+	sky->v67(1.0f);											// radius
+	sky->v152(1.0f);
+	sky->ev51();											// element +0xcc
 
 	InitTerrainDatabase("level1d.omt");						// element +0xe4
 	CreateTerrainUnLit();									// element +0xf8

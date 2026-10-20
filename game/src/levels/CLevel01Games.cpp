@@ -35,15 +35,12 @@ void CLevel01Game::InitGame(void)											// 0x488720
 	CJimmyGame::InitGame();
 	v107(0);												// not written to the .gam (f_00b)
 	m_sky = CreateSky();
-	if (m_sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(m_sky, "omt\\wintersky.omt", false);		// sky element +0xe8
-		m_sky->ev51();										// element +0xcc
-		m_sky->place(0.0f, 0.0f, 0.0f);
-		m_sky->InitPhysics();								// (empty for a C3DSky)
-		m_sky->v67(1.0f);									// radius
-		m_sky->v152(1.0f);
-	}
+	SkyLoad(m_sky, "omt\\wintersky.omt", false);			// sky element +0xe8
+	m_sky->ev51();											// element +0xcc
+	m_sky->place(0.0f, 0.0f, 0.0f);
+	m_sky->InitPhysics();									// (empty for a C3DSky)
+	m_sky->v67(1.0f);										// radius
+	m_sky->v152(1.0f);
 	InitTerrainDatabase("level1.omt");
 	CreateTerrainUnLit();
 	ViewportToOrigin();
@@ -188,15 +185,12 @@ void CLevel01FGame::InitGame(void)											// 0x488350
 	CJimmyGame::InitGame();
 	v107(0);
 	C3DObject *sky = CreateSky();							// a local: no sky rotation
-	if (sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(sky, "omt\\space.omt", false);
-		sky->place(0.0f, 0.0f, 0.0f);
-		sky->InitPhysics();
-		sky->v67(1.0f);
-		sky->v152(1.0f);
-		sky->ev51();
-	}
+	SkyLoad(sky, "omt\\space.omt", false);
+	sky->place(0.0f, 0.0f, 0.0f);
+	sky->InitPhysics();
+	sky->v67(1.0f);
+	sky->v152(1.0f);
+	sky->ev51();
 	InitTerrainDatabase("level1f.omt");
 	CreateTerrain();
 	ViewportToOrigin();
@@ -229,15 +223,12 @@ void CLevel01_AGame::InitGame(void)											// 0x486730
 	CJimmyGame::InitGame();
 	v107(0);
 	m_sky = CreateSky();
-	if (m_sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(m_sky, "omt\\wintersky.omt", false);
-		m_sky->ev51();
-		m_sky->place(0.0f, 0.0f, 0.0f);
-		m_sky->InitPhysics();
-		m_sky->v67(1.0f);
-		m_sky->v152(1.0f);
-	}
+	SkyLoad(m_sky, "omt\\wintersky.omt", false);
+	m_sky->ev51();
+	m_sky->place(0.0f, 0.0f, 0.0f);
+	m_sky->InitPhysics();
+	m_sky->v67(1.0f);
+	m_sky->v152(1.0f);
 	m_sky_rotates = 0;
 	InitTerrainDatabase("level1_A.omt");
 	CreateTerrainTinted(1.0f, 1.0f, 1.0f, 1.0f);			// element +0x168
@@ -271,15 +262,12 @@ void CLevel01_BGame::InitGame(void)											// 0x486b40
 	CJimmyGame::InitGame();
 	v107(0);
 	m_sky = CreateSky();
-	if (m_sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(m_sky, "omt\\dusksky.omt", false);
-		m_sky->ev51();
-		m_sky->place(0.0f, 0.0f, 0.0f);
-		m_sky->InitPhysics();
-		m_sky->v67(1.0f);
-		m_sky->v152(1.0f);
-	}
+	SkyLoad(m_sky, "omt\\dusksky.omt", false);
+	m_sky->ev51();
+	m_sky->place(0.0f, 0.0f, 0.0f);
+	m_sky->InitPhysics();
+	m_sky->v67(1.0f);
+	m_sky->v152(1.0f);
 	InitTerrainDatabase("level1_B.omt");
 	CreateTerrainTinted(1.0f, 1.0f, 1.0f, 1.0f);
 	ViewportToOrigin();
@@ -313,15 +301,12 @@ void CLevel01_CGame::InitGame(void)											// 0x486f40
 	v107(0);
 	m_sky = CreateSky();
 	m_sky_rotates = 0;
-	if (m_sky)												// port: no C3DSky yet; the original does not test
-	{
-		SkyLoad(m_sky, "omt\\nightsky.omt", false);
-		m_sky->ev51();
-		m_sky->place(0.0f, 0.0f, 0.0f);
-		m_sky->InitPhysics();
-		m_sky->v67(1.0f);
-		m_sky->v152(1.0f);
-	}
+	SkyLoad(m_sky, "omt\\nightsky.omt", false);
+	m_sky->ev51();
+	m_sky->place(0.0f, 0.0f, 0.0f);
+	m_sky->InitPhysics();
+	m_sky->v67(1.0f);
+	m_sky->v152(1.0f);
 	InitTerrainDatabase("level1_C.omt");
 	CreateTerrainTinted(0.7f, 0.7f, 0.8f, 1.0f);
 	ViewportToOrigin();
