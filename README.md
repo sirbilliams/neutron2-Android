@@ -43,7 +43,9 @@ Flies a camera through the game's levels, rendered by the game's own engine.
 
 ## Installing on the Thor
 
-1. Install the APK and open it.
+1. Download the newest APK on the Thor from
+   https://github.com/sirbilliams/neutron2-android/releases/download/latest/Negatron-Viewer.apk
+   (rebuilt on every change), install it and open it.
 2. Tap **Choose the game's .iso…** and pick the game's CD image (`Jimmy Neutron vs. Jimmy Negatron.iso`,
    copied onto the Thor). The app installs the game from it the way the CD's setup program does:
    it finds the InstallShield cabinet on the disc and unpacks the game folder (about 270 MB, a minute
