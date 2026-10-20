@@ -1,6 +1,7 @@
-/*  Calls from reconstructed code into parts that are not reconstructed yet (CEditor, CGameType,
-    the object factory, physics, sound). Each one is a small named function so the call sites read
-    like the original; Stubs.cpp holds the TODO bodies until the real code replaces them.     */
+/*  Calls from reconstructed code into parts that are not reconstructed yet (CEditor, the object
+    factory, physics, sound). Each one is a small named function so the call sites read like the
+    original; Stubs.cpp holds the TODO bodies until the real code replaces them. The game-type
+    ones (GameIsRunning, GameTypeTouch*) are real now, in CGameType.cpp.                     */
 #pragma once
 class CGameObject;
 

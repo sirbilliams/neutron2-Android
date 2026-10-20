@@ -3,6 +3,11 @@
     0x4b7db0 InitSoundEngine   0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
 
 #include "Game.h"
+#include "CGameType.h"
+#include "CDefaultGame.h"
+#include "CViewPort.h"
+#include "Todo.h"
+#include "gen/globals.h"
 #include "OMediaWindow.h"
 #include "OMediaEventManager.h"
 #include "OMediaEngineFactory.h"
@@ -43,12 +48,22 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 	{
 		case omsg_neg_DeActivate:
 			SDL_Log("omsg_DeActivate");
-			// TODO(0x4a3380): pause the running game type (0x56aeb0 vtable +0x110/+0x120)
+			if (g_gametype)
+			{
+				g_53f27c = g_53b5b4;			// remember the game state (0x53b5b4, CJimmyGame)
+				if (g_53b5b4 == 5 && !g_56aed0) g_gametype->PauseGame(true);	// vtable +0x110
+				g_gametype->OnDeactivate();		// vtable +0x120
+			}
 			break;
 
 		case omsg_neg_Activate:
 			SDL_Log("omsg_Activate");
-			// TODO(0x4a3380): resume (0x56aeb0 vtable +0x110(0) / +0x11c)
+			if (g_gametype)
+			{
+				if (g_53f27c == 5) g_gametype->PauseGame(false);	// vtable +0x110
+				g_53f27c = 9;
+				g_gametype->OnActivate();		// vtable +0x11c
+			}
 			break;
 
 		case omsg_LowlevelEventFilter:
@@ -119,16 +134,38 @@ void neg::InitSoundEngine(void)			// 0x4b7db0
 	// 0x6f751c / 0x6f7334 / 0x6f73d4: three 32-entry tables cleared (channel bookkeeping)
 }
 
-void neg::LoadNewLevel(unsigned int which)	// "+LoadNewLevel()" ... "-LoadNewLevel()"
+static void PhysicsReset(void)			{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
+
+// 0x4ae4a0: every object is un-initialised, then loses its databases, then is deleted (each
+// destructor takes itself off g_objects). The running game type is one of them; g_gametype is left
+// pointing at it until the next game type is made.
+static void DeleteAllObjects(void)
+{
+	SDL_Log("+DeleteAllObjects()");
+	// "+UnInitObjects()"
+	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); i++)
+		(*i)->UnInitObject();				// vtable +0x20
+	// "-UnInitObjects()"  "+UnInitObjectDatabases()"
+	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); i++)
+		(*i)->UnInitDatabases();			// vtable +0x34
+	// "-UnInitObjectDatabases()"
+	while (g_objects.size() != 0)
+		if (g_objects.front()) delete g_objects.front();	// (a NULL entry would loop for ever, as in the original)
+	SDL_Log("-DeleteAllObjects()");
+}
+
+// Inline in omt_main (0x4a3ea8) and in CAweReal::listen_to_message for AWEMSG_LOAD (0x4a3380).
+void neg::LoadNewLevel(unsigned int which)
 {
 	SDL_Log("+LoadNewLevel(%c%c%c%c)", (which >> 24) & 0xff, (which >> 16) & 0xff, (which >> 8) & 0xff, which & 0xff);
 	CGfx::UnInitCaptions();				// 0x4b16a0
-	// TODO(0x4b40d0) CPhysics::Reset   TODO(0x4ae4a0) DeleteAllObjects
+	PhysicsReset();						// 0x4b40d0
+	DeleteAllObjects();					// 0x4ae4a0
 	CGfx::UnInitAlpha();				// 0x4a0ef0 = UnInitAlpha + InitAlpha
 	CGfx::InitAlpha();
-	// TODO(0x4b9b60) clear list 0x6f75dc
-	// TODO(0x480230) create the game type for 'which' ('MAIN' = CDefaultGame main menu)
-	// 0x4b9600: QueryPerformanceCounter -> frame timer reset
+	ClearWayPoints();					// 0x4b9b60
+	CreateGameType(which);				// 0x480230: a CDefaultGame, whatever the id
+	ResetFrameTimer();					// 0x4b9600
 	SDL_Log("-LoadNewLevel()");
 }
 
@@ -205,15 +242,24 @@ void omt_main(void)
 		CGfx::SetDisplayMode(g_screen_w, g_screen_h, g_screen_depth, g_windowed);	// 0x4b18a0
 		CInput *input = new CInput;				// 0x4b3260
 
-		// TODO(0x4a4aa0): g_game = new CJimmyGame(1)  (0x82c bytes) - the game manager
+		// TODO(0x4a4aa0): g_editor = new CEditor(1) (0x82c bytes). The original loads the level and
+		// runs only when it exists; until CEditor is reconstructed this runs without it.
 		LoadNewLevel('MAIN');
+		SDL_Log("omtmain 1");
 
 		CTextTest *text_test = getenv("NEG_TEXT_TEST") ? new CTextTest : NULL;
-		SDL_Log("omtmain 3: entering main loop");
-		app->start();							// OMediaApplication::start (vtable +0x10)
+		if (g_gametype)
+		{
+			SDL_Log("omtmain 2: entering main loop");
+			ErrorLog("VER: RC.03   %s  %s", "Aug 27 2002", "18:31:08");
+			app->start();						// OMediaApplication::start (vtable +0x10)
+		}
+		SDL_Log("omtmain 3");
+		DeleteAllObjects();						// 0x4ae4a0
+		CGfx::UnInitAlpha();					// 0x4a0e10
 
 		SDL_Log("EXITING GAME");
-		// TODO(0x4ae4a0, 0x4a0e10, 0x4a4870, 0x4a4960): delete objects, alpha, object/sound databases
+		// TODO(0x4a4870, 0x4a4960): object / sound databases;  TODO(0x4a4aa0): delete g_editor
 		delete text_test;
 		delete input;
 		delete gfx;

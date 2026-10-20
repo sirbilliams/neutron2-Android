@@ -14,6 +14,7 @@
 #include "OMediaWorld.h"
 #include "OMediaLayer.h"
 #include "OMediaViewPort.h"
+#include "CViewPort.h"
 #include "OMediaTimeCounter.h"
 #include <SDL.h>
 #include <strings.h>
@@ -114,8 +115,7 @@ void CGfx::InitViewPort(void)
 {
 	SDL_Log("InitViewPort()");
 	if (g_viewport) return;
-	// TODO(0x4b94a0): the game uses its own CViewPort (0x120 bytes); plain OMediaViewPort until decompiled.
-	g_viewport = new OMediaViewPort(g_window);
+	g_viewport = new CViewPort(g_window);					// 0x4b94a0 (0x120 bytes)
 	g_viewport->link(g_world);
 	g_viewport->link_window(g_window);
 	OMediaRect r; r.set(0, 0, 0, 0);
