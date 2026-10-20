@@ -2,8 +2,10 @@
 #pragma once
 #include <stddef.h>
 class C2DInGameMenu;
+class CGameObject;
 class OMediaCanvasElementWrapper;
 class OMediaDataBase;
+class OMediaElement;
 namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
 extern unsigned char g_data[DATA_SIZE];
@@ -30,6 +32,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_5324f8 (*(int *)&neg::g_data[0x4f8])
 #define g_5324fc (*(int *)&neg::g_data[0x4fc])
 #define g_532500 (*(int *)&neg::g_data[0x500])
+#define g_score_box_y (*(int *)&neg::g_data[0x500])
 #define g_532508 (*(float *)&neg::g_data[0x508])
 #define g_53250c (&neg::g_data[0x50c])		// address only
 #define g_532714 (&neg::g_data[0x714])		// address only
@@ -174,6 +177,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_537638 (*(unsigned int *)&neg::g_data[0x5638])
 #define g_53763c (*(float *)&neg::g_data[0x563c])
 #define g_537640 (*(int *)&neg::g_data[0x5640])
+#define g_voice_channel (*(int *)&neg::g_data[0x5640])
 #define g_5377f0 (&neg::g_data[0x57f0])		// address only
 #define g_53780c (&neg::g_data[0x580c])		// address only
 #define g_5378bc (&neg::g_data[0x58bc])		// address only
@@ -344,13 +348,16 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_prev_game_state (*(int *)&neg::g_data[0x95b8])
 #define g_prev_game_mode (*(int *)&neg::g_data[0x95b8])
 #define g_53b5bc (*(int *)&neg::g_data[0x95bc])
+#define g_mode_before_pause (*(int *)&neg::g_data[0x95bc])
 #define g_53b5c0 (*(unsigned char *)&neg::g_data[0x95c0])
+#define g_has_focus (*(unsigned char *)&neg::g_data[0x95c0])
 #define g_53b648 (*(char *)&neg::g_data[0x9648])
 #define g_53b6cc (&neg::g_data[0x96cc])		// address only
 #define g_53c430 (&neg::g_data[0xa430])		// address only
 #define g_53c4dc (&neg::g_data[0xa4dc])		// address only
 #define g_53c544 (&neg::g_data[0xa544])		// address only
 #define g_53c550 (*(unsigned int *)&neg::g_data[0xa550])
+#define g_queued_sfx_after (*(unsigned int *)&neg::g_data[0xa550])
 #define g_53c60c (&neg::g_data[0xa60c])		// address only
 #define g_53c618 ((char *)&neg::g_data[0xa618])
 #define g_object_catalogue ((char *)&neg::g_data[0xa618])
@@ -414,6 +421,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54048f (&neg::g_data[0xe48f])		// address only
 #define g_540590 (*(char *)&neg::g_data[0xe590])
 #define g_540594 (*(float *)&neg::g_data[0xe594])
+#define g_enemy_time_scale (*(float *)&neg::g_data[0xe594])
 #define g_5405b8 (&neg::g_data[0xe5b8])		// address only
 #define g_5406e0 ((int *)&neg::g_data[0xe6e0])		// array, stride 4
 #define g_5407dc (&neg::g_data[0xe7dc])		// address only
@@ -852,6 +860,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545f04 (*(int *)&neg::g_data[0x13f04])
 #define g_545f08 (*(int *)&neg::g_data[0x13f08])
 #define g_545f0d (*(char *)&neg::g_data[0x13f0d])
+#define g_score_box2_on (*(char *)&neg::g_data[0x13f0d])
 #define g_545f0e (*(char *)&neg::g_data[0x13f0e])
 #define g_545f0f (*(char *)&neg::g_data[0x13f0f])
 #define g_545f10 (*(unsigned char *)&neg::g_data[0x13f10])
@@ -894,7 +903,8 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545fc0 (*(unsigned int *)&neg::g_data[0x13fc0])
 #define g_545fc4 (*(unsigned int *)&neg::g_data[0x13fc4])
 #define g_545fc8 (*(unsigned int *)&neg::g_data[0x13fc8])
-#define g_545fd0 (neg::g_ptrs[0x4ff4])		// pointer
+#define g_545fd0 (*(CGameObject* *)&neg::g_ptrs[0x4ff4])
+#define g_player (*(CGameObject* *)&neg::g_ptrs[0x4ff4])
 #define g_545fd4 (*(char *)&neg::g_data[0x13fd4])
 #define g_545fdc (*(int *)&neg::g_data[0x13fdc])
 #define g_545fe0 (*(int *)&neg::g_data[0x13fe0])
@@ -932,7 +942,8 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a3dc (&neg::g_data[0x183dc])		// address only
 #define g_54a400 (*(float *)&neg::g_data[0x18400])
 #define g_54a418 (*(int *)&neg::g_data[0x18418])
-#define g_54a424 (*(float *)&neg::g_data[0x18424])
+#define g_54a424 ((float *)&neg::g_data[0x18424])
+#define g_power_timers ((float *)&neg::g_data[0x18424])
 #define g_54a428 (*(float *)&neg::g_data[0x18428])
 #define g_54a42c (*(float *)&neg::g_data[0x1842c])
 #define g_54a430 (*(float *)&neg::g_data[0x18430])
@@ -946,13 +957,18 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a450 (neg::g_ptrs[0x6114])		// pointer
 #define g_54a454 (*(int *)&neg::g_data[0x18454])
 #define g_54a464 (*(int *)&neg::g_data[0x18464])
+#define g_promotion_rank (*(int *)&neg::g_data[0x18464])
 #define g_54a468 (*(char *)&neg::g_data[0x18468])
 #define g_54a469 (*(char *)&neg::g_data[0x18469])
 #define g_level_requested (*(char *)&neg::g_data[0x18469])
-#define g_54a46c (neg::g_ptrs[0x611b])		// pointer
+#define g_54a46c (*(OMediaElement* *)&neg::g_ptrs[0x611b])
+#define g_player_hud (*(OMediaElement* *)&neg::g_ptrs[0x611b])
 #define g_54a470 (*(float *)&neg::g_data[0x18470])
+#define g_frame_rate_now (*(float *)&neg::g_data[0x18470])
 #define g_54a474 (*(float *)&neg::g_data[0x18474])
+#define g_frame_rate (*(float *)&neg::g_data[0x18474])
 #define g_54a478 (*(float *)&neg::g_data[0x18478])
+#define g_frame_rate_acc (*(float *)&neg::g_data[0x18478])
 #define g_54a480 (*(float *)&neg::g_data[0x18480])
 #define g_54a484 (*(float *)&neg::g_data[0x18484])
 #define g_54a488 (*(float *)&neg::g_data[0x18488])
@@ -960,20 +976,18 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_54a490 (*(float *)&neg::g_data[0x18490])
 #define g_54a494 (*(float *)&neg::g_data[0x18494])
 #define g_54a498 (*(char *)&neg::g_data[0x18498])
-#define g_54a4a8 (&neg::g_data[0x184a8])		// address only
 #define g_54a4ac (neg::g_ptrs[0x612b])		// pointer
 #define g_54a4b0 (*(unsigned int *)&neg::g_data[0x184b0])
 #define g_54a4b4 (*(unsigned int *)&neg::g_data[0x184b4])
 #define g_54a4b8 (*(bool *)&neg::g_data[0x184b8])
 #define g_54a4b9 (*(char *)&neg::g_data[0x184b9])
 #define g_54a4ba (*(char *)&neg::g_data[0x184ba])
+#define g_queued_sfx_pending (*(char *)&neg::g_data[0x184ba])
 #define g_54a4cc (neg::g_ptrs[0x6133])		// pointer
 #define g_54a4d4 (*(int *)&neg::g_data[0x184d4])
 #define g_54a4d8 ((int *)&neg::g_data[0x184d8])		// array, stride 4
 #define g_54e678 (&neg::g_data[0x1c678])		// address only
-#define g_54e684 (neg::g_ptrs[0x71a1])		// pointer
 #define g_54e688 (*(int *)&neg::g_data[0x1c688])
-#define g_54e68c (*(float *)&neg::g_data[0x1c68c])
 #define g_54e69c (neg::g_ptrs[0x71a7])		// pointer
 #define g_54e6a0 (*(int *)&neg::g_data[0x1c6a0])
 #define g_54e6a4 ((char *)&neg::g_data[0x1c6a4])
@@ -1150,8 +1164,11 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_63118c (*(float *)&neg::g_data[0xff18c])
 #define g_631190 (neg::g_ptrs[0x3fc64])		// pointer
 #define g_631198 (*(float *)&neg::g_data[0xff198])
+#define g_gravity_x (*(float *)&neg::g_data[0xff198])
 #define g_63119c (*(float *)&neg::g_data[0xff19c])
+#define g_gravity_y (*(float *)&neg::g_data[0xff19c])
 #define g_6311a0 (*(float *)&neg::g_data[0xff1a0])
+#define g_gravity_z (*(float *)&neg::g_data[0xff1a0])
 #define g_6311a8 (*(unsigned int *)&neg::g_data[0xff1a8])
 #define g_6311ac (*(unsigned int *)&neg::g_data[0xff1ac])
 #define g_6311b0 (*(unsigned int *)&neg::g_data[0xff1b0])
@@ -1201,7 +1218,8 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_6f7458 ((int *)&neg::g_data[0x1c5458])		// array, stride 4
 #define g_6f7518 (*(int *)&neg::g_data[0x1c5518])
 #define g_6f751c ((float *)&neg::g_data[0x1c551c])		// array, stride 4
-#define g_6f759c (neg::g_ptrs[0x71567])		// pointer
+#define g_6f759c (*(void* *)&neg::g_ptrs[0x71567])
+#define g_level_music (*(void* *)&neg::g_ptrs[0x71567])
 #define g_6f75a8 (*(char *)&neg::g_data[0x1c55a8])
 #define g_6f75ac (*(unsigned short *)&neg::g_data[0x1c55ac])
 #define g_6f75b4 (*(int *)&neg::g_data[0x1c55b4])
