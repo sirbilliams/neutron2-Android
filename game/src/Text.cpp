@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <strings.h>
 
 using namespace neg;
 
@@ -96,7 +97,7 @@ void neg::DrawText(short x, short y, int font, const char *fmt, ...)
 	y = (short)(int)(y * sy);
 
 	// Fullscreen "loading": show the Loading picture instead of text.
-	if (!g_windowed && strcmp(text, "loading") == 0)
+	if (!g_windowed && strcasecmp(text, "loading") == 0)
 	{
 		if (!s_loading)
 		{

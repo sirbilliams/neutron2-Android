@@ -9,7 +9,8 @@ OMediaWindow		*g_window = 0;
 OMediaVideoEngine	*g_video = 0;
 OMediaSoundEngine	*g_sound = 0;
 OMediaInputEngine	*g_input_engine = 0;
-CJimmyGame			*g_game = 0;
+CEditor				*g_editor = 0;
+CGameType			*g_gametype = 0;
 
 OMediaWorld			*g_world = 0;
 OMediaLayer			*g_layer_clear = 0;

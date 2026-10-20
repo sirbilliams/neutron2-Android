@@ -16,7 +16,8 @@ class OMediaViewPort;
 class CAweReal;
 class CGfx;
 class CInput;
-class CJimmyGame;
+class CEditor;
+class CGameType;
 
 namespace neg {
 
@@ -28,7 +29,8 @@ extern OMediaWindow			*g_window;			// 0x56afe0  OMediaFullscreenWindow
 extern OMediaVideoEngine	*g_video;			// 0x56afdc
 extern OMediaSoundEngine	*g_sound;			// 0x6f75a4
 extern OMediaInputEngine	*g_input_engine;	// 0x56b078
-extern CJimmyGame			*g_game;			// 0x56af0c  (0x82c bytes)
+extern CEditor				*g_editor;		// 0x56af0c  the level editor/loader (CEditor, 0x82c bytes)
+extern CGameType			*g_gametype;	// 0x56aeb0  the running game type (CDefaultGame, CLevel01Game, ...)
 
 // --- world, layers (InitWorld 0x4b1270 / InitLayers 0x4b1710), viewport
 extern OMediaWorld			*g_world;			// 0x56afe4
