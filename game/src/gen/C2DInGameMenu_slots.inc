@@ -49,19 +49,4 @@
 	virtual void v329(unsigned char *a2);	// slot 329 0x40b370 TODO
 	virtual void v330(int a2);	// slot 330 0x40b2c0 TODO
 	virtual void v331(unsigned int a2);	// slot 331 0x405e30 TODO
-	virtual unsigned int v332();	// slot 332 0x40c360 TODO
-	virtual unsigned int v333();	// slot 333 0x40c550 TODO
-	virtual unsigned int v334();	// slot 334 0x40c8f0 TODO
-	virtual unsigned int v335();	// slot 335 0x40d2c0 TODO
-	virtual unsigned int v336();	// slot 336 0x40d620 TODO
-	virtual unsigned int v337();	// slot 337 0x40cdb0 TODO
-	virtual unsigned int v338();	// slot 338 0x40db70 TODO
-	virtual void v339();	// slot 339 0x40e090 TODO
-	virtual void v340(float a2);	// slot 340 0x40e0e0 TODO
-	virtual void v341(float a2);	// slot 341 0x406aa0 TODO
-	virtual void v342(short a2);	// slot 342 0x40fd90 TODO
-	virtual void v343();	// slot 343 0x4104a0 TODO
 	virtual void v344();	// slot 344 0x463890 gen
-	virtual void v345(unsigned int a2);	// slot 345 0x405ca0 TODO
-	virtual void v346();	// slot 346 0x408cd0 TODO
-	virtual void v347();	// slot 347 0x408d50 TODO

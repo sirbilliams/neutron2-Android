@@ -51,18 +51,3 @@ void C2DInGameMenu::DeleteAllMenuObject()	{ NEG_TODO(0x404400, "C2DInGameMenu sl
 void C2DInGameMenu::v329(unsigned char *a2)	{ NEG_TODO(0x40b370, "C2DInGameMenu slot 329"); }
 void C2DInGameMenu::v330(int a2)	{ NEG_TODO(0x40b2c0, "C2DInGameMenu slot 330"); }
 void C2DInGameMenu::v331(unsigned int a2)	{ NEG_TODO(0x405e30, "C2DInGameMenu slot 331"); }
-unsigned int C2DInGameMenu::v332()	{ NEG_TODO(0x40c360, "C2DInGameMenu slot 332"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v333()	{ NEG_TODO(0x40c550, "C2DInGameMenu slot 333"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v334()	{ NEG_TODO(0x40c8f0, "C2DInGameMenu slot 334"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v335()	{ NEG_TODO(0x40d2c0, "C2DInGameMenu slot 335"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v336()	{ NEG_TODO(0x40d620, "C2DInGameMenu slot 336"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v337()	{ NEG_TODO(0x40cdb0, "C2DInGameMenu slot 337"); return (unsigned int)0; }
-unsigned int C2DInGameMenu::v338()	{ NEG_TODO(0x40db70, "C2DInGameMenu slot 338"); return (unsigned int)0; }
-void C2DInGameMenu::v339()	{ NEG_TODO(0x40e090, "C2DInGameMenu slot 339"); }
-void C2DInGameMenu::v340(float a2)	{ NEG_TODO(0x40e0e0, "C2DInGameMenu slot 340"); }
-void C2DInGameMenu::v341(float a2)	{ NEG_TODO(0x406aa0, "C2DInGameMenu slot 341"); }
-void C2DInGameMenu::v342(short a2)	{ NEG_TODO(0x40fd90, "C2DInGameMenu slot 342"); }
-void C2DInGameMenu::v343()	{ NEG_TODO(0x4104a0, "C2DInGameMenu slot 343"); }
-void C2DInGameMenu::v345(unsigned int a2)	{ NEG_TODO(0x405ca0, "C2DInGameMenu slot 345"); }
-void C2DInGameMenu::v346()	{ NEG_TODO(0x408cd0, "C2DInGameMenu slot 346"); }
-void C2DInGameMenu::v347()	{ NEG_TODO(0x408d50, "C2DInGameMenu slot 347"); }
