@@ -25,3 +25,4 @@ Program_Executable_Files/
 *.gdmp
 tools/granny/*.exe
 __pycache__/
+.claude/
