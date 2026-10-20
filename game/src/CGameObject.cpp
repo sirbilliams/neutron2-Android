@@ -85,7 +85,7 @@ CGameObject::CGameObject()
 	f_294 = 0;
 	f_29c = 1.0f;
 	f_408 = -1; f_40c = -1; f_410 = -1;
-	f_414 = 0; f_418 = 0;
+	f_414 = NULL; f_418 = 0;
 	g_objects.push_back(this);
 	f_41c = 0;
 	f_004 = 0;

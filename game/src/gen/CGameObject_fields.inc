@@ -180,7 +180,7 @@
 	int            f_408;
 	int            f_40c;
 	int            f_410;
-	unsigned int   f_414;
+	OMedia3DShape * f_414;
 	unsigned int   f_418;
 	unsigned int   f_41c;
 	unsigned char  f_42c;

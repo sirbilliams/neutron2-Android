@@ -19,6 +19,7 @@
 #include "Globals.h"
 
 class OMediaStreamOperators;
+class OMedia3DShape;
 class CGameObject;
 
 // A registered property (0x4c bytes): see RegisterProperty 0x4aeee0.
@@ -97,6 +98,7 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	// FIELD 0x428 4
 	int							m_num_properties;	// 0x428
 
+	// TYPE 0x414 OMedia3DShape *
 	// TYPE 0x294 float
 	// TYPE 0x298 float
 #include "gen/CGameObject_fields.inc"
