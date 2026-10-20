@@ -5,6 +5,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Physics.h"
 #include "gen/globals.h"
 #include "OMediaWorld.h"
 #include "OMediaLayer.h"
@@ -48,7 +49,6 @@ static void CaptureMouse(bool capture)		{ (void)capture; NEG_TODO(0x4a3930, "Cap
 static void StopAllChannels(void)			{ NEG_TODO(0x4b8990, "stop all sound channels"); }
 // OMediaMouseCursor::hide() (OMT2.dll); the SDL build of OMT has no OMediaMouseCursor.
 static void HideMouseCursor(void)			{ SDL_ShowCursor(SDL_DISABLE); }
-static void ClearPolyTerrains(void)			{ NEG_TODO(0x4b49c0, "ClearPolyTerrains"); }
 static void PlayMusic(OMediaDataBase *db, int channel, unsigned int id, int loop)
 {
 	(void)db; (void)channel; (void)id; (void)loop;
@@ -233,7 +233,7 @@ void CGameType::UnInitGame(void)											// 0x4afa60
 	ResetParticles();						// 0x49b260
 	ResetTextureAnims();					// 0x4a2270
 	StopAllChannels();						// 0x4b8990
-	ClearPolyTerrains();					// 0x4b49c0
+	PhysicsClearTerrain();					// 0x4b49c0 ClearPolyTerrains
 }
 
 void CGameType::StartSong(void)												// 0x4afb00
@@ -484,6 +484,6 @@ bool neg::GameIsRunning(void)												// 0x4b0ca0
 	return true;
 }
 
-int neg::GameTypeTouchStart(CGameObject *o, int id)		{ return g_gametype->TouchStart(o, id); }	// vtable +0x14c
-int neg::GameTypeTouchEnd(CGameObject *o, int id)		{ return g_gametype->TouchEnd(o, id); }		// vtable +0x150
-int neg::GameTypeTouch154(CGameObject *o, unsigned int a) { return g_gametype->Touch154(o, a); }	// vtable +0x154
+int neg::GameTypeTouchStart(CGameObject *o, CGameObject *other)	{ return g_gametype->TouchStart(o, other); }	// vtable +0x14c
+int neg::GameTypeTouchEnd(CGameObject *o, CGameObject *other)	{ return g_gametype->TouchEnd(o, other); }		// vtable +0x150
+int neg::GameTypeTouch154(CGameObject *o, CGameObject *other)	{ return g_gametype->Touch154(o, other); }	// vtable +0x154

@@ -1,0 +1,10 @@
+# CPhysics (game/src/Physics.cpp) - shared globals; physics-only state is static in Physics.cpp
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x631198 val OMedia3DVector g_gravity        # (0, -5000, 0, 0) at start-up; CJimmyGame sets (0, -800, 0)
+0x6311d8 val CPhysicsRay g_phys_ray          # last ray test: origin, dir, end (= hit point, 0x6311f8)
+0x6f72f4 val float g_closest_face_t          # nearest face hit of the current sweep (-1 / 130000 = none yet)
+0x540b68 val bool g_phys_objects_on          # 1: object-object collisions (PhysicsCollideObjects)
+0x540b69 val bool g_phys_terrain_on          # 1: terrain collisions and ray tests
+0x540b6b val bool g_phys_on                  # 1: PhysicsProcess moves the objects
+0x540b70 val int g_terrain_memory            # bytes counted for the terrain polygon records (+0x1c each)
+0x56af44 val bool g_terrain_poly_claimed     # the game type took a terrain polygon (CGameType ev79)

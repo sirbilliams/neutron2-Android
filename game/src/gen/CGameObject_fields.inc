@@ -79,9 +79,9 @@
 	float          f_100;
 	float          f_104;
 	float          f_108;
-	int            f_10c;
+	OMedia3DPolygon * f_10c;
 	int            f_110;
-	int            f_114;
+	OMedia3DShape * f_114;
 	int            f_118;
 	int            f_11c;
 	int            f_120;
@@ -162,9 +162,9 @@
 	float          f_228;
 	float          f_22c;
 	float          f_230;
-	int            f_234;
+	OMedia3DPolygon * f_234;
 	int            f_238;
-	int            f_23c;
+	OMedia3DShape * f_23c;
 	int            f_240;
 	int            f_244;
 	int            f_248;

@@ -17,9 +17,11 @@
 #include <list>
 #include "OMediaClassStreamer.h"
 #include "Globals.h"
+#include "OMedia3DVector.h"
 
 class OMediaStreamOperators;
 class OMedia3DShape;
+class OMedia3DPolygon;
 class CGameObject;
 
 // A registered property (0x4c bytes): see RegisterProperty 0x4aeee0.
@@ -47,15 +49,30 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	virtual bool NameContains(char *s);										// SLOT 6  0x4ab260
 	virtual void InitObject(void);											// SLOT 7  0x4ab290
 	virtual void ResetObject(void);											// SLOT 10 0x4ab420
-	virtual bool IsTouching(int id);										// SLOT 15 0x4ab940
-	virtual void AddTouching(int id);										// SLOT 16 0x4ab970
-	virtual void RemoveTouching(int id);									// SLOT 17 0x4aba00
-	virtual void v18(unsigned int a);										// SLOT 18 0x4abaa0
-	virtual void Collide(CGameObject *other, unsigned int a);				// SLOT 19 0x4abad0
+	// touches, from PhysicsCollideObjects: the argument is the other object
+	virtual void v3(CGameObject *other);									// SLOT 3  0x4ab1a0 (= AddTouching)
+	virtual bool IsTouching(CGameObject *other);							// SLOT 15 0x4ab940
+	virtual void AddTouching(CGameObject *other);							// SLOT 16 0x4ab970 touch starts
+	virtual void RemoveTouching(CGameObject *other);						// SLOT 17 0x4aba00 touch ends
+	virtual void v18(CGameObject *other);									// SLOT 18 0x4abaa0 still touching
+	virtual void Collide(CGameObject *other, float dist);					// SLOT 19 0x4abad0 spheres overlap (dist between centres)
 	virtual void v21(CGameObject *other);									// SLOT 21 0x4abd40
 	virtual void AddRotation(float x, float y, float z);					// SLOT 204 0x4ad310
 	virtual void RequestEnd(void);											// SLOT 217 0x4ad4c0
-	virtual void v220(float a, float b, float c, float d, unsigned int e);	// SLOT 220 0x48ef40
+	// terrain contact at the end of a sweep (PhysicsMoveAgainstTerrain): the polygon's normal
+	virtual void v219(float nx, float ny, float nz, float nw, OMedia3DPolygon *poly);	// SLOT 219 0x4ad520 ceiling
+	virtual void v220(float a, float b, float c, float d, OMedia3DPolygon *poly);	// SLOT 220 0x48ef40 wall/floor
+	virtual OMedia3DVector v224(float x, float y, float z);				// SLOT 224 0x4ad800 local point -> world (rotation v201, position)
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x410490 may collide with other (1)
+	// floor polygon/shape found by PhysicsSnapToGround (initial value f_10c/f_114, current f_234/f_23c)
+	virtual OMedia3DPolygon *v95(void);										// SLOT 95  0x4ac620
+	virtual void v96(OMedia3DPolygon *poly);								// SLOT 96  0x4ac630
+	virtual OMedia3DShape *v99(void);										// SLOT 99  0x4ac680
+	virtual void v100(OMedia3DShape *shape);								// SLOT 100 0x4ac690
+	virtual OMedia3DPolygon *v205(void);									// SLOT 205 0x4ad400
+	virtual void v206(OMedia3DPolygon *poly);								// SLOT 206 0x4ad410
+	virtual OMedia3DShape *v209(void);										// SLOT 209 0x4ad440
+	virtual void v210(OMedia3DShape *shape);								// SLOT 210 0x4ad450
 	virtual void Link(CGameObject *other);									// SLOT 233 0x4ade00
 	virtual void Unlink(CGameObject *other);								// SLOT 235 0x4adeb0
 	virtual void DisableCollisionID(int id);								// SLOT 236 0x4adf60
@@ -68,7 +85,7 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	virtual CProperty *FindProperty(const char *name);						// SLOT 256 0x4aedf0
 	virtual void CopyPropertiesTo(CGameObject *dst);						// SLOT 257 0x4ae9a0
 	virtual void DeleteAllProperties(void);									// SLOT 259 0x4af3f0
-	virtual void v262(CGameObject *other, unsigned int a);					// SLOT 262 0x4af030 (TODO body)
+	virtual void v262(CGameObject *other, float dist);						// SLOT 262 0x4af030 (TODO body)
 	virtual void v221(float a, float b, float c, float d);					// SLOT 221 0x4ad5e0 (TODO body)
 	virtual void v23(CGameObject *o) { (void)o; }							// SLOT 23 0x464ee0 (empty)
 	virtual void v24(CGameObject *o) { (void)o; }							// SLOT 24 0x464ee0 (empty)
@@ -83,7 +100,7 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	// FIELD 0x250 12
 	std::list<CGameObject *>	m_linked;		// 0x250  objects linked both ways (Link/Unlink)
 	// FIELD 0x25c 12
-	std::list<int>				m_touching;		// 0x25c  collision IDs currently touching
+	std::list<CGameObject *>	m_touching;		// 0x25c  objects currently touching
 	// FIELD 0x268 12
 	std::list<CProperty *>		m_properties;	// 0x268
 	// FIELD 0x2a0 256
@@ -99,6 +116,10 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	int							m_num_properties;	// 0x428
 
 	// TYPE 0x414 OMedia3DShape *
+	// TYPE 0x10c OMedia3DPolygon *
+	// TYPE 0x114 OMedia3DShape *
+	// TYPE 0x234 OMedia3DPolygon *
+	// TYPE 0x23c OMedia3DShape *
 	// TYPE 0x294 float
 	// TYPE 0x298 float
 #include "gen/CGameObject_fields.inc"

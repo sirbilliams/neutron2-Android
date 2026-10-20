@@ -7,6 +7,7 @@
 #include "CDefaultGame.h"
 #include "CViewPort.h"
 #include "Todo.h"
+#include "Physics.h"
 #include "gen/globals.h"
 #include "CEditor.h"
 #include "OMediaWindow.h"
@@ -139,7 +140,6 @@ void neg::InitSoundEngine(void)			// 0x4b7db0
 	// 0x6f751c / 0x6f7334 / 0x6f73d4: three 32-entry tables cleared (channel bookkeeping)
 }
 
-static void PhysicsReset(void)			{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
 
 // 0x4ae4a0: every object is un-initialised, then loses its databases, then is deleted (each
 // destructor takes itself off g_objects). The running game type is one of them; g_gametype is left

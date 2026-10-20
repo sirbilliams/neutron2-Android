@@ -78,17 +78,20 @@ class CGameType : public OMediaElement, public CLocalGameObject
 	virtual void SetInputDevice(short player, unsigned int device);			// ESLOT 74 0x4b0a70  +0x128
 	virtual void PlaySong(void);											// ESLOT 75 0x4b0ae0  +0x12c
 	virtual void ev76(void) {}												// ESLOT 76 0x463890  +0x130 (empty; called from Process)
-	virtual void ev77(int a, void *b, int c) { (void)a; (void)b; (void)c; }	// ESLOT 77 0x4ae440 +0x134 (empty; types unknown)
+	// a checkpoint polygon of the terrain (material "cstart" = 0, "ccheck1".."ccheck9" = 1..9; PhysicsAddTerrain)
+	virtual void ev77(int checkpoint, OMedia3DPolygon *poly, OMedia3DShape *shape)	// ESLOT 77 0x4ae440 +0x134 (empty)
+		{ (void)checkpoint; (void)poly; (void)shape; }
 	virtual void ev78(CGameObject *o, void *a, unsigned int b, unsigned int c)	// ESLOT 78 0x464250 +0x138 (empty)
 		{ (void)o; (void)a; (void)b; (void)c; }
-	virtual unsigned char ev79(int a, int b, int c, int d, int e, int f)	// ESLOT 79 0x4b0cc0 +0x13c (returns 0)
-		{ (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; return 0; }
+	// PhysicsAddTerrain asks for each terrain polygon: true keeps it out of the collision grid
+	virtual unsigned char ev79(OMedia3DShape *shape, OMedia3DPolygon *poly, OMedia3DVector center)	// ESLOT 79 0x4b0cc0 +0x13c (returns 0)
+		{ (void)shape; (void)poly; (void)center; return 0; }
 	virtual void ToggleHelp(void);											// ESLOT 80 0x4b0cd0  +0x140
 	virtual void ShowHelp(void) {}											// ESLOT 81 0x463890  +0x144 (empty)
 	virtual void HideHelp(void) {}											// ESLOT 82 0x463890  +0x148 (empty)
-	virtual int  TouchStart(CGameObject *o, int id)		{ (void)o; (void)id; return -1; }	// ESLOT 83 0x4b0d30 +0x14c
-	virtual int  TouchEnd(CGameObject *o, int id)		{ (void)o; (void)id; return -1; }	// ESLOT 84 0x4b0d30 +0x150
-	virtual int  Touch154(CGameObject *o, unsigned int a) { (void)o; (void)a; return -1; }	// ESLOT 85 0x4b0d30 +0x154
+	virtual int  TouchStart(CGameObject *o, CGameObject *other)	{ (void)o; (void)other; return -1; }	// ESLOT 83 0x4b0d30 +0x14c
+	virtual int  TouchEnd(CGameObject *o, CGameObject *other)	{ (void)o; (void)other; return -1; }	// ESLOT 84 0x4b0d30 +0x150
+	virtual int  Touch154(CGameObject *o, CGameObject *other)	{ (void)o; (void)other; return -1; }	// ESLOT 85 0x4b0d30 +0x154
 	virtual void ev86(void) {}												// ESLOT 86 0x463890  +0x158 (empty)
 };
 
