@@ -56,7 +56,17 @@ def main():
                 if not line: continue
                 f = line.split()
                 if len(f) >= 3:
-                    override[int(f[0], 16)] = (f[1], ' '.join(f[2:-1]) if len(f) > 3 else f[2], f[-1] if len(f) > 3 else None)
+                    a = int(f[0], 16)
+                    kind, ty = f[1], (' '.join(f[2:-1]) if len(f) > 3 else f[2])
+                    nm = f[-1] if len(f) > 3 else None
+                    if a in override:                      # several files: keep every name as an alias
+                        k0, t0, n0 = override[a]
+                        if (k0, t0.replace(' ', '')) != (kind, ty.replace(' ', '')):
+                            print(f'globals.py: conflicting types for 0x{a:06x}: {k0} {t0} vs {kind} {ty} ({fn})')
+                        names = [x for x in (n0 or '').split(',') if x] + ([nm] if nm and nm not in (n0 or '').split(',') else [])
+                        override[a] = (k0, t0, ','.join(names) or None)
+                    else:
+                        override[a] = (kind, ty, nm)
     text = ''.join(open(f'{raw}/{fn}', errors='replace').read() for fn in sorted(os.listdir(raw)) if fn.endswith('.c'))
     inr = lambda a: DATA_LO <= a < DATA_HI
     types = defaultdict(set); arrays = {}; ptr = set(); seen = set()
@@ -109,7 +119,7 @@ def main():
         n = f'g_{a:06x}'
         if a in override:
             kind, ty, name = override[a]
-            alias = [n] + ([name] if name else [])
+            alias = [n] + (name.split(',') if name else [])
             for nn in alias:
                 if kind == 'ptr':        hdr.append(f'#define {nn} (*({ty} *)&neg::g_ptrs[0x{off // 4:x}])')
                 elif kind == 'ptrarray': hdr.append(f'#define {nn} (({ty} *)&neg::g_ptrs[0x{off // 4:x}])')

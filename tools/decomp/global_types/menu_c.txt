@@ -1,0 +1,42 @@
+# C2DInGameMenu part c (slots 304..331): globals used by the HUD bars, menu pages, save/options menus
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+
+# menu pages (one per menu, MenuIndex order: INV, PHONE, PICKUPS, MAIN, SAVE, OPTIONS, CREDITS)
+0x545da8 ptrarray MenuPage* g_menu_pages
+0x544750 array int g_pickup_counts                  # stride 8: [2*i] = count shown under pickup icon i
+0x5448ec val int g_main_menu_over                    # last main-menu item whose info was shown (v331)
+0x545de4 array char g_text_trigger                   # name of the TRIGTEXTSTRING set to show ("TEXTTRIG")
+0x5324f4 val float                          # set to 40.0 with g_text_trigger
+0x545f14 array char g_empty_string                   # "" (a shared empty string in .bss)
+
+# HUD bars and sprites (OMediaCanvasElementWrapper, created by the constructor)
+0x5448e4 ptr OMediaCanvasElementWrapper* g_health_bar
+0x54584c ptr OMediaCanvasElementWrapper* g_gadget_bar
+0x5445e0 ptr OMediaCanvasElementWrapper* g_gadget_bar_frame
+0x545da0 val unsigned char g_gadget_bar_on
+0x545d9c val int g_cur_gadget                        # index into the gadget icon table 0x5446f4
+0x545d84 ptr OMediaCanvasElementWrapper* g_hud_picture
+0x5324e4 val int g_hud_picture_id
+0x5444d0 ptr OMediaCanvasElementWrapper*
+
+# confirmation boxes of the menus (g_menu_dialog = which one is up)
+0x545dd4 val bool g_menu_dialog_open
+0x545960 val int g_menu_dialog
+0x5446ec ptr OMediaCanvasElementWrapper*    # hidden when a confirmation box opens
+0x5446f0 ptr OMediaCanvasElementWrapper* g_dlg_quit  # dialog 7 (main menu EXIT)
+0x544904 ptr OMediaCanvasElementWrapper* g_dlg_8     # dialog 8 (save over a used slot)
+0x545850 ptr OMediaCanvasElementWrapper* g_dlg_9     # dialog 9 (save menu item 3, used slot)
+0x545c7c ptr OMediaCanvasElementWrapper* g_dlg_11    # dialog 11 (save menu item 2)
+0x545848 ptr OMediaCanvasElementWrapper* g_dlg_13    # dialog 13 (save menu item 5, used slot)
+0x5445dc ptr OMediaCanvasElementWrapper* g_game_saved_box
+
+# save slots (save menu) and options
+0x5324e0 val int g_save_slot                         # selected save-menu item, 6..15 = JimmyGame1..10.tsk
+0x545984 array SaveSlotInfo g_save_slots             # 10 x 20 bytes, filled by MainMenuAction(3)
+0x54e6a4 array char                         # savegame header strings (kept around the slot scan)
+0x54e71c array char
+0x53b5b0 val int g_difficulty                        # 0 easy, 1 normal, 2 hard
+0x540c54 val int g_music_volume                      # 0..10
+0x540c58 val int g_sfx_volume                        # 0..10
+0x6f7518 val int                            # music volume as given to the sound code
+0x54a4b8 val bool                           # set around the "bubble boing" sound

@@ -1,1 +1,115 @@
 // C2DInGameMenu part c: slot declarations (inside the class). See docs/decomp-guide.md.
+// Slots 304..331 (not 311): HUD bars, menu pages (load / unload / rollovers / clicks), the main
+// menu's item info, the save and options menus, the menu's sound channel.
+
+	// ---- data shared with the other parts
+
+	// One item of a menu page (0x28 bytes; the page constructor 0x408b60 sets the defaults).
+	struct MenuItem
+	{
+		OMediaCanvasElementWrapper	*rollover;		// 0x00  shown / hidden by UpdateRollovers
+		OMediaCanvasElementWrapper	*active;		// 0x04  the item's picture
+		short	f_08;								// 0x08
+		float	x, y;								// 0x0c  position (640x480 space)
+		int		f_14;								// 0x14
+		float	f_18;								// 0x18  = 1.0
+		short	type;								// 0x1c  0 off, 1 rollover on hover, 2 rollover always,
+													//       3 rollover hidden on hover, 4 off; pickups: 0 = not owned
+		short	w, h;								// 0x1e  size of the last sprite LoadMyMenu created
+		short	rollover_id;						// 0x22  canvas IDs in screens.omt, -1 = none
+		short	active_id;							// 0x24
+		short	shown;								// 0x26  rollover visible
+		MenuItem() : rollover(0), active(0), f_08(0), x(0), y(0), f_14(0), f_18(1.0f), type(0),
+					 w(0), h(0), rollover_id(-1), active_id(-1), shown(0) {}
+	};
+	enum { MENU_ITEMS = 50, MENU_COUNT = 7 };
+	// A menu page (0x7d8 bytes), g_menu_pages[MenuIndex(name)], built from the BACKGROUND line.
+	struct MenuPage
+	{
+		OMediaCanvasElementWrapper	*background;	// 0x00
+		short	background_id;						// 0x04
+		MenuItem items[MENU_ITEMS];					// 0x08
+	};
+	// One parsed line of dat\menu.dat (0x134 bytes), kept in s_menu_objects.
+	struct MenuDatEntry
+	{
+		int		type;			// 0x00
+		char	id[32];			// 0x04
+		int		menu;			// 0x24  MenuIndex of the menu name
+		int		px, py;			// 0x28
+		int		f_30;			// 0x30
+		int		omtid;			// 0x34
+		char	text[128];		// 0x38
+		int		f_b8, f_bc, f_c0, f_c4, f_c8, f_cc;
+		char	f_d0[100];		// 0xd0
+	};
+	static std::list<MenuDatEntry *> s_menu_objects;	// 0x5444b4 (count 0x5444b8)
+	// Save menu: what the header of save\JimmyGame<n>.tsk says (20 bytes each, g_save_slots).
+	struct SaveSlotInfo
+	{
+		int		score;			// 0x00  -1 = no save in this slot
+		int		f_04, f_08;
+		int		level;			// 0x0c  level 4cc ('LV3D'...)
+		int		f_10;			// 0x10
+	};
+
+	// ---- slots
+	virtual void ArrangePickups(void);									// SLOT 304 0x408ba0
+	virtual void ShowGadgetBar(void);									// SLOT 305 0x404bd0
+	virtual void HideGadgetBar(void);									// SLOT 306 0x404c70
+	virtual void GadgetBarEmpty(void);									// SLOT 307 0x404ca0
+	virtual void GadgetBarFull(void);									// SLOT 308 0x404d10
+	virtual unsigned char IsGadgetBarShown(void);						// SLOT 309 0x403f40
+	virtual void SetHealthBar(float health);							// SLOT 310 0x404f50
+	virtual unsigned char IsCurrentGadget(int gadget);					// SLOT 312 0x403f50
+	virtual int  GetCurrentGadget(void);								// SLOT 313 0x403f70
+	virtual int  MenuIndex(const char *name);							// SLOT 314 0x40e600
+	virtual short UpdateRollovers(short mx, short my);					// SLOT 315 0x405030
+	virtual void v316(bool show);										// SLOT 316 0x409fb0
+	virtual void ShowHudPicture(int canvas_id, bool show, int x, int y);	// SLOT 317 0x409e20
+	virtual void LoadSaveSlot(void);									// SLOT 318 0x40e900
+	virtual void SaveToSlot(void);										// SLOT 319 0x40e7a0
+	virtual void DeleteSaveSlot(void);									// SLOT 320 0x40e6e0
+	virtual void MainMenuAction(short item);							// SLOT 321 0x40faf0
+	virtual unsigned char HandleMenuInput(float dt);					// SLOT 322 0x40efa0
+	virtual void LoadMyMenu(int menu);									// SLOT 323 0x4047a0
+	virtual void UnloadMyMenu(int menu);								// SLOT 324 0x404aa0
+	virtual void LoadOptions(const char *path);							// SLOT 325 0x40eb70
+	virtual void SaveOptions(const char *path);							// SLOT 326 0x40e9e0
+	virtual void v327(bool show);										// SLOT 327 0x404ba0
+	virtual void DeleteAllMenuObject(void);								// SLOT 328 0x404400
+	virtual void PlayMenuSound(const char *name);						// SLOT 329 0x40b370
+	virtual void PlayMenuSoundIndex(int index);							// SLOT 330 0x40b2c0
+	virtual void ShowMainMenuInfo(int item);							// SLOT 331 0x405e30
+
+	// The generated names of the renamed slots, for callers in the other parts.
+	void v304()								{ ArrangePickups(); }
+	void v305()								{ ShowGadgetBar(); }
+	void v306()								{ HideGadgetBar(); }
+	void v307()								{ GadgetBarEmpty(); }
+	void v308()								{ GadgetBarFull(); }
+	unsigned char v309()					{ return IsGadgetBarShown(); }
+	void v310(float health)					{ SetHealthBar(health); }
+	unsigned char v312(int gadget)			{ return IsCurrentGadget(gadget); }
+	int  v313()								{ return GetCurrentGadget(); }
+	int  v314(const char *name)				{ return MenuIndex(name); }
+	short v315(short mx, short my)			{ return UpdateRollovers(mx, my); }
+	void v317(int id, bool show, int x, int y)	{ ShowHudPicture(id, show, x, y); }
+	void v318()								{ LoadSaveSlot(); }
+	void v319()								{ SaveToSlot(); }
+	void v320()								{ DeleteSaveSlot(); }
+	void v321(short item)					{ MainMenuAction(item); }
+	unsigned char v322(float dt)			{ return HandleMenuInput(dt); }
+	void v323(int menu)						{ LoadMyMenu(menu); }
+	void v324(int menu)						{ UnloadMyMenu(menu); }
+	void v325(const char *path)				{ LoadOptions(path); }
+	void v326(const char *path)				{ SaveOptions(path); }
+	void v328()								{ DeleteAllMenuObject(); }
+	void v329(const char *name)				{ PlayMenuSound(name); }
+	void v330(int index)					{ PlayMenuSoundIndex(index); }
+	void v331(int item)						{ ShowMainMenuInfo(item); }
+
+	// ---- members used by this part
+	// TYPE 0x588 int
+	// TYPE 0x590 int
+	// TYPE 0x5ac float

@@ -20,34 +20,7 @@
 	virtual short v301();	// slot 301 0x403f20 gen
 	virtual void v302(short a2);	// slot 302 0x403f30 gen
 	virtual void v303();	// slot 303 0x405740 TODO
-	virtual void v304();	// slot 304 0x408ba0 TODO
-	virtual void v305();	// slot 305 0x404bd0 TODO
-	virtual void v306();	// slot 306 0x404c70 TODO
-	virtual void v307();	// slot 307 0x404ca0 TODO
-	virtual void v308();	// slot 308 0x404d10 TODO
-	virtual unsigned char v309();	// slot 309 0x403f40 TODO
-	virtual void v310(unsigned int a2);	// slot 310 0x404f50 TODO
 	virtual void v311(unsigned int a2);	// slot 311 0x40ad90 TODO
-	virtual unsigned char v312(unsigned int a2);	// slot 312 0x403f50 TODO
-	virtual unsigned int v313();	// slot 313 0x403f70 TODO
-	virtual int v314(unsigned int a2);	// slot 314 0x40e600 TODO
-	virtual unsigned int v315(short a2, short a3);	// slot 315 0x405030 TODO
-	virtual void v316(unsigned int a2);	// slot 316 0x409fb0 TODO
-	virtual void v317(unsigned int a2, unsigned char a3, int a4, unsigned int a5);	// slot 317 0x409e20 TODO
-	virtual void v318();	// slot 318 0x40e900 TODO
-	virtual void v319();	// slot 319 0x40e7a0 TODO
-	virtual void v320();	// slot 320 0x40e6e0 TODO
-	virtual void v321(unsigned int a2);	// slot 321 0x40faf0 TODO
-	virtual unsigned int v322(unsigned int a2);	// slot 322 0x40efa0 TODO
-	virtual void v323(int a2);	// slot 323 0x4047a0 TODO
-	virtual void v324(unsigned int a2);	// slot 324 0x404aa0 TODO
-	virtual void v325(unsigned int a2);	// slot 325 0x40eb70 TODO
-	virtual void v326(unsigned int a2);	// slot 326 0x40e9e0 TODO
-	virtual void v327(unsigned int a2);	// slot 327 0x404ba0 TODO
-	virtual void DeleteAllMenuObject();	// slot 328 0x404400 TODO
-	virtual void v329(unsigned char *a2);	// slot 329 0x40b370 TODO
-	virtual void v330(int a2);	// slot 330 0x40b2c0 TODO
-	virtual void v331(unsigned int a2);	// slot 331 0x405e30 TODO
 	virtual unsigned int v332();	// slot 332 0x40c360 TODO
 	virtual unsigned int v333();	// slot 333 0x40c550 TODO
 	virtual unsigned int v334();	// slot 334 0x40c8f0 TODO
