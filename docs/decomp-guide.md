@@ -110,3 +110,45 @@ Warnings from `-Wfloat-conversion` in your files usually mean a type is wrong �
 
 Each function starts with its address in a comment. Name things by what they do once you know;
 keep the original's behaviour, including its quirks (comment them). No speculative "fixes".
+
+## Classes with several bases (game objects that are also OMT elements)
+
+Most game classes are both an OMT element and a game object, e.g. `CGameType : OMediaElement,
+CLocalGameObject` (with `OMediaClassStreamer` as a shared virtual base, as in OMT). Write them as
+
+```cpp
+class CGameType : public OMediaElement, public CLocalGameObject { ... };
+```
+
+`classes.json` lists each vtable with the `this_offset` of its subobject. For CGameType: the
+element vtable at +0 (87 slots), the CLocalGameObject vtable at +0x8c (286 slots), the listener
+vtable at +0x30 (4 slots), the virtual-base streamer at the end. A method found in the vtable at
+offset X receives `this` = object + X. So:
+
+* in an **element-family** method (`this` = object start): offsets < 0x8c are OMediaElement
+  fields (use the OMT accessors), 0x8c..0x554 are CLocalGameObject fields at (offset − 0x8c),
+  and offsets ≥ 0x554 are the class's own fields, named `f_<offset from the object start>`;
+* in a **CLocalGameObject-family** method (`this` = object + 0x8c): offsets < 0x4c8 are
+  CGameObject/CLocalGameObject fields as usual; own fields are at (offset + 0x8c).
+
+Pointer adjustments in the original (`p - 0x8c`, `p + 0xc0`, `*(int *)(p + 4)` vbtable lookups)
+are casts between bases; write them as C++ casts (`static_cast` when the type is known,
+`dynamic_cast` from a `CGameObject *` to its element otherwise — RTTI is on).
+
+Element-family slots 0..42 are OMT's own virtuals (2002 OMediaElement):
+0 dtor, 1 db_destruct, 2 get_approximate_size, 3 approximate_size_changed, 4 set_chunk_name,
+5 db_update, 6 db_link, 7 reset, 8 search_by_id, 9 db_get_type, 10 container_link_element,
+11 link, 12 unlink, 13 link_layer, 14 unlink_layer, 15 update_logic, 16 render, 17 render_reject,
+18 render_geometry, 19 get_absolute_info, 20 local_to_world, 21 local_to_world_matrix, 22 hide,
+23 getvisible_extend, 24 pause, 25 compute_hxform, 26 compute_hxform_hierarchy,
+27/28 compute_model_matrix, 29 clicked, 30 validate_closer_hit, 31 get_dynamic_offset,
+32 collide, 33 ray_intersect, 34 world_link, 35 element_link, 36 update_world_ptr,
+37 render_sub_elements, 38 container_link, 39 container_unlink, 40 fill_coll_bounding_spheres,
+41 fill_coll_triangles, 42 find_global_sphere.
+Override those with the OMT 2.5 signature. Game slots from 43 on are named `ev<N>` unless a
+log string names them (`InitGame()` → `InitGame`). For OMediaCanvasElement-derived classes the
+element vtable continues with OMediaCanvasElement's virtuals (check OMT2.dll's vtable at the
+address the 2002 constructor installs if you need them).
+
+The generator does not handle these classes yet: declare and write everything by hand in
+`<Class>.h/.cpp`.
