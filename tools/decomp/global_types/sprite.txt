@@ -1,0 +1,7 @@
+# C3DSprite / C3DSpriteType / C3DPermanentSprite / C3DTriggerType: globals they use
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x54a3d4 val bool g_cutscene_skipped        # set by the cut-scene cameras when the player skips one; cleared by C3DTriggerType's constructor and CallNextTrigger("DEFAULT")
+0x545e57 val bool                           # = g_cutscene_skipped by CallNextTrigger("DEFAULT"); read by the menu
+0x545ef8 val bool                           # cleared by CallNextTrigger("DEFAULT"); set by the menu
+0x54a498 val bool                           # set by the LoadLevel trigger hand-over when it starts a fade
+0x545f44 ptr OMediaElement* g_cutscene_element   # an element the cut scenes create; CallNextTrigger("DEFAULT") hides 0x545c80 and deletes it

@@ -171,3 +171,22 @@ The generator does not handle these classes yet: declare and write everything by
   (0x3c visual_sphere with the radius at +0x4c, five STL vectors from +0x64: vertices at 0x64,
   polygons at 0x84 (first/last at +0x88/+0x8c, 0x30 bytes per polygon)). Its vtable slot 17
   (+0x44) is `find_cube(minx, maxx, miny, maxy, minz, maxz)` (check the order).
+* OMediaCanvasElement element vtable (2002, `omt_vtables.py ... OMediaCanvasElement`, checked
+  against the import names in C3DSprite's vtable 0x519c0c): 0..42 as OMediaElement, then
+  43 set_canvas (+0xac), 44 process_canvas_picking, 45 process_canvas_surface_picking,
+  46 compute_auto_align, 47 get_canv_wordsize. Game sprite classes add their slots from **48**
+  (generator: `--go-offset 0xc8 --el-slots 48`); C3DSprite's are 48 SetObjectID,
+  49 InitSpriteName(db, string, size), 50 InitSpriteID(db, id, size) (+200), 51 InitSpriteFile,
+  52 InitSpriteProperties(size) (+0xd0), 53 ShowAgain (+0xd4), 54 HideAgain; C3DTriggerType adds
+  55 CallNextTrigger(name, flag) (+0xdc). Slots 56+ belong to each trigger class.
+* In these element vtables slot 0 is the import `OMediaDBObject::db_destruct` and slot 1
+  `OMediaDBObject::db_get_type const` (not the destructor): the virtual destructor of a
+  multi-base game object lives in the listener vtable (+0x30) slot 2, in the CGameObject vtable
+  slot 0 and in the streamer vtable slot 0. Override OMT's virtuals by name, never by number.
+* A `std::string` argument passed by value (MSVC6: 16 bytes - allocator byte, pointer, length,
+  capacity; the reference count is the byte before the text) shows up as four stack dwords and
+  the `0x4cdb1c` / `0x41ed30` / `0x4992c0` copy code; count it as one parameter (`ret_pop` 16).
+* Element flags (+0x7c) 0x248 and canvas flags (+0xc4) 1 are taken to mean 2.5's
+  omelf_SecondPass | omelf_DisableRotate | omelf_FaceViewport and omcanef_FreeWorldSize; the
+  canvas pattern `+0x60 = 1, +0x64 = 1, (+0x24 vtable)[4]()` is `set_filtering(omtfc_Linear,
+  omtfc_Linear)`. OMediaCosSinTable: sin table at +0, cos table at +0x10004.

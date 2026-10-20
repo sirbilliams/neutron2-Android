@@ -53,10 +53,6 @@ void CLocalGameObject::v280()	// 0x463890
 {
 }
 
-void CLocalGameObject::v282(unsigned int a2, unsigned int a3, unsigned int a4)	// 0x4ae440
-{
-}
-
 void CLocalGameObject::v283(unsigned int a2)	// 0x464ee0
 {
 }
