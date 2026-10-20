@@ -13,7 +13,6 @@ bool GameIsRunning(void)				{ NEG_TODO(0x4b0ca0, "GameIsRunning"); return true; 
 int  GameTypeTouchStart(CGameObject *, int)	{ NEG_TODO(0x14c, "CGameType vtable +0x14c"); return -1; }
 int  GameTypeTouchEnd(CGameObject *, int)	{ NEG_TODO(0x150, "CGameType vtable +0x150"); return -1; }
 int  GameTypeTouch154(CGameObject *, unsigned int) { NEG_TODO(0x154, "CGameType vtable +0x154"); return -1; }
-CGameObject *CreateObject(int id)		{ NEG_TODO(0x4912d0, "CreateObject"); (void)id; return NULL; }
 void PhysicsRemoveObject(CGameObject *)	{ NEG_TODO(0x4b4070, "CPhysics::RemoveObject"); }
 void StopObjectSounds(CGameObject *)	{ NEG_TODO(0x4b8dc0, "StopObjectSounds"); }
 bool IsChannelPlaying(int)				{ NEG_TODO(0x4b89d0, "IsChannelPlaying"); return false; }
