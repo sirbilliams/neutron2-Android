@@ -15,6 +15,7 @@
 #include "../SaveGame.h"
 #include "../Todo.h"
 #include "../CGameType.h"
+#include "../Sound.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -74,7 +75,6 @@ static bool PlayerFireButton(void)		{ NEG_TODO(0x465650, "C3DPlayerObject slot 1
 // (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth.
 static void PhoneBoothTeleport(void)	{ NEG_TODO(0x4648a0, "phone booth teleport (g_56af7c slot 121)"); }
 
-static void StopSoundChannel(int ch, bool b)	{ (void)ch; (void)b; NEG_TODO(0x4b88e0, "stop sound channel"); }
 static void GetMousePos(short *x, short *y)	{ *x = 0; *y = 0; NEG_TODO(0x4b1d10, "get mouse position"); }
 static void SetMousePos(int x, int y)		{ (void)x; (void)y; NEG_TODO(0x4b1d30, "set mouse position"); }
 static void CenterMouse(void)				{ NEG_TODO(0x4b1d50, "centre the mouse in the viewport"); }
@@ -1080,7 +1080,7 @@ void C2DInGameMenu::ResetInterface()
 	strcpy((char *)g_545de4, (const char *)g_545f14);	// the text line emptied
 	if (f_500 != -1)
 	{
-		StopSoundChannel(f_500, false);
+		StopChannel(f_500, false);			// 0x4b88e0
 		f_500 = -1;
 	}
 }

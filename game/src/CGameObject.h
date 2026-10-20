@@ -18,6 +18,7 @@
 #include "OMediaClassStreamer.h"
 #include "Globals.h"
 #include "OMedia3DVector.h"
+#include "Sound.h"				// StopObjectSounds, IsChannelPlaying
 
 class OMediaStreamOperators;
 class OMedia3DShape;
@@ -132,6 +133,4 @@ namespace neg {
 void ErrorLog(const char *fmt, ...);										// 0x4b3b10  dat\debug.log
 CGameObject *CreateObject(int id);											// 0x4912d0
 void PhysicsRemoveObject(CGameObject *o);									// 0x4b4070
-void StopObjectSounds(CGameObject *o);										// 0x4b8dc0
-bool IsChannelPlaying(int channel);											// 0x4b89d0
 }

@@ -17,6 +17,7 @@
 #include "../CGameObject.h"
 #include "../Game.h"
 #include "../Todo.h"
+#include "../Sound.h"
 #include "OMediaViewPort.h"
 #include "OMediaRGBColor.h"
 #include <list>
@@ -36,16 +37,7 @@ enum { VK_ESCAPE_KEY = 0x1b };
 
 // --------------------------------------------------------------------------- stubs (other systems)
 
-// Sound (0x4b8380 / 0x4b88e0). PlaySound takes the sample name as a std::string by value.
-static int PlaySound(int channel, const char *name, int a)
-{
-	NEG_TODO(0x4b8380, "PlaySound"); (void)channel; (void)name; (void)a;
-	return -1;		// no channel
-}
-static void StopSound(int channel, int a)
-{
-	NEG_TODO(0x4b88e0, "StopSound"); (void)channel; (void)a;
-}
+// Sound: PlaySound 0x4b8380 / StopChannel 0x4b88e0 (Sound.h)
 // g_editor +0x74c (a byte) = 0 when a fade ends.
 static void EditorClear74c(void)		{ NEG_TODO(0x406bdc, "CEditor +0x74c = 0 (fade end)"); }
 // g_gametype +0x490: the running level's 4cc ('LV5C' ...).
@@ -583,7 +575,7 @@ void C2DInGameMenu::v340(float dt)
 					{
 						// skipped: end the group. Returns - the rest of the list is not drawn
 						// this frame.
-						StopSound(f_500, 0);
+						StopChannel(f_500, false);
 						f_500 = -1;
 						g_trig_text_len = 0;
 						strcpy(g_trig_text_group, g_empty_string);
@@ -594,7 +586,7 @@ void C2DInGameMenu::v340(float dt)
 					if (g_trig_text_len == 0)
 					{
 						// start typing this line
-						if (f_500 == -1) f_500 = PlaySound(-1, "telemetry1", 1);
+						if (f_500 == -1) f_500 = PlaySound(-1, "telemetry1", true);
 						g_trig_text_len = (int)strlen(o->text);
 						f_4fc = 1;
 						f_4f8 = 0.0f;
@@ -609,7 +601,7 @@ void C2DInGameMenu::v340(float dt)
 							// line done: the next one starts on the next frame
 							if (f_500 != -1)
 							{
-								StopSound(f_500, 0);
+								StopChannel(f_500, false);
 								f_500 = -1;
 							}
 							g_trig_text_len = 0;
@@ -637,18 +629,18 @@ void C2DInGameMenu::v340(float dt)
 							// the sound pauses on spaces
 							if (f_500 != -1)
 							{
-								StopSound(f_500, 0);
+								StopChannel(f_500, false);
 								f_500 = -1;
 							}
 						}
 						else if (f_500 == -1 && g_trig_text_len != 0)
-							f_500 = PlaySound(-1, "telemetry1", 1);
+							f_500 = PlaySound(-1, "telemetry1", true);
 					}
 					if (f_4fc < (int)sizeof shown) shown[f_4fc] = 0;
 				}
 				if ((g_trig_text_len == 0 || g_trig_text_stop) && f_500 != -1)
 				{
-					StopSound(f_500, 0);
+					StopChannel(f_500, false);
 					f_500 = -1;
 				}
 				DrawText((short)o->x, (short)o->y, o->font, "%s", shown);
@@ -780,7 +772,7 @@ void C2DInGameMenu::v342(short level)
 	g_flag_545e54 = false;
 	if (f_500 != -1)
 	{
-		StopSound(f_500, 0);
+		StopChannel(f_500, false);
 		f_500 = -1;
 		g_trig_text_len = 0;
 		strcpy(g_trig_text_group, g_empty_string);

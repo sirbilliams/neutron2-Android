@@ -19,6 +19,7 @@
 #include "Bridge.h"
 #include "Todo.h"
 #include "Physics.h"
+#include "Sound.h"
 #include "gen/globals.h"
 
 #include "OMediaStringField.h"
@@ -223,7 +224,6 @@ static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 using neg::CloseAllDatabases;							// 0x4a4870 (DatabaseCache.cpp)
 using neg::DatabaseName;								// 0x4a4a40
 // (the savegame functions ReadTaskFile 0x497b10, LoadTask 0x498af0, RestoreTask 0x498440: SaveGame.h)
-static void PlaySoundNamed(int channel, const char *name, int a)	{ NEG_TODO(0x4b8380, "PlaySound"); (void)channel; (void)name; (void)a; }
 static void MenuDrawCountdown(int a, int b, int c)	{ NEG_TODO(0x409d50, "C2DInGameMenu 0x409d50 (level-change countdown)"); (void)a; (void)b; (void)c; }
 static void CutsceneCameraPlay(CGameObject *o)	{ NEG_TODO(0x4a64e2, "C3DCutSceneCamera element slot 59"); (void)o; }
 static void MultiCutscenePlay(CGameObject *o)	{ NEG_TODO(0x4a6520, "C3DMultiCutScene element slot 61"); (void)o; }
@@ -773,7 +773,7 @@ void CEditor::SaveGame(char *name)
 	strcat(path, name);
 	OMediaFilePath fp(path, 'null', 'null');
 	OMediaFileStream fs;
-	PlaySoundNamed(-1, "neutron", 0);						// 0x4b8380
+	PlaySound(-1, "neutron", false);						// 0x4b8380
 	fs.setpath(&fp);
 	fs.open(omcfp_Write, true, true);
 

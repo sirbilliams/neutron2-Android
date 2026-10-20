@@ -96,6 +96,12 @@ class OMediaSoundChannel : public OMediaPeriodical
 	virtual void set_frequency(unsigned int f);
 	inline unsigned int get_frequency(void) const {return frequence;}
 
+	// * Set pan (OMT 2002 / DirectSound units: hundredths of a dB, -10000 left .. 10000 right).
+	//   Not in OMT 2.5; restored for Neutron2.exe, whose 3D sounds pan with it.
+
+	virtual void set_pan(long p) {pan = p;}
+	inline long get_pan(void) const {return pan;}
+
 	// * Low-level --------
 
 	protected:
@@ -107,6 +113,7 @@ class OMediaSoundChannel : public OMediaPeriodical
 	bool							current_looped;
 	unsigned int					frequence;
 	short							volume;
+	long							pan;
 };
 
 

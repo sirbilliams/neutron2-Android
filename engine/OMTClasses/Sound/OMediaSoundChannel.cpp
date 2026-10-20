@@ -40,6 +40,7 @@ OMediaSoundChannel::OMediaSoundChannel()
 	current_looped = false;	
 	frequence = 0;
 	volume = 255;
+	pan = 0;
 }
 
 OMediaSoundChannel::~OMediaSoundChannel()

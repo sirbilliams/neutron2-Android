@@ -8,8 +8,6 @@
 
 namespace neg {
 
-void StopObjectSounds(CGameObject *)	{ NEG_TODO(0x4b8dc0, "StopObjectSounds"); }
-bool IsChannelPlaying(int)				{ NEG_TODO(0x4b89d0, "IsChannelPlaying"); return false; }
 
 void PostGameMessage(int msg)
 {

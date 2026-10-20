@@ -14,6 +14,8 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "Sound.h"
+#include "DatabaseCache.h"
 #include "gen/globals.h"
 #include "OMediaLayer.h"
 #include "OMediaDataBase.h"
@@ -37,23 +39,9 @@ using namespace neg;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-// Sound (0x48f..., 0x4b8...)
-static int  PlaySfx(int channel, std::string name, int loop)	// 0x48f420: returns the channel used, -1 if none
-{
-	(void)channel; (void)name; (void)loop;
-	NEG_TODO(0x48f420, "PlaySfx");
-	return -1;
-}
-static void StopChannel(int channel, int a)		{ (void)channel; (void)a; NEG_TODO(0x4b88e0, "StopChannel"); }
-static void StopAllChannels(void)				{ NEG_TODO(0x4b8990, "stop all sound channels"); }
-static void UpdateSounds(float dt)				{ (void)dt; NEG_TODO(0x4b8a30, "sound channel bookkeeping"); }
-static void *LoadMusic(const char *omt_name)	{ (void)omt_name; NEG_TODO(0x4a4180, "LoadMusic"); return NULL; }
-static int  PlayMusic(void *music, int channel, int a, int loop)	// 0x4b8850: returns the channel
-{
-	(void)music; (void)channel; (void)a; (void)loop;
-	NEG_TODO(0x4b8850, "PlayMusic");
-	return -1;
-}
+// Sound: Sound.h (PlayGameSound 0x48f420, StopGameSound 0x48f0d0, StopChannel 0x4b88e0,
+// StopAllChannels 0x4b8990, UpdateSounds 0x4b8a30, PlayMusic 0x4b8850)
+static OMediaDataBase *LoadMusic(const char *omt_name)	{ return GetDatabase(omt_name); }	// 0x4a4180
 // 0x4a4730: close the cached database opened from `name` (object database cache 0x56aef4)
 static void CloseDatabaseByName(const char *name)	{ (void)name; NEG_TODO(0x4a4730, "close database by name (cache 0x56aef4)"); }
 
@@ -118,11 +106,6 @@ static bool KeyPressed(int vk)
 	return false;
 }
 
-// 0x48f0d0
-static void StopSfx(int channel, int a)
-{
-	if (g_54a4b8) StopChannel(channel, a);
-}
 
 // C2DInGameMenu 0x40ed30 (this unused): show or hide the sprite g_5446ec (the pause picture).
 static void ShowPauseSprite(bool show)
@@ -217,7 +200,7 @@ void CJimmyGame::Process(float dt)											// 0x484260
 		if (g_game_mode == 6 || g_game_mode == 5) PauseGame(!g_game_paused);	// element +0x110
 	}
 	CGameType::Process(dt);
-	UpdateSounds(dt);														// 0x4b8a30
+	UpdateSounds();														// 0x4b8a30
 	ev97(dt);																// element +0x184
 	if (g_granny) GrannyAdvanceTime(g_granny, (double)dt);
 	if (g_player_hud) static_cast<CLocalGameObject *>(dynamic_cast<CGameObject *>(g_player_hud))->v269(dt);	// HUD +0xc8, vtable +0x434
@@ -230,7 +213,7 @@ void CJimmyGame::Process(float dt)											// 0x484260
 	if (g_queued_sfx_pending && !IsChannelPlaying((int)g_queued_sfx_after))
 	{
 		g_queued_sfx_pending = 0;
-		PlaySfx(-1, g_queued_sfx, 0);
+		PlayGameSound(-1, g_queued_sfx, 0);
 		g_queued_sfx = g_empty_string;										// 0x545f14 ""
 		MenuGivePendingPickup();											// 0x409b20
 	}
@@ -273,12 +256,12 @@ void CJimmyGame::v260(void)
 
 void CJimmyGame::v277(void)													// 0x485e80
 {
-	if (m_stopwatch_channel != -1) StopSfx(m_stopwatch_channel, 0);			// (the channel is kept)
+	if (m_stopwatch_channel != -1) StopGameSound(m_stopwatch_channel, false);			// (the channel is kept)
 }
 
 void CJimmyGame::v278(void)													// 0x485ea0
 {
-	if (m_stopwatch_channel != -1) m_stopwatch_channel = PlaySfx(-1, "stopwatch", 1);
+	if (m_stopwatch_channel != -1) m_stopwatch_channel = PlayGameSound(-1, "stopwatch", 1);
 }
 
 // 0x486170. A missing player (g_player NULL) makes the original write through address 0x4c18.
@@ -521,7 +504,7 @@ void CJimmyGame::TouchSurface(CGameObject *o, OMedia3DMaterial *mat, OMediaCanva
 		if (!c || PlayerFlag((OMediaElement *)c, 0x4cb8)) return;
 		PlayerHurt(c, -5.0f, -5, 5.0f, true);								// its vtable +0x218
 		CorStartHit(o);														// +0x1178 = 5.0, +0x1138 = 1, +0x1188 = 0, +0x113c = 0
-		PlaySfx(-1, RandomHalf() ? "pain ah agh aww" : "pain agh agh", 0);
+		PlayGameSound(-1, RandomHalf() ? "pain ah agh aww" : "pain agh agh", 0);
 		return;
 	}
 	OMediaElement *p = dynamic_cast<OMediaElement *>(o);						// Jimmy's element (o - 0xc0)
@@ -540,7 +523,7 @@ void CJimmyGame::TouchSurface(CGameObject *o, OMedia3DMaterial *mat, OMediaCanva
 		LoadTask("autosave.tsk", 0);										// 0x498af0
 		o->v261();															// vtable +0x414
 		PlayerHurt(p, -5.0f, -5, 5.0f, true);								// element +0x218
-		PlaySfx(-1, RandomHalf() ? "pain ah agh aww" : "pain agh agh", 0);
+		PlayGameSound(-1, RandomHalf() ? "pain ah agh aww" : "pain agh agh", 0);
 	}
 
 	if (id >= 100 && id <= 109)
@@ -559,7 +542,7 @@ void CJimmyGame::TouchSurface(CGameObject *o, OMedia3DMaterial *mat, OMediaCanva
 		{
 			SetPlayerFlag(p, 0x4db4, false);
 			PlayerHurt(p, -300.0f, -1, -1.0f, true);
-			PlaySfx(-1, "SPLASH", 0);
+			PlayGameSound(-1, "SPLASH", 0);
 		}
 		set = 5;
 	}
@@ -569,7 +552,7 @@ void CJimmyGame::TouchSurface(CGameObject *o, OMedia3DMaterial *mat, OMediaCanva
 		{
 			SetPlayerFlag(p, 0x4db4, false);
 			PlayerHurt(p, -300.0f, -10, 5.0f, true);
-			PlaySfx(-1, "pain ahhouch", 0);
+			PlayGameSound(-1, "pain ahhouch", 0);
 		}
 		set = 5;
 	}
@@ -755,7 +738,7 @@ void CJimmyGame::UpdateTimers(float dt)
 	if (t[6] > 0.0f)
 	{
 		t[6] -= dt;
-		if (m_stopwatch_channel == -1) m_stopwatch_channel = PlaySfx(-1, "stopwatch", 1);
+		if (m_stopwatch_channel == -1) m_stopwatch_channel = PlayGameSound(-1, "stopwatch", 1);
 		if (t[6] <= 0.0f)
 		{
 			StopwatchEnd();													// element +0x1ac
@@ -764,7 +747,7 @@ void CJimmyGame::UpdateTimers(float dt)
 	}
 	else if (m_stopwatch_channel != -1)
 	{
-		StopSfx(m_stopwatch_channel, 0);
+		StopGameSound(m_stopwatch_channel, false);
 		m_stopwatch_channel = -1;
 	}
 }
@@ -862,7 +845,7 @@ void CJimmyGame::PlayLevelMusic(const char *name, int a)
 		if (g_level_music && pm.channel == -1 && a != -1)
 		{
 			pm.param = a;
-			pm.channel = PlayMusic(g_level_music, -1, a, 1);				// 0x4b8850
+			pm.channel = PlayMusic(g_level_music, -1, a, true);				// 0x4b8850
 		}
 	}
 }
@@ -918,7 +901,7 @@ void CJimmyGame::StopwatchEnd(void)
 {
 	if (m_stopwatch_channel != -1)
 	{
-		StopSfx(m_stopwatch_channel, 0);
+		StopGameSound(m_stopwatch_channel, false);
 		m_stopwatch_channel = -1;
 	}
 	g_power_timers[6] = 0.0f;
@@ -943,7 +926,7 @@ void CJimmyGame::RestoreTimerEffects(void)
 	}
 	if (g_power_timers[6] <= 0.0f && m_stopwatch_channel != -1)
 	{
-		StopSfx(m_stopwatch_channel, 0);
+		StopGameSound(m_stopwatch_channel, false);
 		m_stopwatch_channel = -1;
 	}
 	RefreshObjects();														// element +0x190

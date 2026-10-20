@@ -3,7 +3,7 @@
 
 0x545fd0 ptr CGameObject* g_player                 # the player's CGameObject subobject (C3DJimmy element at -0xc0)
 0x54a46c ptr OMediaElement* g_player_hud           # the player's HUD object (its CGameObject at +0xc8), set by CJimmyGame::v260
-0x6f759c ptr void* g_level_music                   # music database of the level (LoadMusic 0x4a4180), NULL when none
+0x6f759c ptr OMediaDataBase* g_level_music                  # music database of the level (LoadMusic 0x4a4180), NULL when none
 
 # power-up timers (seconds), counted down by CJimmyGame::UpdateTimers; saved by Write/ReadState.
 # [3] 0x54a430 hides the player HUD at 0, [4] 0x54a434 terrain tint (x-ray), [6] 0x54a43c stopwatch

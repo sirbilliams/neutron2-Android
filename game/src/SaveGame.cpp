@@ -17,6 +17,7 @@
 #include "Game.h"
 #include "Globals.h"
 #include "Todo.h"
+#include "Sound.h"
 #include "gen/globals.h"
 
 #include "OMediaFilePath.h"
@@ -172,7 +173,6 @@ static void LetterboxOut(void)
 static void RequestQuit(void)		{ g_app->quit(); }
 
 // --- not reconstructed yet
-static void StopAllChannels(void)	{ NEG_TODO(0x4b8990, "stop all sound channels"); }
 // 0x4104c0: element slot 59 (vtable +0xec) of every C3DPICKUPITEM (its CGameObject base at +0xc8).
 static void PickupItemSlot59(CGameObject *o)	{ NEG_TODO(0x4104c0, "C3DPickupItem element slot 59"); (void)o; }
 static void ResetPickupItems(void)												// 0x4104c0
