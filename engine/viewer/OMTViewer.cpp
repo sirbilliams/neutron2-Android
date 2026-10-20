@@ -38,6 +38,7 @@
 #include "OMediaSDLRetarget.h"
 #include <SDL.h>
 #include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -153,19 +154,44 @@ class Viewer : public OMediaApplication, public OMediaPeriodical
 
 	void find_levels(void)
 	{
-		DIR *d = opendir("omt");
-		if (!d)
+		// The game's level archives. Opened by name: on Android, folders copied over USB into
+		// Android/data/<app>/files can be readable while listing them is refused.
+		static const char *known[] = {
+			"level1.omt", "level1_a.omt", "level1_b.omt", "level1_c.omt", "level1b.omt", "level1C.omt",
+			"level1d.omt", "level3.omt", "level3a.omt", "level3c.omt", "level3d.omt", "level4.omt",
+			"level4a.omt", "level4b.omt", "level5.omt", "level5a.omt", "level5b.omt", "level5b1.omt",
+			"level5c.omt", "VR01.omt", "VR02.omt", "bonus01.omt", "promotion.omt", NULL };
+		vector<string> names;
+		for (int i = 0; known[i]; i++)
 		{
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Game files not found",
-				"Copy the contents of the game's Program_Executable_Files folder (omt, gam, grn, ...)\n"
-				"into this app's folder:\n  Android/data/com.sirbilliams.negatron/files/\n"
-				"then start the app again.", NULL);
+			string real = omf_SDLResolvePath(string("omt/") + known[i]);
+			FILE *f = fopen(real.c_str(), "rb");
+			if (f) { fclose(f); names.push_back(known[i]); }
+			else if (i == 0) SDL_Log("viewer: cannot open %s: %s", real.c_str(), strerror(errno));
+		}
+		// Also pick up anything else in the folder, if listing is allowed.
+		DIR *d = opendir("omt");
+		if (d)
+		{
+			struct dirent *e;
+			while ((e = readdir(d)))
+			{
+				if (!ends_with_omt(e->d_name)) continue;
+				bool have = false;
+				for (size_t k = 0; k < names.size(); k++) if (strcasecmp(names[k].c_str(), e->d_name) == 0) have = true;
+				if (!have) names.push_back(e->d_name);
+			}
+			closedir(d);
+		}
+		else SDL_Log("viewer: cannot list omt/: %s (using the built-in level list)", strerror(errno));
+		if (names.empty())
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Game files not readable",
+				"The game's level files (omt/level1.omt ...) could not be opened.\n"
+				"Copy the game's omt, gam, grn ... folders into\n  Android/data/com.sirbilliams.negatron/files/\n"
+				"and see omt-log.txt in that folder for details.", NULL);
 			omd_EXCEPTION(omcerr_CantOpen);
 		}
-		vector<string> names;
-		struct dirent *e;
-		while ((e = readdir(d))) if (ends_with_omt(e->d_name)) names.push_back(e->d_name);
-		closedir(d);
 		sort(names.begin(), names.end(), nocase_less);
 		// Real levels first (level*, then VR*, bonus, promotion); skip music/voice/2D/sky archives.
 		static const char *skip[] = { "music", "voice", "sound", "screens", "sprites", "icons",
