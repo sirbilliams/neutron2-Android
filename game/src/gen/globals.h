@@ -8,6 +8,7 @@ class OMedia3DVector;
 class OMediaCanvasElementWrapper;
 class OMediaDataBase;
 class OMediaElement;
+class OMediaHumanInterfaceDevice;
 namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
 extern unsigned char g_data[DATA_SIZE];
@@ -1178,32 +1179,54 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_56b014 (neg::g_ptrs[0xe405])		// pointer
 #define g_56b018 (*(unsigned int *)&neg::g_data[0x39018])
 #define g_56b01c (*(unsigned int *)&neg::g_data[0x3901c])
-#define g_56b020 (&neg::g_data[0x39020])		// address only
+#define g_56b020 ((unsigned char *)&neg::g_data[0x39020])
+#define g_joy_prev_buttons ((unsigned char *)&neg::g_data[0x39020])
 #define g_56b038 (*(float *)&neg::g_data[0x39038])
+#define g_joy_x (*(float *)&neg::g_data[0x39038])
 #define g_56b03c (*(float *)&neg::g_data[0x3903c])
+#define g_joy_y (*(float *)&neg::g_data[0x3903c])
 #define g_56b040 (*(float *)&neg::g_data[0x39040])
+#define g_joy_z (*(float *)&neg::g_data[0x39040])
 #define g_56b048 (*(float *)&neg::g_data[0x39048])
+#define g_joy_rx (*(float *)&neg::g_data[0x39048])
 #define g_56b04c (*(float *)&neg::g_data[0x3904c])
+#define g_joy_ry (*(float *)&neg::g_data[0x3904c])
 #define g_56b050 (*(float *)&neg::g_data[0x39050])
+#define g_joy_rz (*(float *)&neg::g_data[0x39050])
 #define g_56b058 (*(float *)&neg::g_data[0x39058])
-#define g_56b05c (*(unsigned int *)&neg::g_data[0x3905c])
-#define g_56b05d (*(char *)&neg::g_data[0x3905d])
-#define g_56b05e (*(char *)&neg::g_data[0x3905e])
-#define g_56b05f (*(char *)&neg::g_data[0x3905f])
-#define g_56b060 (*(unsigned int *)&neg::g_data[0x39060])
-#define g_56b064 (*(unsigned int *)&neg::g_data[0x39064])
-#define g_56b065 (*(char *)&neg::g_data[0x39065])
+#define g_joy_pov (*(float *)&neg::g_data[0x39058])
+#define g_56b05c (*(unsigned char *)&neg::g_data[0x3905c])
+#define g_joy_button0 (*(unsigned char *)&neg::g_data[0x3905c])
+#define g_56b05d (*(unsigned char *)&neg::g_data[0x3905d])
+#define g_joy_button1 (*(unsigned char *)&neg::g_data[0x3905d])
+#define g_56b05e (*(unsigned char *)&neg::g_data[0x3905e])
+#define g_joy_button2 (*(unsigned char *)&neg::g_data[0x3905e])
+#define g_56b05f (*(unsigned char *)&neg::g_data[0x3905f])
+#define g_joy_button3 (*(unsigned char *)&neg::g_data[0x3905f])
+#define g_56b060 (*(unsigned char *)&neg::g_data[0x39060])
+#define g_joy_button4 (*(unsigned char *)&neg::g_data[0x39060])
+#define g_56b064 (*(unsigned char *)&neg::g_data[0x39064])
+#define g_joy_button8 (*(unsigned char *)&neg::g_data[0x39064])
+#define g_56b065 (*(unsigned char *)&neg::g_data[0x39065])
+#define g_joy_button9 (*(unsigned char *)&neg::g_data[0x39065])
 #define g_56b068 (*(unsigned int *)&neg::g_data[0x39068])
 #define g_56b06c (*(unsigned short *)&neg::g_data[0x3906c])
 #define g_56b06e (*(unsigned char *)&neg::g_data[0x3906e])
 #define g_56b070 (*(unsigned char *)&neg::g_data[0x39070])
-#define g_56b074 (neg::g_ptrs[0xe41d])		// pointer
+#define g_joy_any_button (*(unsigned char *)&neg::g_data[0x39070])
+#define g_56b074 (*(OMediaHumanInterfaceDevice* *)&neg::g_ptrs[0xe41d])
+#define g_joy_device (*(OMediaHumanInterfaceDevice* *)&neg::g_ptrs[0xe41d])
 #define g_56b07c (*(short *)&neg::g_data[0x3907c])
-#define g_56b080 (neg::g_ptrs[0xe420])		// pointer
+#define g_joystick_count (*(short *)&neg::g_data[0x3907c])
+#define g_56b080 (*(omt_HIDElementList* *)&neg::g_ptrs[0xe420])
+#define g_joy_elements (*(omt_HIDElementList* *)&neg::g_ptrs[0xe420])
 #define g_56b084 (*(char *)&neg::g_data[0x39084])
-#define g_56b085 (*(char *)&neg::g_data[0x39085])
+#define g_56b085 (*(unsigned char *)&neg::g_data[0x39085])
+#define g_joy_debug (*(unsigned char *)&neg::g_data[0x39085])
 #define g_56b086 (*(short *)&neg::g_data[0x39086])
+#define g_joy_debug_mode (*(short *)&neg::g_data[0x39086])
 #define g_56b088 (*(int *)&neg::g_data[0x39088])
+#define g_joy_frames (*(int *)&neg::g_data[0x39088])
 #define g_56b08c (*(short *)&neg::g_data[0x3908c])
 #define g_56b09c (neg::g_ptrs[0xe427])		// pointer
 #define g_56b0a0 (*(int *)&neg::g_data[0x390a0])

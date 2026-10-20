@@ -210,41 +210,238 @@ class OMediaSDLMouseElement : public OMediaHIDElement
 	int which;    // 0=x 1=y 2..=button (2 -> SDL_BUTTON_LEFT)
 };
 
+// ---------------------------------------------------------------------------
+// Game controllers and joysticks
+//
+// They are described the way OMT 2002's DirectInput engine (OMT2.dll: OMediaDXHID::lock, its
+// EnumObjects callback and OMediaDXHIDElement::read_data) described a DirectInput joystick,
+// because games written against OMT 2002 read exactly that:
+//
+//  * device type omhidtc_Joystick (DirectInput gamepads and joysticks both became Joystick), with
+//    a non-empty product_name;
+//  * one element per DirectInput object, in c_dfDIJoystick order: the axes, the POV hat, the
+//    buttons;
+//  * axis elements: omhideltc_Axis with axis_type X, Y, Z, rX, rY or rZ (DirectInput sliders:
+//    omhtdat_Null). The value is the 2002 formula ((v - (max - min) / 2) / (max - min)) * 2 over
+//    the DirectInput range 0..65535, so full travel is -1..+1, and it is negated for the Y axis
+//    only: stick up is +1 on Y, while rY keeps DirectInput's down-is-positive;
+//  * the POV hat: omhideltc_POV, angle in degrees clockwise from up (DirectInput's hundredths
+//    times 0.01), -1 when centred;
+//  * buttons: omhideltc_Button, data.down. OMT 2002 parsed the button number out of the
+//    DirectInput name ("Button 3" -> 3) into the 16-bit member of the element's key union
+//    (2002 offset +0x24, 2.5's command_key); games use it to index their button arrays, so it
+//    is set here too. Other elements carry -1 there, as in 2002.
+//
+// SDL game controller -> elements (any controller SDL has a mapping for; on Android this
+// includes built-in gamepads such as the AYN Thor's):
+//
+//   leftx          X Axis       axis X     -1 left .. +1 right
+//   lefty          Y Axis       axis Y     +1 up .. -1 down (negated, as OMT 2002 did)
+//   lefttrigger    Z Axis       axis Z     -1 released .. +1 pressed (a DirectInput trigger axis)
+//   rightx         X Rotation   axis rX    -1 left .. +1 right
+//   righty         Y Rotation   axis rY    -1 up .. +1 down (not negated, as in 2002)
+//   righttrigger   Z Rotation   axis rZ    -1 released .. +1 pressed
+//   d-pad          Hat Switch   POV        0 up, 45 up-right, 90 right ... 315 up-left, -1 centred
+//   a b x y        Button 0..3
+//   back guide start leftstick rightstick leftshoulder rightshoulder
+//                  Button 4..10
+//   misc1 paddle1..4 touchpad
+//                  Button 11..16
+//
+// i.e. the buttons in SDL's order with the four d-pad buttons taken out (they are the hat). A
+// button or axis the controller does not have gets no element; the numbers stay the same.
+//
+// Other SDL joysticks (no game controller mapping) are exposed raw, like DirectInput did: axes 0..5
+// as X, Y, Z, rX, rY, rZ (Y negated), further axes as sliders, every hat as a POV, the buttons
+// numbered in SDL's order.
+
+enum omt_SDLPadElementKind
+{
+	omsdlpe_GCAxis,			// game controller stick axis (-32768..32767)
+	omsdlpe_GCTrigger,		// game controller trigger (0..32767)
+	omsdlpe_GCButton,
+	omsdlpe_GCDPad,			// the four d-pad buttons as one hat
+	omsdlpe_JoyAxis,
+	omsdlpe_JoyButton,
+	omsdlpe_JoyHat
+};
+
+// OMT 2002's axis conversion (OMediaDXHIDElement::read_data, range from DIPROP_RANGE in lock).
+static float omf_dx_axis(long v, long min, long max)
+{
+	float range = float(max - min);
+	return ((float(v) - range * 0.5f) / range) * 2.0f;
+}
+
+// DirectInput POV angle of a hat in degrees (-1 centred). Opposite directions cancel out.
+static float omf_hat_angle(bool up, bool right, bool down, bool left)
+{
+	static const float deg[3][3] = { { 225.0f, 180.0f, 135.0f },		// down-left, down, down-right
+	                                 { 270.0f,  -1.0f,  90.0f },		// left, centred, right
+	                                 { 315.0f,   0.0f,  45.0f } };		// up-left, up, up-right
+	int x = int(right) - int(left), y = int(up) - int(down);
+	return deg[y + 1][x + 1];
+}
+
 class OMediaSDLPadElement : public OMediaHIDElement
 {
 	public:
-	OMediaSDLPadElement(OMediaHumanInterfaceDevice *d, SDL_GameController *gc, bool axis, int idx)
-		: OMediaHIDElement(d), gc(gc), is_axis(axis), idx(idx)
+	OMediaSDLPadElement(OMediaHumanInterfaceDevice *d, SDL_GameController *gc, SDL_Joystick *js,
+	                    omt_SDLPadElementKind kind, int idx, int number = -1)
+		: OMediaHIDElement(d), gc(gc), js(js), kind(kind), idx(idx)
 	{
-		type = axis ? omhideltc_Axis : omhideltc_Button;
-		if (axis)
+		static const omt_HIDAxisType kAxis[6] = { omhtdat_X, omhtdat_Y, omhtdat_Z, omhtdat_rX, omhtdat_rY, omhtdat_rZ };
+		static const char *const kAxisName[6] = { "X Axis", "Y Axis", "Z Axis", "X Rotation", "Y Rotation", "Z Rotation" };
+		static const int kAxisUsage[6] = { 0x30, 0x31, 0x32, 0x33, 0x34, 0x35 };	// USB generic desktop X..Rz
+		char buf[64];
+
+		command_key = (omt_CommandKey)0xffff;	// 2002: -1 = no button number
+		switch (kind)
 		{
-			static const omt_HIDAxisType at[] = { omhtdat_X, omhtdat_Y, omhtdat_rX, omhtdat_rY, omhtdat_Z, omhtdat_rZ };
-			axis_type = at[idx];
-			name = SDL_GameControllerGetStringForAxis((SDL_GameControllerAxis)idx);
+			case omsdlpe_GCAxis:
+			case omsdlpe_GCTrigger:
+			case omsdlpe_JoyAxis:
+				type = omhideltc_Axis;
+				// number = DirectInput axis slot 0..5 (X, Y, Z, rX, rY, rZ), 6+ = slider
+				if (number >= 0 && number < 6)
+				{
+					axis_type = kAxis[number];
+					name = kAxisName[number];
+					hdi_usage.usage_page = omhidupc_GenericDesktopControl;
+					hdi_usage.desktop_type = (omt_HIDGenericDesktopUsage)kAxisUsage[number];	// (OMT's omhidgduc_Rz is 0x36, a typo)
+				}
+				else
+				{
+					axis_type = omhtdat_Null;
+					name = "Slider";
+					hdi_usage.usage_page = omhidupc_GenericDesktopControl;
+					hdi_usage.desktop_type = omhidgduc_Slider;
+				}
+				break;
+
+			case omsdlpe_GCButton:
+			case omsdlpe_JoyButton:
+				type = omhideltc_Button;
+				command_key = (omt_CommandKey)number;
+				if (kind == omsdlpe_GCButton)
+					snprintf(buf, sizeof buf, "Button %d (%s)", number, SDL_GameControllerGetStringForButton((SDL_GameControllerButton)idx));
+				else
+					snprintf(buf, sizeof buf, "Button %d", number);
+				name = buf;
+				hdi_usage.usage_page = (omt_HIDUsagePage)0x09;		// USB button page, usage = button + 1
+				hdi_usage.unknown_type = (unsigned short)(number + 1);
+				break;
+
+			case omsdlpe_GCDPad:
+			case omsdlpe_JoyHat:
+				type = omhideltc_POV;
+				name = "Hat Switch";
+				hdi_usage.usage_page = omhidupc_GenericDesktopControl;
+				hdi_usage.desktop_type = omhidgduc_HatSwitch;
+				break;
 		}
-		else name = SDL_GameControllerGetStringForButton((SDL_GameControllerButton)idx);
 	}
+
 	virtual void read_data(OMediaHIDElementData &data)
 	{
-		if (is_axis) data.axis = SDL_GameControllerGetAxis(gc, (SDL_GameControllerAxis)idx) / 32767.0f;
-		else data.down = SDL_GameControllerGetButton(gc, (SDL_GameControllerButton)idx) != 0;
+		switch (kind)
+		{
+			case omsdlpe_GCAxis:			// DirectInput value = SDL value + 32768, range 0..65535
+				data.axis = omf_dx_axis(long(SDL_GameControllerGetAxis(gc, (SDL_GameControllerAxis)idx)) + 32768, 0, 65535);
+				if (axis_type == omhtdat_Y) data.axis = -data.axis;
+				break;
+
+			case omsdlpe_GCTrigger:			// range 0..32767
+				data.axis = omf_dx_axis(SDL_GameControllerGetAxis(gc, (SDL_GameControllerAxis)idx), 0, 32767);
+				break;
+
+			case omsdlpe_JoyAxis:
+				data.axis = omf_dx_axis(long(SDL_JoystickGetAxis(js, idx)) + 32768, 0, 65535);
+				if (axis_type == omhtdat_Y) data.axis = -data.axis;
+				break;
+
+			case omsdlpe_GCButton:
+				data.down = SDL_GameControllerGetButton(gc, (SDL_GameControllerButton)idx) != 0;
+				break;
+
+			case omsdlpe_JoyButton:
+				data.down = SDL_JoystickGetButton(js, idx) != 0;
+				break;
+
+			case omsdlpe_GCDPad:
+				data.angle = omf_hat_angle(SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_UP) != 0,
+				                           SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) != 0,
+				                           SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_DOWN) != 0,
+				                           SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_DPAD_LEFT) != 0);
+				break;
+
+			case omsdlpe_JoyHat:
+			{
+				Uint8 h = SDL_JoystickGetHat(js, idx);
+				data.angle = omf_hat_angle((h & SDL_HAT_UP) != 0, (h & SDL_HAT_RIGHT) != 0,
+				                           (h & SDL_HAT_DOWN) != 0, (h & SDL_HAT_LEFT) != 0);
+				break;
+			}
+		}
 	}
-	SDL_GameController *gc; bool is_axis; int idx;
+
+	SDL_GameController *gc; SDL_Joystick *js; omt_SDLPadElementKind kind; int idx;
 };
 
 class OMediaSDLHID : public OMediaHumanInterfaceDevice
 {
 	public:
-	OMediaSDLHID(OMediaInputEngine *e) : OMediaHumanInterfaceDevice(e) { element_list = &elements; }
+	OMediaSDLHID(OMediaInputEngine *e) : OMediaHumanInterfaceDevice(e), gc(NULL), js(NULL) { element_list = &elements; }
 	virtual ~OMediaSDLHID()
 	{
 		for (omt_HIDElementList::iterator i = elements.begin(); i != elements.end(); i++) delete *i;
+		if (gc) SDL_GameControllerClose(gc);	// the engine is recreated (games re-enumerate devices)
+		if (js) SDL_JoystickClose(js);
 	}
 	virtual omt_HIDElementList *lock(void) { lock_count++; SDL_PumpEvents(); return &elements; }
 	virtual void unlock(void) { lock_count--; }
 	omt_HIDElementList elements;
+	SDL_GameController *gc;
+	SDL_Joystick *js;
 };
+
+// The elements of a game controller, see the table above.
+static void omf_add_controller(OMediaSDLHID *pad, SDL_GameController *gc)
+{
+	static const struct { SDL_GameControllerAxis axis; int slot; bool trigger; } kAxes[] = {
+		{ SDL_CONTROLLER_AXIS_LEFTX, 0, false },        { SDL_CONTROLLER_AXIS_LEFTY, 1, false },
+		{ SDL_CONTROLLER_AXIS_TRIGGERLEFT, 2, true },   { SDL_CONTROLLER_AXIS_RIGHTX, 3, false },
+		{ SDL_CONTROLLER_AXIS_RIGHTY, 4, false },       { SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 5, true },
+	};
+	for (size_t i = 0; i < sizeof kAxes / sizeof kAxes[0]; i++)
+		if (SDL_GameControllerHasAxis(gc, kAxes[i].axis))
+			pad->elements.push_back(new OMediaSDLPadElement(pad, gc, NULL,
+				kAxes[i].trigger ? omsdlpe_GCTrigger : omsdlpe_GCAxis, kAxes[i].axis, kAxes[i].slot));
+
+	if (SDL_GameControllerHasButton(gc, SDL_CONTROLLER_BUTTON_DPAD_UP) || SDL_GameControllerHasButton(gc, SDL_CONTROLLER_BUTTON_DPAD_DOWN) ||
+	    SDL_GameControllerHasButton(gc, SDL_CONTROLLER_BUTTON_DPAD_LEFT) || SDL_GameControllerHasButton(gc, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
+		pad->elements.push_back(new OMediaSDLPadElement(pad, gc, NULL, omsdlpe_GCDPad, 0));
+
+	int number = 0;
+	for (int b = 0; b < SDL_CONTROLLER_BUTTON_MAX; b++)
+	{
+		if (b >= SDL_CONTROLLER_BUTTON_DPAD_UP && b <= SDL_CONTROLLER_BUTTON_DPAD_RIGHT) continue;	// the hat
+		if (SDL_GameControllerHasButton(gc, (SDL_GameControllerButton)b))
+			pad->elements.push_back(new OMediaSDLPadElement(pad, gc, NULL, omsdlpe_GCButton, b, number));
+		number++;
+	}
+}
+
+// The elements of a joystick without a game controller mapping.
+static void omf_add_joystick(OMediaSDLHID *pad, SDL_Joystick *js)
+{
+	for (int a = 0; a < SDL_JoystickNumAxes(js); a++)
+		pad->elements.push_back(new OMediaSDLPadElement(pad, NULL, js, omsdlpe_JoyAxis, a, a));
+	for (int h = 0; h < SDL_JoystickNumHats(js); h++)
+		pad->elements.push_back(new OMediaSDLPadElement(pad, NULL, js, omsdlpe_JoyHat, h));
+	for (int b = 0; b < SDL_JoystickNumButtons(js); b++)
+		pad->elements.push_back(new OMediaSDLPadElement(pad, NULL, js, omsdlpe_JoyButton, b, b));
+}
 
 class OMediaSDLInputEngine : public OMediaInputEngine
 {
@@ -267,17 +464,32 @@ class OMediaSDLInputEngine : public OMediaInputEngine
 		ms->elements.push_back(new OMediaSDLMouseElement(ms, 3, "Button 2"));
 		hdi_list.push_back(ms);
 
+		// Game controllers and joysticks, in SDL's device order (see the element table above).
 		if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
 		for (int j = 0; j < SDL_NumJoysticks(); j++)
 		{
-			if (!SDL_IsGameController(j)) continue;
-			SDL_GameController *gc = SDL_GameControllerOpen(j);
-			if (!gc) continue;
 			OMediaSDLHID *pad = new OMediaSDLHID(this);
+			const char *n = NULL;
+			if (SDL_IsGameController(j) && (pad->gc = SDL_GameControllerOpen(j)) != NULL)
+			{
+				n = SDL_GameControllerName(pad->gc);
+				omf_add_controller(pad, pad->gc);
+			}
+			else if ((pad->js = SDL_JoystickOpen(j)) != NULL)
+			{
+				n = SDL_JoystickName(pad->js);
+				omf_add_joystick(pad, pad->js);
+			}
+			else
+			{
+				delete pad;
+				continue;
+			}
 			pad->type = omhidtc_Joystick;
-			pad->product_name = pad->instance_name = SDL_GameControllerName(gc) ? SDL_GameControllerName(gc) : "Controller";
-			for (int a = 0; a < SDL_CONTROLLER_AXIS_MAX; a++) pad->elements.push_back(new OMediaSDLPadElement(pad, gc, true, a));
-			for (int b = 0; b < SDL_CONTROLLER_BUTTON_MAX; b++) pad->elements.push_back(new OMediaSDLPadElement(pad, gc, false, b));
+			pad->hdi_usage.usage_page = omhidupc_GenericDesktopControl;
+			pad->hdi_usage.desktop_type = pad->gc ? omhidgduc_GamePad : omhidgduc_Joystick;
+			// never empty: OMT 2002 games may pick a device by comparing names
+			pad->product_name = pad->instance_name = (n && n[0]) ? n : (pad->gc ? "Controller" : "Joystick");
 			hdi_list.push_back(pad);
 		}
 	}

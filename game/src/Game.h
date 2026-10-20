@@ -4,6 +4,7 @@
 #include "OMediaApplication.h"
 #include "OMediaListener.h"
 #include "Globals.h"
+#include <string>
 
 // --------------------------------------------------------------------------- CAweReal (0x38 bytes)
 // The application. vtables 0x51affc (OMediaApplication) and 0x51afe8 (OMediaListener at +0x24).
@@ -33,11 +34,15 @@ class CGfx
 };
 
 // --------------------------------------------------------------------------- CInput (4 bytes)
+// vtable 0x51bbf8. Made once by omt_main; owns g_input_engine and the joystick FindDevice locked
+// (Input.cpp). Slots 1 and 2 are never called.
 class CInput
 {
 	public:
 	CInput();												// 0x4b3260
-	virtual ~CInput();
+	virtual ~CInput();										// 0x4b3370 (slot 0, deleting destructor)
+	virtual void CreateInputEngine(void);					// 0x4b33f0 (slot 1)
+	virtual void Release(void);								// 0x4b3410 (slot 2)
 };
 
 // --------------------------------------------------------------------------- free functions
@@ -71,4 +76,9 @@ void SetWindowTitle(void);									// 0x496110
 bool CheckCD(void);											// 0x496200
 void LoadNewLevel(unsigned int which);						// omt_main / AWEMSG_LOAD
 void SDLKeyToVK(int sdl_scancode, bool down);				// SDL replacement for WM_KEYDOWN/UP
+
+// input (Input.cpp); the joystick state the poll fills is in gen/globals.h (g_joy_*)
+extern std::string g_input_device_name;						// 0x56b010  FindDevice skips the device of this name ("")
+bool FindDevice(int type);									// 0x4b3460  type: omt_HIDType (2 = joystick)
+bool UpdateInput(void);										// 0x4b35d0  the per-frame joystick poll
 }

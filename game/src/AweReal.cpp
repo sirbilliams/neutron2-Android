@@ -1,5 +1,5 @@
 /*  CAweReal, omt_main and start-up helpers.  Reconstructed from Neutron2.exe.
-    0x4a3c00 omt_main   0x4a3380 CAweReal::listen_to_message   0x4b3260 CInput::CInput
+    0x4a3c00 omt_main   0x4a3380 CAweReal::listen_to_message   (CInput: Input.cpp)
     0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
 
 #include "DatabaseCache.h"
@@ -14,8 +14,6 @@
 #include "Sound.h"
 #include "OMediaWindow.h"
 #include "OMediaEventManager.h"
-#include "OMediaEngineFactory.h"
-#include "OMediaInputEngine.h"
 #include "OMediaDefMessages.h"
 #include "OMediaError.h"
 #include <SDL.h>
@@ -102,16 +100,6 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 	}
 	OMediaApplication::listen_to_message(msg, param);
 }
-
-// --------------------------------------------------------------------------- CInput 0x4b3260
-
-CInput::CInput()
-{
-	SDL_Log("CInput()");
-	g_input_engine = OMediaEngineFactory::get_factory()->create_input_engine(ommeic_Best, g_window);
-}
-
-CInput::~CInput() { delete g_input_engine; g_input_engine = NULL; }
 
 // --------------------------------------------------------------------------- helpers
 

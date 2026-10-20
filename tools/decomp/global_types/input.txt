@@ -1,0 +1,26 @@
+# The input module (CInput 0x4b3260, FindDevice 0x4b3460, the joystick poll 0x4b35d0).
+# 0x56b010 (std::string, the device name FindDevice skips) is a real C++ object: Game.h.
+# 0x56b038 and 0x56b048 are OMedia3DVectors (x, y, z, w): their constructors (static initialiser
+# 0x4b3240) zero only w (0x56b044 / 0x56b054). Kept as separate floats: menu part b reads 0x56b038.
+0x56b020 array unsigned char g_joy_prev_buttons     # [20] buttons of the previous poll
+0x56b038 val float g_joy_x                          # axis X  (element axis_type 1)
+0x56b03c val float g_joy_y                          # axis Y  (2; up is +1, OMT negates DirectInput's Y)
+0x56b040 val float g_joy_z                          # axis Z  (3)
+0x56b048 val float g_joy_rx                         # axis rX (4)
+0x56b04c val float g_joy_ry                         # axis rY (5)
+0x56b050 val float g_joy_rz                         # axis rZ (6)
+0x56b058 val float g_joy_pov                        # POV angle in degrees, -1 centred
+0x56b05c val unsigned char g_joy_button0            # g_joy_buttons[20] starts here (0..19)
+0x56b05d val unsigned char g_joy_button1
+0x56b05e val unsigned char g_joy_button2
+0x56b05f val unsigned char g_joy_button3
+0x56b060 val unsigned char g_joy_button4
+0x56b064 val unsigned char g_joy_button8
+0x56b065 val unsigned char g_joy_button9
+0x56b070 val unsigned char g_joy_any_button         # a button was down in the last poll
+0x56b074 ptr OMediaHumanInterfaceDevice* g_joy_device   # the locked device (FindDevice)
+0x56b07c val short g_joystick_count                 # joysticks/wheels FindDevice went past
+0x56b080 ptr omt_HIDElementList* g_joy_elements     # its element list (lock())
+0x56b085 val unsigned char g_joy_debug              # on-screen element display (never set)
+0x56b086 val short g_joy_debug_mode                 # 2 hides the buttons, 3 everything else
+0x56b088 val int g_joy_frames                       # polls so far (buttons cleared for the first 30)
