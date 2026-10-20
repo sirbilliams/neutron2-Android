@@ -20,3 +20,7 @@ out/
 *.ase
 *.tsk
 Program_Executable_Files/
+
+# Granny dumps (game assets)
+*.gdmp
+tools/granny/*.exe
