@@ -88,6 +88,17 @@ if(EXISTS ${UNSHIELD_DIR}/lib/libunshield.h)
   endif()
 endif()
 
+# --------------------------------------------------------------------------- Granny 1.2b replacement
+# game/granny: the 26 granny.dll functions the game imports, on converted .grc data (tools/granny/grn2grc.py,
+# docs/granny-replacement.md).  Its float arithmetic reproduces the DLL's bit for bit, which needs IEEE
+# float/double operations exactly as written: no fused multiply-add, no x87 excess precision.
+add_library(granny_compat STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny/granny_compat.cpp)
+target_include_directories(granny_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny)
+target_compile_options(granny_compat PRIVATE -ffp-contract=off -fno-fast-math)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86)$")
+  target_compile_options(granny_compat PRIVATE -msse2 -mfpmath=sse)
+endif()
+
 # --------------------------------------------------------------------------- apps
 if(ANDROID)
   # SDLActivity loads libmain.so and calls SDL_main (OMediaSDLMain.cpp's main).
@@ -107,9 +118,14 @@ else()
   file(GLOB_RECURSE NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp)
   if(NEG_SRC)
     add_executable(negatron ${NEG_SRC} ${OMT_MAIN})
-    target_link_libraries(negatron omt)
+    target_link_libraries(negatron omt granny_compat)
     target_compile_options(negatron PRIVATE -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion -fno-strict-aliasing)
   endif()
+
+  # Script runner for comparing granny_compat with the real granny.dll (tools/granny/verify.sh)
+  add_executable(grntest_compat ${CMAKE_CURRENT_SOURCE_DIR}/../tools/granny/grntest.c)
+  target_compile_definitions(grntest_compat PRIVATE GRNTEST_COMPAT)
+  target_link_libraries(grntest_compat granny_compat m)
 
   # OMT's own samples, built unmodified (after tools/portify.py) against the SDL layer
   foreach(s Cube Teapot)

@@ -25,8 +25,9 @@
 
 using namespace neg;
 
-// Granny (RAD) - replaced by the converted model data on this port; see docs/granny-api.md.
-static int GrannyOpenVersionStub(void) { return 0; }
+// Granny (RAD): game/granny/granny_compat.cpp reimplements the granny.dll calls on converted .grc data
+// (docs/granny-replacement.md, docs/granny-api.md).
+#include "granny_compat.h"
 
 // --------------------------------------------------------------------------- CAweReal
 
@@ -35,8 +36,10 @@ CAweReal::CAweReal() : OMediaApplication(omchint_BestInit, true)		// OMediaAppli
 	SDL_Log("CAweReal()");
 	memset(g_keys, 0, sizeof(g_keys));			// 0x56ada0, 0x40 dwords
 	g_app = this;								// 0x56aec4
-	if (GrannyOpenVersionStub() != 0) SDL_Log("GRANNY FAILED TO INITIALIZE");
-	// GrannyAllowTextureFormat(ver, 4)
+	if (GrannyOpenVersion("1.2b", "win32", "10-4-2000", "(C) Copyright 1999-2000 RAD Game Tools, Inc.  All Rights Reserved.",
+	                      &g_granny) != GrannyOK)
+		SDL_Log("GRANNY FAILED TO INITIALIZE");
+	GrannyAllowTextureFormat(g_granny, 4);		// 24-bit RGB
 	g_granny_scale = 100;						// 0x56aea4
 }
 

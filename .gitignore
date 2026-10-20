@@ -30,3 +30,8 @@ Program_Executable_Files/
 tools/granny/*.exe
 __pycache__/
 .claude/
+
+# converted Granny data and test records (tools/granny)
+*.grc
+*.gxtr
+*.gtst
