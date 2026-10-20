@@ -18,6 +18,14 @@ by hand (`// FIELD <off> <size>` in game/src/<Class>.h) are left out of the fiel
 
     gen_class.py --class CGameObject --raw raw/ --classes classes.json --abi abi.json \
                  --src game/src --out game/src/gen [--names slots.json]
+
+Classes with several bases (an OMT element + CLocalGameObject, e.g. C3DObject): pass --go-offset
+(where the CLocalGameObject subobject sits, e.g. 0xc0) and --el-slots (how many element-vtable
+slots belong to OMT, e.g. 49 for OMedia3DMorphAnim-based classes). Then two slot families are
+generated: CGameObject-family slots (`// SLOT n`, names v<n> or logged names) and element-family
+game slots (`// ESLOT n`, names ev<n>). Members: offsets inside the CLocalGameObject subobject
+keep the CGameObject names (f_<offset from its start>); the class's own members are
+f_<offset from the object start>; OMT element members are never generated.
 """
 import argparse, json, os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
@@ -73,24 +81,58 @@ def statements(body):
     return out
 
 
+GO_SIZE = 0x4c8                   # CLocalGameObject
+
+
+class Fam:
+    """one vtable family of the class: 'go' (CGameObject family) or 'el' (element family)"""
+    def __init__(s, kind, vi, this_off, methods, first):
+        s.kind, s.vi, s.this, s.methods, s.first = kind, vi, this_off, methods, first
+    def key(s, slot): return (s.kind, slot)
+
+
 class Gen:
-    def __init__(s, cls, classes, funcs, abi, names):
+    def __init__(s, cls, classes, funcs, abi, names, go_off, el_slots, base_size):
         s.cls, s.classes, s.funcs, s.abi, s.names = cls, classes, funcs, abi, names
-        s.uf = UF()
-        s.vt = classes[cls]['vtables'][0]['methods']
-        s.fields_used = set()
-        s.ftype_override = {}
+        s.uf = UF(); s.fields_used = set(); s.ftype_override = {}; s.base_decl = {}
+        s.go_off, s.base_size = go_off, base_size
+        vts = classes[cls]['vtables']
+        s.fams = []
+        if go_off is None:                               # single chain: the only vtable is the go family
+            s.fams.append(Fam('go', 0, 0, vts[0]['methods'], 0))
+        else:
+            for vi, vt in enumerate(vts):
+                if vt['this_offset'] == go_off and len(vt['methods']) >= 265:
+                    s.fams.append(Fam('go', vi, go_off, vt['methods'], 0))
+                if vt['this_offset'] == 0:
+                    s.fams.append(Fam('el', vi, 0, vt['methods'], el_slots))
 
-    def slotname(s, slot):
-        return s.names.get(slot) or f'v{slot}'
+    def slotname(s, fam, slot):
+        n = s.names.get((fam.kind, slot))
+        if n: return n
+        return f'v{slot}' if fam.kind == 'go' else f'ev{slot}'
 
-    def arity(s, slot):
-        """Stack arguments of a slot, from the machine code of this class's implementation."""
-        if slot >= len(s.vt): return None
-        a = hex(int(s.vt[slot]['addr'], 16))
+    def fam_of(s, kind):
+        for f in s.fams:
+            if f.kind == kind: return f
+
+    # field naming -------------------------------------------------------------
+    def fname(s, fam, k):
+        """field at offset k from this (in fam) -> (full key, member name) or None"""
+        full = k + fam.this
+        if s.go_off is None:
+            return full, f'f_{full:03x}'
+        if full < s.go_off: return None                  # OMT element member
+        if full < s.go_off + GO_SIZE:
+            r = full - s.go_off
+            return ('go', r), f'f_{r:03x}'
+        return full, f'f_{full:03x}'
+
+    def arity(s, fam, slot):
+        if slot >= len(fam.methods): return None
+        a = hex(int(fam.methods[slot]['addr'], 16))
         pops = s.abi.get(a, {}).get('ret_pop', [])
-        if len(pops) == 1:
-            return pops[0] // 4
+        if len(pops) == 1: return pops[0] // 4
         f = s.funcs.get(int(a, 16))
         if f:
             m = SIG.match(f[1].strip())
@@ -99,50 +141,56 @@ class Gen:
                 return max(0, len(args) - 1)
         return None
 
-    # ---------------------------------------------------------------- evidence
+    # evidence -----------------------------------------------------------------
     def collect_evidence(s, fieldrows):
         for r in fieldrows:
-            if r['sub'] == 0:
-                for t in r['types']:
-                    if t in ('float', 'float10'): s.uf.e(('F', r['off']), 'F')
-                    elif t in ('char', 'uchar', 'bool'): s.uf.e(('F', r['off']), 'B')
-                    elif t in ('short', 'ushort', 'int16_t'): s.uf.e(('F', r['off']), 'S')
-                    elif t in ('int', 'int32_t'): s.uf.e(('F', r['off']), 'I')
-                    elif t == 'ptr': s.uf.e(('F', r['off']), 'P')
-                d = r.get('default')
-                if isinstance(d, str) and d.startswith('0x') and len(d) >= 9:
-                    v = int(d, 16)
-                    if 0x3a000000 <= v <= 0x4b000000 or 0xba000000 <= v <= 0xcb000000:
-                        s.uf.e(('F', r['off']), 'F')        # a float constant (1.0 = 0x3f800000)
-        # prototypes of every implementation of each slot, across the class family
-        fam = [c for n, c in s.classes.items() if n == s.cls or s.cls in c.get('bases', [])]
-        for c in fam:
-            for vt in c['vtables']:
-                if len(vt['methods']) < len(s.vt): continue
-                for si, m in enumerate(vt['methods'][:len(s.vt)]):
-                    f = s.funcs.get(int(m['addr'], 16))
-                    if not f: continue
-                    mm = SIG.match(f[1].strip())
-                    if not mm: continue
-                    args = [x.strip() for x in mm.group('args').split(',') if x.strip() and x.strip() != 'void']
-                    for a in args:
-                        pm = re.fullmatch(r'([\w ]+?)\s*(\**)\s*param_(\d+)', a)
-                        if pm and int(pm.group(3)) >= 2:
-                            t = GT.get(pm.group(1).strip())
-                            if pm.group(2): s.uf.e(('PE', si, int(pm.group(3))), t if t in 'FBS' else None)
-                            elif t in ('F', 'B', 'S', 'I'): s.uf.e(('P', si, int(pm.group(3))), t)
-                    rt = mm.group('ret').strip()
-                    if s.abi.get(hex(int(m['addr'], 16)), {}).get('fret'): s.uf.e(('R', si), 'F')
-                    elif not rt.endswith('*'):
-                        t = GT.get(rt)
-                        if t in ('F', 'B', 'S', 'I'): s.uf.e(('R', si), t)
+            fam = next((f for f in s.fams if f.this == r['sub']), None)
+            if not fam: continue
+            fn = s.fname(fam, r['off'])
+            if not fn: continue
+            key = ('F', fn[0])
+            for t in r['types']:
+                if t in ('float', 'float10'): s.uf.e(key, 'F')
+                elif t in ('char', 'uchar', 'bool'): s.uf.e(key, 'B')
+                elif t in ('short', 'ushort', 'int16_t'): s.uf.e(key, 'S')
+                elif t in ('int', 'int32_t'): s.uf.e(key, 'I')
+                elif t == 'ptr': s.uf.e(key, 'P')
+            d = r.get('default')
+            if isinstance(d, str) and d.startswith('0x') and len(d) >= 9:
+                v = int(d, 16)
+                if 0x3a000000 <= v <= 0x4b000000 or 0xba000000 <= v <= 0xcb000000:
+                    s.uf.e(key, 'F')
+        fam_classes = [c for n, c in s.classes.items() if n == s.cls or s.cls in c.get('bases', [])]
+        for fam in s.fams:
+            for c in fam_classes:
+                for vt in c['vtables']:
+                    if len(vt['methods']) < len(fam.methods): continue
+                    if fam.kind == 'el' and vt['this_offset'] != 0: continue
+                    if fam.kind == 'go' and len(vt['methods']) < 265: continue
+                    for si, m in enumerate(vt['methods'][:len(fam.methods)]):
+                        f = s.funcs.get(int(m['addr'], 16))
+                        if not f: continue
+                        mm = SIG.match(f[1].strip())
+                        if not mm: continue
+                        args = [x.strip() for x in mm.group('args').split(',') if x.strip() and x.strip() != 'void']
+                        for a in args:
+                            pm = re.fullmatch(r'([\w ]+?)\s*(\**)\s*param_(\d+)', a)
+                            if pm and int(pm.group(3)) >= 2:
+                                t = GT.get(pm.group(1).strip())
+                                if pm.group(2): s.uf.e(('PE', fam.kind, si, int(pm.group(3))), t if t in 'FBS' else None)
+                                elif t in ('F', 'B', 'S', 'I'): s.uf.e(('P', fam.kind, si, int(pm.group(3))), t)
+                        rt = mm.group('ret').strip()
+                        if s.abi.get(hex(int(m['addr'], 16)), {}).get('fret'): s.uf.e(('R', fam.kind, si), 'F')
+                        elif not rt.endswith('*'):
+                            t = GT.get(rt)
+                            if t in ('F', 'B', 'S', 'I'): s.uf.e(('R', fam.kind, si), t)
 
-    # ---------------------------------------------------------------- translation
-    def translate(s, slot, addr, body):
+    # translation ----------------------------------------------------------------
+    def translate(s, fam, slot, addr, body):
         m = SIG.match(body.strip())
         if not m: return None
-        n = s.arity(slot)
-        bd = getattr(s, 'base_decl', {}).get(slot)
+        n = s.arity(fam, slot)
+        bd = s.base_decl.get((fam.kind, slot))
         if bd is not None:
             if n is not None and n != len(bd['types']): return None
             n = len(bd['types'])
@@ -152,36 +200,34 @@ class Gen:
         stmts = statements(body)
         if stmts is None: return None
         rett = m.group('ret').strip()
-        ptr_ret = rett.endswith('*')
-        if ptr_ret: return None
+        if rett.endswith('*'): return None
         void = rett == 'void' and not s.abi.get(hex(addr), {}).get('fret')
-        ptrs = set()
-        lines = []
+        ptrs = set(); lines = []
+        K = fam.kind
 
         def field(mo):
             if mo.group('t0') is not None: return None
             if mo.group('i') is not None: k = num(mo.group('i')) * sc
             else: k = num(mo.group('k')) * (1 if mo.group('cast') else sc)
-            return None if k == 0 else k
+            if k == 0: return None
+            return s.fname(fam, k)
 
         def expr(e, unify_with=None):
-            e = e.strip(); fail = []
-            refs = []
+            e = e.strip(); fail = []; refs = []
             def fs(mo):
-                k = field(mo)
-                if k is None: fail.append(1); return 'X'
-                s.fields_used.add(k); refs.append(('F', k)); return f'f_{k:03x}'
+                r = field(mo)
+                if r is None: fail.append(1); return 'X'
+                s.fields_used.add(r[0]); refs.append(('F', r[0])); return r[1]
             e2 = FIELD.sub(fs, e)
             def ps(mo):
                 i = int(mo.group(1))
                 if i < 2 or i >= 2 + n: fail.append(1); return 'X'
-                refs.append(('P', slot, i)); return f'a{i}'
+                refs.append(('P', K, slot, i)); return f'a{i}'
             e2 = re.sub(r'\bparam_(\d+)\b', ps, e2)
             e2 = re.sub(r'\((?:uint|int|uchar|char|float|float10|ushort|short|int16_t|int32_t|uint32_t|uint8_t|bool)\)', '', e2)
             if fail or re.search(r'code|fcn\.|0x5[0-9a-f]{5}|\*\s*\(|&|\[|"|_sym', e2): return None
             if not re.fullmatch(r'[\w\s+\-*/.()]+', e2): return None
             if unify_with is not None:
-                # a plain copy ties the types together; arithmetic only if every operand is float-like
                 if len(refs) == 1 and re.fullmatch(r'\(?\s*\w+\s*\)?', e2): s.uf.u(unify_with, refs[0])
                 elif refs and re.search(r'[+\-*/]', e2):
                     for r in refs: s.uf.u(unify_with, r)
@@ -193,12 +239,12 @@ class Gen:
                 lines.append('return;'); continue
             if st.startswith('return '):
                 if void: return None
-                e = expr(st[7:], ('R', slot))
+                e = expr(st[7:], ('R', K, slot))
                 if e is None: return None
                 lines.append(f'return {e};'); continue
             vm = VCALL.fullmatch(st)
             if vm:
-                c = s.vcall(slot, vm, n, expr)
+                c = s.vcall(fam, slot, vm, n, expr)
                 if c is None: return None
                 lines.append(c + ';'); continue
             if re.fullmatch(r'CGameObject__v13\(.*\)', st):
@@ -208,31 +254,31 @@ class Gen:
             lhs, rhs = mm.group('lhs').strip(), mm.group('rhs')
             fm = FIELD.fullmatch(lhs)
             if fm:
-                k = field(fm)
-                if k is None: return None
-                s.fields_used.add(k)
-                e = expr(rhs, ('F', k))
+                r = field(fm)
+                if r is None: return None
+                s.fields_used.add(r[0])
+                e = expr(rhs, ('F', r[0]))
                 if e is None: return None
-                lines.append(f'f_{k:03x} = {e};'); continue
+                lines.append(f'{r[1]} = {e};'); continue
             om = OUTP.fullmatch(lhs)
             if om:
                 p = int(om.group('p') or om.group('q')); i = int(om.group('i') or 0)
                 if p < 2 or p >= 2 + n: return None
                 fm2 = FIELD.fullmatch(rhs.strip())
                 if not fm2: return None
-                k = field(fm2)
-                if k is None: return None
-                s.fields_used.add(k); ptrs.add(p)
-                s.uf.u(('PE', slot, p), ('F', k))
-                lines.append(f'a{p}[{i}] = f_{k:03x};'); continue
+                r = field(fm2)
+                if r is None: return None
+                s.fields_used.add(r[0]); ptrs.add(p)
+                s.uf.u(('PE', K, slot, p), ('F', r[0]))
+                lines.append(f'a{p}[{i}] = {r[1]};'); continue
             return None
-        return dict(slot=slot, addr=addr, n=n, void=void, ptrs=ptrs, lines=lines)
+        return dict(fam=fam, slot=slot, addr=addr, n=n, void=void, ptrs=ptrs, lines=lines)
 
-    def vcall(s, slot, vm, n, expr):
+    def vcall(s, fam, slot, vm, n, expr):
         tgt = num(vm.group('off')) // 4
         args = [a.strip() for a in re.split(r',(?![^(]*\))', vm.group('args')) if a.strip()]
         if args and args[0] == 'param_1':
-            if tgt != LOG: return None
+            if fam.kind != 'go' or tgt != LOG: return None
             es = []
             for a in args[1:]:
                 if a.startswith('"'): es.append(a); continue
@@ -240,43 +286,63 @@ class Gen:
                 if x is None: return None
                 es.append(x)
             return f'Log({", ".join(es)})'
-        bd = getattr(s, 'base_decl', {}).get(tgt)
-        k = len(bd['types']) if bd else s.arity(tgt)
+        if fam.kind == 'el' and tgt < fam.first: return None     # OMT method: write by hand
+        bd = s.base_decl.get((fam.kind, tgt))
+        k = len(bd['types']) if bd else s.arity(fam, tgt)
         if k is None: return None
+        if bd and any('*' in t or '&' in t for t in bd['types']): return None
         if len(args) > k: args = args[:k]
         if len(args) < k: return None
         es = []
         for j, a in enumerate(args):
             if a.startswith('"'): return None
-            x = expr(a, ('P', tgt, 2 + j))
+            x = expr(a, ('P', fam.kind, tgt, 2 + j))
             if x is None: return None
             es.append(x)
-        return f'{s.slotname(tgt)}({", ".join(es)})'
+        return f'{s.slotname(fam, tgt)}({", ".join(es)})'
 
-    # ---------------------------------------------------------------- output
-    def sig(s, slot, n, void, ptrs):
-        d = getattr(s, 'base_decl', {}).get(slot)
-        if d:                                  # an override keeps the base declaration
+    def sig(s, fam, slot, n, void, ptrs):
+        d = s.base_decl.get((fam.kind, slot))
+        if d:
             return d['ret'], ', '.join(f'{t} a{2 + j}' for j, t in enumerate(d['types']))
         ps = []
         for i in range(2, 2 + n):
-            if i in ptrs: ps.append(f'{s.uf.t(("PE", slot, i))} *a{i}')
-            else: ps.append(f'{s.uf.t(("P", slot, i))} a{i}')
-        ret = 'void' if void else s.uf.t(('R', slot))
+            if i in ptrs: ps.append(f'{s.uf.t(("PE", fam.kind, slot, i))} *a{i}')
+            else: ps.append(f'{s.uf.t(("P", fam.kind, slot, i))} a{i}')
+        ret = 'void' if void else s.uf.t(('R', fam.kind, slot))
         return ret, ', '.join(ps)
 
 
+TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
+DECL = re.compile(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*(?P<tag>SLOT|slot|ESLOT|eslot)\s+(?P<n>\d+)')
+
+
+def parse_decls(text):
+    out = {}
+    for d in DECL.finditer(text):
+        ps = [x.strip() for x in d.group('ps').split(',') if x.strip() and x.strip() != 'void']
+        types = [re.sub(r'\s*\b\w+$', '', x).strip() if re.search(r'[\w*&]\s+\**\w+$', x) else x for x in ps]
+        kind = 'el' if d.group('tag').lower() == 'eslot' else 'go'
+        out[(kind, int(d.group('n')))] = dict(ret=(d.group('ret').strip() + (' *' if d.group('rp') else '')),
+                                             types=types, name=d.group('name'))
+    return out
+
+
 def main():
+    import glob
     ap = argparse.ArgumentParser()
     ap.add_argument('--class', dest='cls', required=True)
     ap.add_argument('--raw', required=True); ap.add_argument('--classes', required=True)
     ap.add_argument('--abi', required=True); ap.add_argument('--src', required=True)
     ap.add_argument('--out', required=True); ap.add_argument('--names')
     ap.add_argument('--base', default='', help='base classes, nearest first (CLocalGameObject,CGameObject)')
-    ap.add_argument('--base-size', default='0', help='byte size of the base part; fields below it belong to the base')
+    ap.add_argument('--base-size', default='0', help='size of the base part (object start to the first own member)')
+    ap.add_argument('--go-offset', default=None, help='offset of the CLocalGameObject subobject (multi-base classes)')
+    ap.add_argument('--el-slots', default='43', help='element-vtable slots that belong to OMT')
     a = ap.parse_args()
     chain = [x for x in a.base.split(',') if x]
     base_size = num(a.base_size)
+    go_off = num(a.go_offset) if a.go_offset else None
     classes, funcs = load(a.raw, a.classes)
     abi = json.load(open(a.abi))
     rows, _ = analyse(a.cls, classes, funcs)
@@ -287,89 +353,90 @@ def main():
     names = {}
     if a.names:
         for k, v in json.load(open(a.names)).items():
-            if v.get('name'): names[int(k)] = v['name']
+            if v.get('name'): names[('go', int(k))] = v['name']
+    hand_files = sorted(set(glob.glob(f'{a.src}/**/{a.cls}.cpp', recursive=True) + glob.glob(f'{a.src}/**/{a.cls}.h', recursive=True)
+                            + glob.glob(f'{a.src}/**/{a.cls}_*.*', recursive=True)) - set(glob.glob(f'{a.out}/*')))
     hand_slots, hand_fields = set(), []
-    import glob
-    hand_files = sorted(set(glob.glob(f'{a.src}/**/{a.cls}*.cpp', recursive=True) + glob.glob(f'{a.src}/**/{a.cls}*.h', recursive=True)
-                            + glob.glob(f'{a.src}/**/{a.cls}_*.inc', recursive=True)) - set(glob.glob(f'{a.out}/*')))
     for fn in hand_files:
-        if os.path.exists(fn):
-            t = open(fn).read()
-            hand_slots |= {int(x) for x in re.findall(r'//\s*SLOT\s+(\d+)', t)}
-            hand_fields += [(num(o), num(z)) for o, z in re.findall(r'//\s*FIELD\s+(0x[0-9a-f]+|\d+)\s+(0x[0-9a-f]+|\d+)', t)]
-    DECL = re.compile(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*(?:SLOT|slot)\s+(?P<n>\d+)')
+        t = open(fn).read()
+        hand_slots |= {('go', int(x)) for x in re.findall(r'//\s*SLOT\s+(\d+)', t)}
+        hand_slots |= {('el', int(x)) for x in re.findall(r'//\s*ESLOT\s+(\d+)', t)}
+        hand_fields += [(num(o), num(z)) for o, z in re.findall(r'//\s*FIELD\s+(0x[0-9a-f]+|\d+)\s+(0x[0-9a-f]+|\d+)', t)]
     base_decl = {}
     for b in reversed(chain):
-        for fn in (f'{a.src}/{b}.h', f'{a.out}/{b}_slots.inc'):
-            if os.path.exists(fn):
-                for d in DECL.finditer(open(fn).read()):
-                    ps = [x.strip() for x in d.group('ps').split(',') if x.strip() and x.strip() != 'void']
-                    types = [re.sub(r'\s*\b\w+$', '', x).strip() if re.search(r'[\w*&]\s+\**\w+$', x) else x for x in ps]
-                    base_decl[int(d.group('n'))] = dict(ret=(d.group('ret').strip() + (' *' if d.group('rp') else '')),
-                                                       types=types, name=d.group('name'))
-    for si, d in base_decl.items():
-        names.setdefault(si, d['name'])
-    g = Gen(a.cls, classes, funcs, abi, names)
+        for fn in sorted(set(glob.glob(f'{a.src}/**/{b}.h', recursive=True) + glob.glob(f'{a.src}/**/{b}_*.inc', recursive=True))) + [f'{a.out}/{b}_slots.inc']:
+            if os.path.exists(fn) and not fn.startswith(a.out) or fn == f'{a.out}/{b}_slots.inc' and os.path.exists(fn):
+                base_decl.update(parse_decls(open(fn).read()))
+    for k, d in base_decl.items():
+        names.setdefault(k, d['name'])
+    g = Gen(a.cls, classes, funcs, abi, names, go_off, num(a.el_slots), base_size)
     g.base_decl = base_decl
     g.collect_evidence(fieldrows)
     hdrtext = ''.join(open(fn).read() for fn in hand_files if not fn.endswith('.cpp'))
-    if hdrtext:
-        # `// TYPE <off> <ctype>`: a field type known from hand-written code (authoritative)
-        CK = {'float': 'F', 'int': 'I', 'unsigned': 'U', 'uint': 'U', 'uchar': 'B', 'short': 'S', 'ptr': 'P'}
-        for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+([^\n]+)', hdrtext):
-            t = t.strip()
-            if t in CK: g.uf.ev[g.uf.f(('F', num(o)))] = {CK[t]}
-            else:
-                g.uf.ev[g.uf.f(('F', num(o)))] = {'P'}
-                g.ftype_override[num(o)] = t
-        TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
-        for d in re.finditer(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*SLOT\s+(?P<n>\d+)', hdrtext):
-            si = int(d.group('n'))
-            names.setdefault(si, d.group('name'))
-            if not d.group('rp') and d.group('ret').strip() in TK: g.uf.e(('R', si), TK[d.group('ret').strip()])
-            ps = [x.strip() for x in d.group('ps').split(',') if x.strip() and x.strip() != 'void']
-            for j, x in enumerate(ps):
-                t = re.sub(r'\s*\w+$', '', x).strip()
-                if '*' in t or '&' in t: continue
-                if t in TK: g.uf.e(('P', si, 2 + j), TK[t])
-                # a hand-declared type is authoritative
-                g.uf.ev[g.uf.f(('P', si, 2 + j))] = {TK.get(t, 'U')} if t in TK else g.uf.ev.get(g.uf.f(('P', si, 2 + j)), set())
-    own = {}
-    bvt = classes[chain[0]]['vtables'][0]['methods'] if chain else []
-    for si, m in enumerate(g.vt):
-        ad = int(m['addr'], 16)
-        f = funcs.get(ad)
-        if chain:
-            if si < len(bvt) and bvt[si]['addr'] == m['addr']:
-                continue                      # inherited unchanged
-            if f: own[si] = (ad, f[1])
-        elif f and f[0].startswith(a.cls + '__'):
-            own[si] = (ad, f[1])
-    # base signatures are authoritative for overrides
-    TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
-    for si, d in base_decl.items():
-        if d['ret'] in TK: g.uf.ev[g.uf.f(('R', si))] = {TK[d['ret']]}
+    CK = {'float': 'F', 'int': 'I', 'unsigned': 'U', 'uint': 'U', 'uchar': 'B', 'short': 'S', 'ptr': 'P'}
+    for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+([^\n]+)', hdrtext):
+        t = t.strip(); key = ('F', num(o))
+        if t in CK: g.uf.ev[g.uf.f(key)] = {CK[t]}
+        else: g.uf.ev[g.uf.f(key)] = {'P'}; g.ftype_override[num(o)] = t
+    own_decl = parse_decls(hdrtext)
+    for k, d in own_decl.items():
+        names.setdefault(k, d['name'])
+    for k, d in list(base_decl.items()) + list(own_decl.items()):      # declared types are authoritative
+        kind, si = k
+        if d['ret'] in TK: g.uf.ev[g.uf.f(('R', kind, si))] = {TK[d['ret']]}
         for j, t in enumerate(d['types']):
-            if t in TK: g.uf.ev[g.uf.f(('P', si, 2 + j))] = {TK[t]}
+            if t in TK: g.uf.ev[g.uf.f(('P', kind, si, 2 + j))] = {TK[t]}
+    # base field types (from the bases' generated members) are authoritative too
+    for b in chain:
+        fn = f'{a.out}/{b}_fields.inc'
+        if os.path.exists(fn):
+            for t, o in re.findall(r'^\t([\w *]+?)\s+f_([0-9a-f]+);', open(fn).read(), re.M):
+                key = ('go', int(o, 16)) if go_off is not None and b in ('CGameObject', 'CLocalGameObject') else int(o, 16)
+                rk = {v: k2 for k2, v in CT.items()}.get(t.strip())
+                if rk: g.uf.ev[g.uf.f(('F', key))] = {rk}
+    # own slots: overrides (differ from the nearest base's vtable) and new slots
+    bvts = classes[chain[0]]['vtables'] if chain else []
+    own = {}
+    for fam in g.fams:
+        bm = next((vt['methods'] for vt in bvts if vt['this_offset'] == fam.this
+                   and (fam.kind == 'el' or len(vt['methods']) >= 265)), None)
+        if fam.kind == 'go' and go_off is not None and bm is None:
+            bm = classes['CLocalGameObject']['vtables'][0]['methods']
+        for si, m in enumerate(fam.methods):
+            if fam.kind == 'el' and si < fam.first: continue     # OMT virtuals: hand-written
+            ad = int(m['addr'], 16)
+            f = funcs.get(ad)
+            if m.get('imported'): continue
+            if bm is not None:
+                if si < len(bm) and bm[si]['addr'] == m['addr']: continue
+            elif not (f and f[0].startswith(a.cls + '__')):
+                continue
+            if f: own[(fam.kind, si)] = (fam, ad, f[1])
     gen, todo = {}, {}
-    for si in sorted(own):
-        ad, body = own[si]
-        r = None if si in hand_slots else g.translate(si, ad, body)
-        if r: gen[si] = r
+    for k in sorted(own, key=lambda x: (x[0] != 'go', x[1])):
+        fam, ad, body = own[k]
+        r = None if k in hand_slots else g.translate(fam, k[1], ad, body)
+        if r: gen[k] = r
         else:
             m = SIG.match(body.strip())
-            n = g.arity(si) or 0
+            n = g.arity(fam, k[1]) or 0
             void = bool(m) and m.group('ret').strip() == 'void' and not abi.get(hex(ad), {}).get('fret')
             ptrs = set()
             if m:
                 for x in m.group('args').split(','):
                     pm = re.fullmatch(r'\s*[\w ]+?\s*\*+\s*param_(\d+)\s*', x)
                     if pm and int(pm.group(1)) >= 2: ptrs.add(int(pm.group(1)))
-            todo[si] = dict(slot=si, addr=ad, n=n, void=void, ptrs=ptrs)
+            todo[k] = dict(fam=fam, slot=k[1], addr=ad, n=n, void=void, ptrs=ptrs)
     os.makedirs(a.out, exist_ok=True)
     claimed = lambda k: any(o <= k < o + z for o, z in hand_fields)
     hdr = '// generated by tools/decomp/gen_class.py from the decompilation of Neutron2.exe - do not edit\n'
-    allf = {k for k in (set(g.fields_used) | {r['off'] for r in fieldrows if r['sub'] == 0 and r['off'] >= 4}) if k >= max(4, base_size)}
+    allf = set(x for x in g.fields_used if isinstance(x, int))
+    for r in fieldrows:
+        fam = next((f for f in g.fams if f.this == r['sub']), None)
+        if fam and r['off'] >= 4:
+            fn = g.fname(fam, r['off'])
+            if fn and isinstance(fn[0], int): allf.add(fn[0])
+    allf = {k for k in allf if k >= max(4, base_size) and not (go_off is not None and go_off <= k < go_off + GO_SIZE)}
     with open(f'{a.out}/{a.cls}_fields.inc', 'w') as fh:
         fh.write(hdr)
         SZ = {'float': 4, 'unsigned int': 4, 'int': 4, 'unsigned char': 1, 'short': 2, 'void *': 8}
@@ -384,36 +451,38 @@ def main():
             if end is not None and k > end and not any(claimed(x) for x in range(end, k)):
                 fh.write(f'\tunsigned char  _gap_{end:03x}[{k - end}];\n')
             fh.write(f'\t{t:<14} f_{k:03x};\n')
-            end = k + (4 if '*' in t else SZ[t])          # original size: pointers were 4 bytes
+            end = k + (4 if '*' in t else SZ[t])
+    tagname = lambda k: 'slot' if k[0] == 'go' else 'eslot'
     with open(f'{a.out}/{a.cls}_slots.inc', 'w') as fh:
         fh.write(hdr)
-        for si in sorted(set(gen) | set(todo)):
-            if si in hand_slots: continue
-            r = gen.get(si) or todo[si]
-            ret, ps = g.sig(si, r['n'], r['void'], r['ptrs'])
-            tag = 'gen' if si in gen else ('hand' if si in hand_slots else 'TODO')
-            fh.write(f'\tvirtual {ret} {g.slotname(si)}({ps});\t// slot {si} {hex(r["addr"])} {tag}\n')
+        for k in sorted(set(gen) | set(todo), key=lambda x: (x[0] != 'go', x[1])):
+            if k in hand_slots: continue
+            r = gen.get(k) or todo[k]
+            ret, ps = g.sig(r['fam'], k[1], r['n'], r['void'], r['ptrs'])
+            tag = 'gen' if k in gen else 'TODO'
+            fh.write(f'\tvirtual {ret} {g.slotname(r["fam"], k[1])}({ps});\t// {tagname(k)} {k[1]} {hex(r["addr"])} {tag}\n')
     with open(f'{a.out}/{a.cls}_gen.cpp', 'w') as fh:
         fh.write(hdr + f'#include "../{a.cls}.h"\n\n')
-        for si, r in sorted(gen.items()):
-            ret, ps = g.sig(si, r['n'], r['void'], r['ptrs'])
-            fh.write(f'{ret} {a.cls}::{g.slotname(si)}({ps})\t// {hex(r["addr"])}\n{{\n')
+        for k, r in sorted(gen.items(), key=lambda x: (x[0][0] != 'go', x[0][1])):
+            ret, ps = g.sig(r['fam'], k[1], r['n'], r['void'], r['ptrs'])
+            fh.write(f'{ret} {a.cls}::{g.slotname(r["fam"], k[1])}({ps})\t// {hex(r["addr"])}\n{{\n')
             for l in r['lines']:
                 if l == 'return;' and l is r['lines'][-1]: continue
                 fh.write(f'\t{l}\n')
             fh.write('}\n\n')
-    pending = sorted(si for si in todo if si not in hand_slots)
+    pending = sorted((k for k in todo if k not in hand_slots), key=lambda x: (x[0] != 'go', x[1]))
     with open(f'{a.out}/{a.cls}_todo.cpp', 'w') as fh:
         fh.write(hdr + f'// Stubs for slots not reconstructed yet: each logs its original address once.\n#include "../{a.cls}.h"\n#include "../Todo.h"\n\n')
-        for si in pending:
-            r = todo[si]
-            ret, ps = g.sig(si, r['n'], r['void'], r['ptrs'])
-            fh.write(f'{ret} {a.cls}::{g.slotname(si)}({ps})\t{{ NEG_TODO({hex(r["addr"])}, "{a.cls} slot {si}"); ')
+        for k in pending:
+            r = todo[k]
+            ret, ps = g.sig(r['fam'], k[1], r['n'], r['void'], r['ptrs'])
+            fh.write(f'{ret} {a.cls}::{g.slotname(r["fam"], k[1])}({ps})\t{{ NEG_TODO({hex(r["addr"])}, "{a.cls} {tagname(k)} {k[1]}"); ')
             fh.write('}\n' if ret == 'void' else f'return ({ret})0; }}\n')
-    json.dump(dict(todo=[hex(todo[s]['addr']) + f':{s}' for s in pending], generated=sorted(gen)),
+    json.dump(dict(todo=[f'{hex(todo[k]["addr"])}:{tagname(k)}{k[1]}' for k in pending],
+                   generated=[f'{tagname(k)}{k[1]}' for k in gen]),
               open(f'{a.out}/{a.cls}_status.json', 'w'), indent=1)
     print(f'{a.cls}: {len(gen)} generated, {len(hand_slots)} hand-written, {len(pending)} still to write')
-    print('to write:', ' '.join(f'{s}:{hex(todo[s]["addr"])}' for s in pending))
+    print('to write:', ' '.join(f'{tagname(k)}{k[1]}:{hex(todo[k]["addr"])}' for k in pending))
 
 
 if __name__ == '__main__':
