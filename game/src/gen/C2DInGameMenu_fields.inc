@@ -26,9 +26,9 @@
 	unsigned int   f_518;
 	unsigned int   f_51c;
 	int            f_520;
-	unsigned int   f_588;
+	int            f_588;
 	unsigned int   f_58c;
-	unsigned int   f_590;
+	int            f_590;
 	unsigned int   f_594;
 	unsigned int   f_598;
 	unsigned char  f_59c;
@@ -42,5 +42,5 @@
 	unsigned char  f_5a9;
 	unsigned char  f_5aa;
 	unsigned char  f_5ab;
-	unsigned int   f_5ac;
+	float          f_5ac;
 	void *         f_5b0;
