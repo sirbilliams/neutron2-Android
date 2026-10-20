@@ -27,20 +27,54 @@
 		short	background_id;						// 0x04
 		MenuItem items[MENU_ITEMS];					// 0x08
 	};
-	// One parsed line of dat\menu.dat (0x134 bytes), kept in s_menu_objects.
-	struct MenuDatEntry
+	// MenuObject::type - one per menu.dat keyword
+	enum
 	{
-		int		type;			// 0x00
-		char	id[32];			// 0x04
-		int		menu;			// 0x24  MenuIndex of the menu name
-		int		px, py;			// 0x28
-		int		f_30;			// 0x30
-		int		omtid;			// 0x34
-		char	text[128];		// 0x38
-		int		f_b8, f_bc, f_c0, f_c4, f_c8, f_cc;
-		char	f_d0[100];		// 0xd0
+		MOBJ_NONE			= -1,
+		MOBJ_BACKGROUND		= 0,	// BACKGROUND,name,page,x,y,canvas						(creates the page)
+		MOBJ_TEXTSTRING		= 1,	// TEXTSTRING,name,page,x,y,text,font,align,r,g,b
+		MOBJ_MENUITEM		= 2,	// MENUITEM,name,page,x,y,canvas,canvas_hi,id			(fills page item `id`)
+		MOBJ_TEXTMENUITEM	= 3,	// TEXTMENUITEM,name,page,dx,dy,text,font,align,r,g,b	(at the MENUITEM `name` + dx,dy)
+		MOBJ_HELPMENUITEM	= 4,	// HELPMENUITEM,name,page,x,y,text,font,align,id,r,g,b	(shown while item `id` has f_26)
+		MOBJ_TRIGTEXTSTRING	= 5		// TRIGTEXTSTRING,name,trigger,x,y,text,font,align,r,g,b,line
 	};
-	static std::list<MenuDatEntry *> s_menu_objects;	// 0x5444b4 (count 0x5444b8)
+
+	// Page indices: what v314 returns for the page names of menu.dat (-1 = NO_MENU / unknown).
+	enum
+	{
+		MENU_INV = 0, MENU_PHONE = 1, MENU_PICKUPS = 2, MENU_MAIN = 3, MENU_SAVE = 4,
+		MENU_OPTIONS = 5, MENU_CREDITS = 6
+	};
+
+	// One parsed menu.dat line (0x134 bytes in the original), in s_objects in file order.
+	struct MenuObject
+	{
+		int		type;			// 0x00  MOBJ_*
+		char	name[32];		// 0x04
+		int		page;			// 0x24  page index (v314), -1 = none (always -1 for TRIGTEXTSTRING)
+		int		x;				// 0x28  640x480 screen position (DrawText / item position)
+		int		y;				// 0x2c
+		int		canvas;			// 0x30  MENUITEM: canvas id (screens.omt)
+		int		canvas_hi;		// 0x34  MENUITEM: second canvas id; BACKGROUND: the page's canvas id
+		char	text[128];		// 0x38
+		int		font;			// 0xb8  DrawText font: 'SMAL' 'MED' 'LARG' (-1 for anything else)
+		int		align;			// 0xbc  0 = CENTERED (drawn centred), 2 = LEFT, 1 = RIGHT
+		int		id;				// 0xc0  MENUITEM / HELPMENUITEM: item index; TRIGTEXTSTRING: line number
+		float	r, g, b;		// 0xc4  text colour, menu.dat value / 255
+		char	trigger[100];	// 0xd0  TRIGTEXTSTRING: name of the trigger group (see g_trig_text_group)
+
+		MenuObject()			// inlined in every Parse* slot
+		{
+			type = -1; name[0] = 0; page = x = y = canvas = canvas_hi = id = -1;
+			text[0] = 0; font = align = -1; r = g = b = 0.0f; trigger[0] = 0;
+		}
+	};
+
+
+
+	static std::list<MenuObject *> s_objects;		// 0x5444b0 (head node 0x5444b4, count 0x5444b8)
+	static MenuPage *&Page(int i) { return g_menu_pages[i]; }	// 0x545da8[i]
+
 	// Save menu: what the header of save\JimmyGame<n>.tsk says (20 bytes each, g_save_slots).
 	struct SaveSlotInfo
 	{

@@ -32,7 +32,6 @@ typedef C2DInGameMenu::MenuPage		MenuPage;
 typedef C2DInGameMenu::MenuItem		MenuItem;
 typedef C2DInGameMenu::SaveSlotInfo	SaveSlotInfo;
 
-std::list<C2DInGameMenu::MenuDatEntry *> C2DInGameMenu::s_menu_objects;	// 0x5444b4
 
 enum { MENU_INV = 0, MENU_PHONE = 1, MENU_PICKUPS = 2, MENU_MAIN = 3, MENU_SAVE = 4,
 	   MENU_OPTIONS = 5, MENU_CREDITS = 6 };
@@ -532,10 +531,10 @@ short C2DInGameMenu::UpdateRollovers(short mx, short my)				// 0x405030
 void C2DInGameMenu::DeleteAllMenuObject(void)							// 0x404400
 {
 	Log("DeleteAllMenuObject()");
-	while (s_menu_objects.size() != 0)
+	while (s_objects.size() != 0)
 	{
-		MenuDatEntry *e = s_menu_objects.front();
-		s_menu_objects.remove(e);
+		MenuObject *e = s_objects.front();
+		s_objects.remove(e);
 		delete e;
 	}
 }
