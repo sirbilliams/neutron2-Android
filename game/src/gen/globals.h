@@ -2,6 +2,7 @@
 #pragma once
 #include <stddef.h>
 class C2DInGameMenu;
+class OMediaCanvasElementWrapper;
 class OMediaDataBase;
 namespace neg {
 enum { DATA_BASE = 0x532000, DATA_SIZE = 0x1c6bd8 };
@@ -497,12 +498,13 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_541e00 (&neg::g_data[0xfe00])		// address only
 #define g_5444b4 (neg::g_ptrs[0x492d])		// pointer
 #define g_5444b8 (*(int *)&neg::g_data[0x124b8])
-#define g_5444bc (neg::g_ptrs[0x492f])		// pointer
-#define g_5444c4 (neg::g_ptrs[0x4931])		// pointer
-#define g_5444c8 (neg::g_ptrs[0x4932])		// pointer
-#define g_5444cc (*(unsigned int *)&neg::g_data[0x124cc])
-#define g_5444d0 (neg::g_ptrs[0x4934])		// pointer
-#define g_5444d4 (neg::g_ptrs[0x4935])		// pointer
+#define g_5444bc (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x492f])
+#define g_5444c4 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4931])
+#define g_5444c8 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4932])
+#define g_5444cc (*(InterfaceElt* *)&neg::g_ptrs[0x4933])
+#define g_help_menu_elt (*(InterfaceElt* *)&neg::g_ptrs[0x4933])
+#define g_5444d0 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4934])
+#define g_5444d4 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4935])
 #define g_5444e0 (*(unsigned short *)&neg::g_data[0x124e0])
 #define g_5444e2 (*(unsigned short *)&neg::g_data[0x124e2])
 #define g_5444e4 (*(unsigned short *)&neg::g_data[0x124e4])
@@ -511,8 +513,8 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_5444f0 (*(unsigned int *)&neg::g_data[0x124f0])
 #define g_5444f4 (*(unsigned int *)&neg::g_data[0x124f4])
 #define g_5444f8 (*(unsigned int *)&neg::g_data[0x124f8])
-#define g_5445dc (neg::g_ptrs[0x4977])		// pointer
-#define g_5445e0 (neg::g_ptrs[0x4978])		// pointer
+#define g_5445dc (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4977])
+#define g_5445e0 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4978])
 #define g_5445f0 (*(unsigned short *)&neg::g_data[0x125f0])
 #define g_5445f2 (*(unsigned short *)&neg::g_data[0x125f2])
 #define g_5445f4 (*(unsigned short *)&neg::g_data[0x125f4])
@@ -521,9 +523,10 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_544600 (*(unsigned int *)&neg::g_data[0x12600])
 #define g_544604 (*(unsigned int *)&neg::g_data[0x12604])
 #define g_544608 (*(unsigned int *)&neg::g_data[0x12608])
-#define g_5446ec (neg::g_ptrs[0x49bb])		// pointer
-#define g_5446f0 (neg::g_ptrs[0x49bc])		// pointer
-#define g_5446f4 (&neg::g_ptrs[0x49bd])		// pointer array, stride 4
+#define g_5446ec (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49bb])
+#define g_5446f0 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49bc])
+#define g_5446f4 ((OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49bd])
+#define g_menu_item_sprites ((OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49bd])
 #define g_5446f8 (neg::g_ptrs[0x49be])		// pointer
 #define g_5446fc (neg::g_ptrs[0x49bf])		// pointer
 #define g_544700 (neg::g_ptrs[0x49c0])		// pointer
@@ -537,14 +540,14 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_544720 (neg::g_ptrs[0x49c8])		// pointer
 #define g_544724 (neg::g_ptrs[0x49c9])		// pointer
 #define g_544728 (neg::g_ptrs[0x49ca])		// pointer
-#define g_54472c (neg::g_ptrs[0x49cb])		// pointer
-#define g_544730 (neg::g_ptrs[0x49cc])		// pointer
-#define g_544734 (neg::g_ptrs[0x49cd])		// pointer
-#define g_544738 (neg::g_ptrs[0x49ce])		// pointer
-#define g_54473c (neg::g_ptrs[0x49cf])		// pointer
-#define g_544740 (neg::g_ptrs[0x49d0])		// pointer
-#define g_544744 (neg::g_ptrs[0x49d1])		// pointer
-#define g_544748 (neg::g_ptrs[0x49d2])		// pointer
+#define g_54472c (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49cb])
+#define g_544730 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49cc])
+#define g_544734 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49cd])
+#define g_544738 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49ce])
+#define g_54473c (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49cf])
+#define g_544740 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49d0])
+#define g_544744 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49d1])
+#define g_544748 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x49d2])
 #define g_544750 ((unsigned int *)&neg::g_data[0x12750])		// array, stride 8
 #define g_5447a0 (*(int *)&neg::g_data[0x127a0])
 #define g_5447f8 (*(int *)&neg::g_data[0x127f8])
@@ -552,16 +555,16 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_544848 (*(int *)&neg::g_data[0x12848])
 #define g_544850 (*(int *)&neg::g_data[0x12850])
 #define g_544880 (*(int *)&neg::g_data[0x12880])
-#define g_5448e0 (neg::g_ptrs[0x4a38])		// pointer
-#define g_5448e4 (neg::g_ptrs[0x4a39])		// pointer
-#define g_5448e8 (neg::g_ptrs[0x4a3a])		// pointer
+#define g_5448e0 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a38])
+#define g_5448e4 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a39])
+#define g_5448e8 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a3a])
 #define g_5448ec (*(int *)&neg::g_data[0x128ec])
-#define g_5448f0 (neg::g_ptrs[0x4a3c])		// pointer
-#define g_5448f4 (neg::g_ptrs[0x4a3d])		// pointer
-#define g_5448f8 (neg::g_ptrs[0x4a3e])		// pointer
-#define g_5448fc (neg::g_ptrs[0x4a3f])		// pointer
-#define g_544900 (neg::g_ptrs[0x4a40])		// pointer
-#define g_544904 (neg::g_ptrs[0x4a41])		// pointer
+#define g_5448f0 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a3c])
+#define g_5448f4 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a3d])
+#define g_5448f8 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a3e])
+#define g_5448fc (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a3f])
+#define g_544900 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a40])
+#define g_544904 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4a41])
 #define g_544910 (*(unsigned short *)&neg::g_data[0x12910])
 #define g_544912 (*(unsigned short *)&neg::g_data[0x12912])
 #define g_544914 (*(short *)&neg::g_data[0x12914])
@@ -688,11 +691,11 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545658 (*(unsigned int *)&neg::g_data[0x13658])
 #define g_54565c (*(unsigned int *)&neg::g_data[0x1365c])
 #define g_545670 (*(unsigned int *)&neg::g_data[0x13670])
-#define g_545844 (neg::g_ptrs[0x4e11])		// pointer
-#define g_545848 (neg::g_ptrs[0x4e12])		// pointer
-#define g_54584c (neg::g_ptrs[0x4e13])		// pointer
-#define g_545850 (neg::g_ptrs[0x4e14])		// pointer
-#define g_545854 (neg::g_ptrs[0x4e15])		// pointer
+#define g_545844 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e11])
+#define g_545848 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e12])
+#define g_54584c (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e13])
+#define g_545850 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e14])
+#define g_545854 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e15])
 #define g_545860 (*(short *)&neg::g_data[0x13860])
 #define g_545862 (*(unsigned short *)&neg::g_data[0x13862])
 #define g_545864 (*(unsigned short *)&neg::g_data[0x13864])
@@ -703,15 +706,15 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545878 (*(unsigned int *)&neg::g_data[0x13878])
 #define g_54587c (*(unsigned int *)&neg::g_data[0x1387c])
 #define g_545880 (*(unsigned int *)&neg::g_data[0x13880])
-#define g_54595c (neg::g_ptrs[0x4e57])		// pointer
+#define g_54595c (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e57])
 #define g_545960 (*(unsigned int *)&neg::g_data[0x13960])
-#define g_545968 (neg::g_ptrs[0x4e5a])		// pointer
+#define g_545968 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e5a])
 #define g_545970 (&neg::g_data[0x13970])		// address only
 #define g_545984 (&neg::g_data[0x13984])		// address only
 #define g_545a39 (&neg::g_data[0x13a39])		// address only
-#define g_545a60 (neg::g_ptrs[0x4e98])		// pointer
-#define g_545a64 (neg::g_ptrs[0x4e99])		// pointer
-#define g_545a68 (neg::g_ptrs[0x4e9a])		// pointer
+#define g_545a60 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e98])
+#define g_545a64 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e99])
+#define g_545a68 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4e9a])
 #define g_545a78 (*(short *)&neg::g_data[0x13a78])
 #define g_545a7a (*(unsigned short *)&neg::g_data[0x13a7a])
 #define g_545a7c (*(unsigned short *)&neg::g_data[0x13a7c])
@@ -722,7 +725,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545a90 (*(unsigned int *)&neg::g_data[0x13a90])
 #define g_545a94 (*(unsigned int *)&neg::g_data[0x13a94])
 #define g_545a98 (*(unsigned int *)&neg::g_data[0x13a98])
-#define g_545c7c (neg::g_ptrs[0x4f1f])		// pointer
+#define g_545c7c (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4f1f])
 #define g_545c88 (*(unsigned short *)&neg::g_data[0x13c88])
 #define g_545c8a (*(unsigned short *)&neg::g_data[0x13c8a])
 #define g_545c8c (*(unsigned short *)&neg::g_data[0x13c8c])
@@ -733,12 +736,13 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545ca0 (*(unsigned int *)&neg::g_data[0x13ca0])
 #define g_545cb4 (*(unsigned int *)&neg::g_data[0x13cb4])
 #define g_545d34 (*(unsigned int *)&neg::g_data[0x13d34])
-#define g_545d84 (neg::g_ptrs[0x4f61])		// pointer
+#define g_545d84 (*(OMediaCanvasElementWrapper* *)&neg::g_ptrs[0x4f61])
 #define g_545d88 (*(int *)&neg::g_data[0x13d88])
 #define g_545d8c (*(int *)&neg::g_data[0x13d8c])
 #define g_545d90 (*(float *)&neg::g_data[0x13d90])
 #define g_545d98 (*(char *)&neg::g_data[0x13d98])
-#define g_545d9c (neg::g_ptrs[0x4f67])		// pointer
+#define g_545d9c (*(int *)&neg::g_data[0x13d9c])
+#define g_menu_cur_item (*(int *)&neg::g_data[0x13d9c])
 #define g_545da0 (*(unsigned char *)&neg::g_data[0x13da0])
 #define g_545da8 (&neg::g_ptrs[0x4f6a])		// pointer array, stride 4
 #define g_545dac (*(unsigned int *)&neg::g_data[0x13dac])
@@ -755,7 +759,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545dd8 (*(float *)&neg::g_data[0x13dd8])
 #define g_545ddc (*(float *)&neg::g_data[0x13ddc])
 #define g_545de0 (*(float *)&neg::g_data[0x13de0])
-#define g_545de4 (&neg::g_data[0x13de4])		// address only
+#define g_545de4 ((char *)&neg::g_data[0x13de4])
 #define g_545e48 (*(int *)&neg::g_data[0x13e48])
 #define g_545e4c (*(int *)&neg::g_data[0x13e4c])
 #define g_545e50 (*(OMediaDataBase* *)&neg::g_ptrs[0x4f94])
@@ -773,7 +777,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545e74 (*(float *)&neg::g_data[0x13e74])
 #define g_545e78 (*(C2DInGameMenu* *)&neg::g_ptrs[0x4f9e])
 #define g_menu (*(C2DInGameMenu* *)&neg::g_ptrs[0x4f9e])
-#define g_545e7c (&neg::g_data[0x13e7c])		// address only
+#define g_545e7c ((char *)&neg::g_data[0x13e7c])
 #define g_545ee0 (&neg::g_data[0x13ee0])		// address only
 #define g_545ef4 (*(int *)&neg::g_data[0x13ef4])
 #define g_545ef8 (*(char *)&neg::g_data[0x13ef8])
@@ -786,7 +790,7 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545f0f (*(char *)&neg::g_data[0x13f0f])
 #define g_545f10 (*(unsigned char *)&neg::g_data[0x13f10])
 #define g_545f11 (*(char *)&neg::g_data[0x13f11])
-#define g_545f14 (&neg::g_data[0x13f14])		// address only
+#define g_545f14 ((char *)&neg::g_data[0x13f14])
 #define g_545f24 (neg::g_ptrs[0x4fc9])		// pointer
 #define g_545f28 (*(int *)&neg::g_data[0x13f28])
 #define g_545f2c (*(int *)&neg::g_data[0x13f2c])
@@ -828,18 +832,30 @@ void InitDataPointers(void);	// pointer slots the exe initialised (strings)
 #define g_545fdc (*(int *)&neg::g_data[0x13fdc])
 #define g_545fe0 (*(int *)&neg::g_data[0x13fe0])
 #define g_545fe4 (*(int *)&neg::g_data[0x13fe4])
-#define g_545fec (*(int *)&neg::g_data[0x13fec])
-#define g_546014 (*(int *)&neg::g_data[0x14014])
-#define g_54603c (*(int *)&neg::g_data[0x1403c])
-#define g_546064 (*(int *)&neg::g_data[0x14064])
-#define g_54608c (*(int *)&neg::g_data[0x1408c])
-#define g_5460b4 (*(int *)&neg::g_data[0x140b4])
-#define g_5460dc (*(int *)&neg::g_data[0x140dc])
-#define g_546104 (*(int *)&neg::g_data[0x14104])
-#define g_54612c (*(int *)&neg::g_data[0x1412c])
-#define g_546154 (*(int *)&neg::g_data[0x14154])
-#define g_54617c (*(int *)&neg::g_data[0x1417c])
-#define g_5461a4 (*(int *)&neg::g_data[0x141a4])
+#define g_545fec ((int *)&neg::g_data[0x13fec])
+#define g_key_speed ((int *)&neg::g_data[0x13fec])
+#define g_546014 ((int *)&neg::g_data[0x14014])
+#define g_key_cutscene_bypass ((int *)&neg::g_data[0x14014])
+#define g_54603c ((int *)&neg::g_data[0x1403c])
+#define g_key_climb_down ((int *)&neg::g_data[0x1403c])
+#define g_546064 ((int *)&neg::g_data[0x14064])
+#define g_key_action ((int *)&neg::g_data[0x14064])
+#define g_54608c ((int *)&neg::g_data[0x1408c])
+#define g_key_deactivate_item ((int *)&neg::g_data[0x1408c])
+#define g_5460b4 ((int *)&neg::g_data[0x140b4])
+#define g_key_turnaround ((int *)&neg::g_data[0x140b4])
+#define g_5460dc ((int *)&neg::g_data[0x140dc])
+#define g_key_turn_left ((int *)&neg::g_data[0x140dc])
+#define g_546104 ((int *)&neg::g_data[0x14104])
+#define g_key_jump ((int *)&neg::g_data[0x14104])
+#define g_54612c ((int *)&neg::g_data[0x1412c])
+#define g_key_back ((int *)&neg::g_data[0x1412c])
+#define g_546154 ((int *)&neg::g_data[0x14154])
+#define g_key_go ((int *)&neg::g_data[0x14154])
+#define g_54617c ((int *)&neg::g_data[0x1417c])
+#define g_key_turn_right ((int *)&neg::g_data[0x1417c])
+#define g_5461a4 ((int *)&neg::g_data[0x141a4])
+#define g_key_brake ((int *)&neg::g_data[0x141a4])
 #define g_5461cc (*(char *)&neg::g_data[0x141cc])
 #define g_5461cd (*(char *)&neg::g_data[0x141cd])
 #define g_5461ce (*(char *)&neg::g_data[0x141ce])
