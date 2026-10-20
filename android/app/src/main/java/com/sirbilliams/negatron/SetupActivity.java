@@ -56,7 +56,7 @@ public class SetupActivity extends Activity {
         if (base != null) base.mkdirs();
 
         if (findReadableData() != null) {
-            startGame();
+            buildChooser();
             return;
         }
         buildUi(base);
@@ -82,8 +82,57 @@ public class SetupActivity extends Activity {
     }
 
     private void startGame() {
-        startActivity(new Intent(this, NegatronActivity.class));
+        buildChooser();
+    }
+
+    private void launch(String lib) {
+        Intent i = new Intent(this, NegatronActivity.class);
+        i.putExtra(NegatronActivity.EXTRA_LIB, lib);
+        startActivity(i);
         finish();
+    }
+
+    /** Game files present: play the reconstructed game (work in progress) or open the model viewer. */
+    private void buildChooser() {
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setGravity(Gravity.CENTER);
+        root.setBackgroundColor(Color.rgb(20, 24, 40));
+        int pad = dp(32);
+        root.setPadding(pad, pad, pad, pad);
+
+        TextView title = new TextView(this);
+        title.setText("Jimmy Neutron vs. Jimmy Negatron");
+        title.setTextColor(Color.rgb(255, 210, 90));
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        root.addView(title, wrap());
+
+        TextView note = new TextView(this);
+        note.setTextColor(Color.rgb(220, 225, 235));
+        note.setTextSize(15);
+        note.setGravity(Gravity.CENTER);
+        note.setPadding(0, dp(12), 0, dp(20));
+        note.setText("The game is being rebuilt from the original; it doesn't play yet.");
+        root.addView(note, wrap());
+
+        Button play = new Button(this);
+        play.setText("Play (work in progress)");
+        play.setTextSize(18);
+        play.setOnClickListener(v -> launch("negatron"));
+        root.addView(play, wrap());
+
+        Button viewer = new Button(this);
+        viewer.setText("Model viewer");
+        viewer.setTextSize(18);
+        viewer.setOnClickListener(v -> launch("main"));
+        LinearLayout.LayoutParams vl = wrap();
+        vl.topMargin = dp(12);
+        root.addView(viewer, vl);
+
+        setContentView(root);
+        play.requestFocus();        // the Thor's A button works without touching the screen
     }
 
     // ------------------------------------------------------------------ UI

@@ -100,11 +100,22 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86)$")
 endif()
 
 # --------------------------------------------------------------------------- apps
+# The reconstructed game (../game/src). MSVC's char is signed and the original code relies on it,
+# so -fsigned-char (arm64's default char is unsigned).
+file(GLOB_RECURSE NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp)
+set(NEG_FLAGS -fsigned-char -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion -fno-strict-aliasing)
+
 if(ANDROID)
-  # SDLActivity loads libmain.so and calls SDL_main (OMediaSDLMain.cpp's main).
+  # SDLActivity loads libmain.so (the model viewer) or libnegatron.so (the game) and calls SDL_main
+  # (OMediaSDLMain.cpp's main); the setup screen picks which.
   add_library(main SHARED viewer/OMTViewer.cpp ${OMT_MAIN})
   target_link_libraries(main omt)
   target_compile_options(main PRIVATE -w -fpermissive)
+  if(NEG_SRC)
+    add_library(negatron SHARED ${NEG_SRC} ${OMT_MAIN})
+    target_link_libraries(negatron omt granny_compat)
+    target_compile_options(negatron PRIVATE ${NEG_FLAGS})
+  endif()
 else()
   add_executable(omt_viewer viewer/OMTViewer.cpp ${OMT_MAIN})
   target_link_libraries(omt_viewer omt)
@@ -114,12 +125,11 @@ else()
   target_link_libraries(omt_datatest omt)
   target_compile_options(omt_datatest PRIVATE -w -fpermissive)
 
-  # The reconstructed game (../game/src), desktop build
-  file(GLOB_RECURSE NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp)
+  # The reconstructed game, desktop build
   if(NEG_SRC)
     add_executable(negatron ${NEG_SRC} ${OMT_MAIN})
     target_link_libraries(negatron omt granny_compat)
-    target_compile_options(negatron PRIVATE -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion -fno-strict-aliasing)
+    target_compile_options(negatron PRIVATE ${NEG_FLAGS})
   endif()
 
   # Script runner for comparing granny_compat with the real granny.dll (tools/granny/verify.sh)

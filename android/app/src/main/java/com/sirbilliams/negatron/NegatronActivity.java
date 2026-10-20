@@ -6,14 +6,19 @@ import android.view.WindowManager;
 import org.libsdl.app.SDLActivity;
 
 /**
- * Hosts the OMT engine. SDLActivity loads libSDL2.so and libmain.so, then calls SDL_main
+ * Hosts the OMT engine. SDLActivity loads libSDL2.so and libmain.so (viewer) or libnegatron.so
+ * (the reconstructed game), then calls SDL_main
  * (engine/sdl/OMediaSDLMain.cpp). Game files are read from Android/data/<package>/files/.
  */
 public class NegatronActivity extends SDLActivity {
 
+    /** Intent extra: which native app to run, "main" (the model viewer) or "negatron" (the game). */
+    static final String EXTRA_LIB = "lib";
+
     @Override
     protected String[] getLibraries() {
-        return new String[] { "SDL2", "main" };
+        String lib = getIntent() != null ? getIntent().getStringExtra(EXTRA_LIB) : null;
+        return new String[] { "SDL2", "negatron".equals(lib) ? "negatron" : "main" };
     }
 
     @Override
