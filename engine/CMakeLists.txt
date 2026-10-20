@@ -67,6 +67,27 @@ if(ANDROID)
   target_link_libraries(omt PUBLIC android log)
 endif()
 
+# --------------------------------------------------------------------------- game importer
+# Installs the game files from the game's CD image (.iso): ISO 9660 + InstallShield cabinet
+# (unshield, MIT, fetched by fetch-deps.sh). Android: libimporter.so for the setup screen.
+set(UNSHIELD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../android/app/jni/unshield" CACHE PATH "unshield source dir")
+if(EXISTS ${UNSHIELD_DIR}/lib/libunshield.h)
+  file(GLOB US_SRC ${UNSHIELD_DIR}/lib/*.c)
+  add_library(negimport STATIC importer/NegImport.c ${US_SRC}
+              ${UNSHIELD_DIR}/lib/convert_utf/ConvertUTF.c ${UNSHIELD_DIR}/lib/md5/md5c.c)
+  target_include_directories(negimport PUBLIC importer PRIVATE importer/config ${UNSHIELD_DIR}/lib ${UNSHIELD_DIR})
+  target_compile_options(negimport PRIVATE -w)
+  set_target_properties(negimport PROPERTIES POSITION_INDEPENDENT_CODE ON C_STANDARD 99)
+  target_link_libraries(negimport PUBLIC ZLIB::ZLIB)
+  if(ANDROID)
+    add_library(importer SHARED importer/NegImportJNI.c)
+    target_link_libraries(importer negimport log)
+  else()
+    add_executable(neg_import importer/neg_import_main.c)
+    target_link_libraries(neg_import negimport)
+  endif()
+endif()
+
 # --------------------------------------------------------------------------- apps
 if(ANDROID)
   # SDLActivity loads libmain.so and calls SDL_main (OMediaSDLMain.cpp's main).

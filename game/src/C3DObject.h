@@ -35,9 +35,11 @@ class C3DObject : public OMedia3DMorphAnim, public CLocalGameObject
 	virtual void UnInitPhysics(void);										// SLOT 12 0x49ad60
 	virtual void Process(float dt);											// SLOT 240 0x49ae00 (TODO body)
 	virtual void v243(float a);												// SLOT 243 0x49af30 (TODO body)
-	virtual void SyncElementPosition(void);									// SLOT 247 0x49ad90
+	virtual void v247(void);												// SLOT 247 0x49ad90 SyncElementPosition
+	void SyncElementPosition(void) { v247(); }
 	virtual void v248(void);												// SLOT 248 0x49add0 (TODO body)
-	virtual void SetElementAngles(short x, short y, short z);				// SLOT 249 0x49ade0
+	virtual void v249(short x, short y, short z);							// SLOT 249 0x49ade0 SetElementAngles
+	void SetElementAngles(short x, short y, short z) { v249(x, y, z); }
 
 #include "gen/C3DObject_slots.inc"
 #include "gen/C3DObject_fields.inc"

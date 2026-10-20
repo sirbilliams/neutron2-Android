@@ -105,7 +105,7 @@ void C3DObject::Process(float dt)							// 0x49ae00
 
 void C3DObject::v243(float a) { (void)a; NEG_TODO(0x49af30, "C3DObject v243 (camera follow)"); }
 
-void C3DObject::SyncElementPosition(void)					// 0x49ad90
+void C3DObject::v247(void)					// 0x49ad90
 {
 	float p[4];
 	v195(p);												// CGameObject +0x30c: current position
@@ -114,7 +114,7 @@ void C3DObject::SyncElementPosition(void)					// 0x49ad90
 
 void C3DObject::v248(void) { NEG_TODO(0x49add0, "C3DObject v248 (random rotation)"); }
 
-void C3DObject::SetElementAngles(short ax, short ay, short az)	// 0x49ade0
+void C3DObject::v249(short ax, short ay, short az)	// 0x49ade0
 {
 	anglex = ax; angley = ay; anglez = az;
 }

@@ -36,12 +36,20 @@ Flies a camera through the game's levels, rendered by the game's own engine.
 
 ## Installing on the Thor
 
-1. Install `Negatron-Viewer.apk` and open it once. It shows "Game files not found"; that's expected.
-2. On your PC, copy everything **inside** the game's `Program_Executable_Files` folder
-   (`omt/`, `gam/`, `grn/`, `ase/`, `png/`, `dat/` ...) into `Android/data/com.sirbilliams.negatron/files/`
-   on the Thor (USB file transfer). Copying the `Program_Executable_Files` folder itself also works.
-   The files come from the game's install CD (`data1.cab`, extractable with `unshield`) or an installed copy.
-3. Open the app again.
+1. Install the APK and open it.
+2. Tap **Choose the game's .iso…** and pick the game's CD image (`Jimmy Neutron vs. Jimmy Negatron.iso`,
+   copied onto the Thor). The app installs the game from it the way the CD's setup program does:
+   it finds the InstallShield cabinet on the disc and unpacks the game folder (about 270 MB, a minute
+   or two). The image isn't needed afterwards.
+
+   Also accepted: a zip of an installed game's `Program_Executable_Files` folder, or that folder's
+   contents copied over USB into `Android/data/com.sirbilliams.negatron/files/`.
+
+The reconstructed game reads its built-in data (text, tables, default values) from your own
+`Neutron2.exe` at start-up, and checks it is the original retail exe. This repository contains
+no game files and no bytes copied from the exe.
+
+On a PC, `build-desk/neg_import game.iso folder/` does the same install.
 
 Log: `Android/data/com.sirbilliams.negatron/files/omt-log.txt` (rewritten each launch).
 

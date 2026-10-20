@@ -2,6 +2,7 @@
     0x4a3c00 omt_main   0x4a3380 CAweReal::listen_to_message   0x4b3260 CInput::CInput
     0x496110 SetWindowTitle   0x496200 CheckCD   0x4b3ac0 OpenDebugLog */
 
+#include "DatabaseCache.h"
 #include "Game.h"
 #include "CGameType.h"
 #include "CDefaultGame.h"
@@ -212,6 +213,17 @@ class CTextTest : public OMediaPeriodical
 void omt_main(void)
 {
 	OpenDebugLog();
+	// Not in the original (Windows loaded the exe's data for it): the data section's initial
+	// values come from the player's own Neutron2.exe. See ExeData.cpp.
+	{
+		char why[512];
+		if (!neg::LoadExeData(why, sizeof why))
+		{
+			SDL_Log("ExeData: %s", why);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Jimmy Neutron vs. Jimmy Negatron", why, NULL);
+			return;
+		}
+	}
 	// (Windows: refuses to start twice - FindWindow("OMT SingleWindow") titled "Jimmy Neutron 2")
 	try
 	{
@@ -251,7 +263,8 @@ void omt_main(void)
 		CGfx::UnInitAlpha();					// 0x4a0e10
 
 		SDL_Log("EXITING GAME");
-		// TODO(0x4a4870, 0x4a4960): object / sound databases;  TODO(0x4a4aa0): delete g_editor
+		neg::CloseAllDatabases();				// 0x4a4870
+		neg::CloseAllPermanentDatabases();		// 0x4a4960
 		delete text_test;
 		if (g_editor)
 		{

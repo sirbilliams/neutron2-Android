@@ -12,6 +12,7 @@
 #include "../C2DInGameMenu.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
+#include "../SaveGame.h"
 #include "../Todo.h"
 #include "../CGameType.h"
 #include "../Sound.h"
@@ -43,8 +44,7 @@ static unsigned int FloatBits(float f) { unsigned int u; memcpy(&u, &f, sizeof(u
 // CJimmyGame::PauseGame(bool) - g_gametype element-family slot 68 (+0x110), 0x485410.
 static void GameTypePauseGame(bool pause)
 {
-	(void)pause;
-	NEG_TODO(0x485410, "CJimmyGame::PauseGame (g_gametype slot 68)");
+	g_gametype->PauseGame(pause);
 }
 
 // g_gametype->f_490 == id (the running level's 4cc, e.g. 'LV5F').
@@ -81,8 +81,7 @@ static void CenterMouse(void)				{ NEG_TODO(0x4b1d50, "centre the mouse in the v
 
 // CJimmyGame (ecx = g_gametype): score and "+N" pop-up text.
 static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame score / pop-up text"); }
-// Game over: delete the autosaves, reload level1d.gam, reset pickups (savegame system).
-static void NewGameAfterGameOver(void)	{ NEG_TODO(0x498c70, "new game after game over"); }
+// (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 // Menu helper 0x40c0f0 (letterbox in/out around cut scenes), used by SetGameMode.
 static void CutsceneLetterbox(bool on)	{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
 // g_editor->f_74c = 0 (CEditor not reconstructed).
@@ -151,8 +150,9 @@ static bool InventoryKey(void)	{ return g_56b05f != 0 || g_keys['I'] != 0; }
 
 // --------------------------------------------------------------------------- game mode
 
-// 0x485360: change the game mode; every game object hears about it (slot 270).
-static void SetGameMode(int mode)
+// 0x485360: change the game mode; every game object hears about it (slot 270). (In the exe it sits
+// among CJimmyGame's functions; exported through C2DInGameMenu.h.)
+void neg::SetGameMode(int mode)
 {
 	if (mode == g_game_mode) return;
 	g_prev_game_mode = g_game_mode;
@@ -220,7 +220,8 @@ static void ClearItemState(short page, short item)
 }
 
 // 0x40a860: the level items page (3) for level-progress value `which` (kept in 0x545efc).
-static void SetLevelItems(int which)
+// Exported through C2DInGameMenu.h (CJimmyGame::ReadState calls it).
+void neg::SetLevelItems(int which)
 {
 	MenuPage *p3 = C2DInGameMenu::GetPage(3);
 	g_545efc = (unsigned int)which;

@@ -11,5 +11,4 @@
 	virtual void v277();	// slot 277 0x463890 gen
 	virtual void v278();	// slot 278 0x463890 gen
 	virtual void v280();	// slot 280 0x463890 gen
-	virtual void v282(unsigned int a2, unsigned int a3, unsigned int a4);	// slot 282 0x4ae440 gen
 	virtual void v283(unsigned int a2);	// slot 283 0x464ee0 gen

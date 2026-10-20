@@ -9,11 +9,14 @@
 
     Menu numbers (MenuIndex): -1 NO_MENU, 0 INV_MENU, 1 PHONE_MENU, 2 PICKUPS_MENU, 3 MAIN_MENU,
     4 SAVE_MENU, 5 OPTIONS_MENU, 6 CREDITS_MENU.                                                */
+#include "../DatabaseCache.h"
 #include "../C2DInGameMenu.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
+#include "../SaveGame.h"
 #include "../Todo.h"
 #include "../Sound.h"
+#include "../CGameType.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaFilePath.h"
@@ -33,7 +36,6 @@ typedef C2DInGameMenu::MenuPage		MenuPage;
 typedef C2DInGameMenu::MenuItem		MenuItem;
 typedef C2DInGameMenu::SaveSlotInfo	SaveSlotInfo;
 
-std::list<C2DInGameMenu::MenuDatEntry *> C2DInGameMenu::s_menu_objects;	// 0x5444b4
 
 enum { MENU_INV = 0, MENU_PHONE = 1, MENU_PICKUPS = 2, MENU_MAIN = 3, MENU_SAVE = 4,
 	   MENU_OPTIONS = 5, MENU_CREDITS = 6 };
@@ -149,10 +151,9 @@ static void CopyFileDos(const char *src, const char *dst)
 
 // ---- other systems (not reconstructed yet)
 
-static OMediaDataBase *LoadMusic(const char *omt_name)							// 0x4a4180
+static OMediaDataBase *LoadMusic(const char *omt_name)							// 0x4a4180 GetDatabase: the music lives in its own .omt
 {
-	NEG_TODO(0x4a4180, "LoadMusic"); (void)omt_name;
-	return NULL;
+	return neg::GetDatabase(omt_name);
 }
 
 static void ShowMouseCursor(bool show)									// 0x4a38c0 (ShowCursor + flags 0x56aec9..)
@@ -160,25 +161,16 @@ static void ShowMouseCursor(bool show)									// 0x4a38c0 (ShowCursor + flags 0
 	NEG_TODO(0x4a38c0, "ShowMouseCursor"); (void)show;
 }
 
-static void GameTypeSetMenuMode(bool on)								// CGameType vtable +0x110
+static void GameTypeSetMenuMode(bool on)								// CGameType vtable +0x110: PauseGame
 {
-	NEG_TODO(0x110, "CGameType vtable +0x110 (menu on/off)"); (void)on;
+	g_gametype->PauseGame(on);
 }
 
-static bool ReadSaveHeader(const char *file)							// 0x497b10: fills 0x54e6a4.. 0x54e820
-{
-	NEG_TODO(0x497b10, "ReadSaveHeader"); (void)file;
-	return false;
-}
-
-static void LoadGame(const char *file, bool b)							// 0x498af0
-{
-	NEG_TODO(0x498af0, "LoadGame"); (void)file; (void)b;
-}
+// (the savegame functions ReadTaskFile 0x497b10 and LoadTask 0x498af0: SaveGame.h)
 
 static void SetGameState(int state)										// 0x485360
 {
-	NEG_TODO(0x485360, "SetGameState"); (void)state;
+	SetGameMode(state);
 }
 
 // 0x4b1d10: the mouse position, window pixels (the original asks the object at 0x56afe4 for its
@@ -506,10 +498,10 @@ short C2DInGameMenu::UpdateRollovers(short mx, short my)				// 0x405030
 void C2DInGameMenu::DeleteAllMenuObject(void)							// 0x404400
 {
 	Log("DeleteAllMenuObject()");
-	while (s_menu_objects.size() != 0)
+	while (s_objects.size() != 0)
 	{
-		MenuDatEntry *e = s_menu_objects.front();
-		s_menu_objects.remove(e);
+		MenuObject *e = s_objects.front();
+		s_objects.remove(e);
 		delete e;
 	}
 }
@@ -606,23 +598,23 @@ void C2DInGameMenu::MainMenuAction(short item)							// 0x40faf0
 		{
 			ActivateActiveMenu(4);
 			char keep1[120], keep2[120];
-			strcpy(keep1, (char *)g_54e6a4);
-			strcpy(keep2, (char *)g_54e71c);
+			strcpy(keep1, g_game_file);
+			strcpy(keep2, g_task_file);
 			SaveSlotInfo *s = g_save_slots;
 			for (int k = 1; k <= 10; k++, s++)
 			{
 				char name[80];
 				sprintf(name, "JimmyGame%d.tsk", k);
-				if (ReadSaveHeader(name))
+				if (ReadTaskFile(name))
 				{
-					s->score = (int)g_54e81c;
-					s->f_10 = (int)g_54e820;
-					s->level = g_54e810;
+					s->score = g_save_score;
+					s->f_10 = g_save_cam_x;
+					s->level = g_save_level_id;
 				}
 				else s->score = -1;
 			}
-			strcpy((char *)g_54e6a4, keep1);
-			strcpy((char *)g_54e71c, keep2);
+			strcpy(g_game_file, keep1);
+			strcpy(g_task_file, keep2);
 			break;
 		}
 		case 4:			// OPTIONS
@@ -863,7 +855,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 
 void C2DInGameMenu::LoadSaveSlot(void)									// 0x40e900
 {
-	if (g_save_slot >= 6 && g_save_slot <= 15) LoadGame(kSaveNames[g_save_slot - 6], false);
+	if (g_save_slot >= 6 && g_save_slot <= 15) LoadTask(kSaveNames[g_save_slot - 6], false);
 }
 
 void C2DInGameMenu::SaveToSlot(void)									// 0x40e7a0

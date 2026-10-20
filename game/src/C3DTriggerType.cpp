@@ -1,0 +1,305 @@
+/*  C3DTriggerType - see C3DTriggerType.h. */
+#include "DatabaseCache.h"
+#include "C3DTriggerType.h"
+#include "CGameType.h"
+#include "CEditor.h"
+#include "C2DInGameMenu.h"
+#include "InterfaceElement.h"
+#include "Game.h"
+#include "Todo.h"
+#include "gen/globals.h"
+#include "OMediaViewPort.h"
+#include "OMediaStringField.h"
+#include "OMediaTrigo.h"
+#include <math.h>
+#include <string.h>
+#include <strings.h>
+
+using namespace neg;
+
+// --------------------------------------------------------------------------- helpers
+
+// 0x4aefb0: the first object of the global list whose ObjectTag matches (_stricmp).
+static CGameObject *FindObjectByTag(const char *tag)
+{
+	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)
+		if (*i && strcasecmp((*i)->m_tag, tag) == 0) return *i;
+	return NULL;
+}
+
+// 0x4a4180: the level's database cache (DatabaseCache.cpp).
+using neg::GetDatabase;
+
+// --------------------------------------------------------------------------- not reconstructed yet
+
+// C2DInGameMenu 0x40c0f0 (on g_menu): cut-scene letterbox in/out.
+static void CutsceneLetterbox(bool on)				{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
+
+// CGameObject slot 224 (+0x380, 0x4ad800): a point relative to the object (struct return).
+// Until it exists the caller skips the camera move (the original always has a point).
+static float *ObjectRelativePoint(CGameObject *o, float *out, float a, float b, float c)
+{
+	(void)o; (void)out; (void)a; (void)b; (void)c;
+	NEG_TODO(0x4ad800, "CGameObject slot 224 (point relative to the object)"); return NULL;
+}
+
+// The next trigger's own entry points. Each is a virtual its class introduces (the element
+// vtable of the next object); they are called once its type is known from NameContains.
+static void TextTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x476bd0, "C3DTextTrigger element slot 56"); }
+static void MusicTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x4590d0, "C3DMusicTrigger element slot 56"); }
+static void FadeObjectFire(CGameObject *next)		{ (void)next; NEG_TODO(0x431420, "C3DFadeObject element slot 56"); }
+static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char flag)
+{
+	(void)next; (void)caller; (void)flag; NEG_TODO(0x418b80, "C3DAITrigger element slot 57 (caller, flag)");
+}
+static void MultiCutSceneFire(CGameObject *next, CGameObject *caller, unsigned char flag)
+{
+	(void)next; (void)caller; (void)flag; NEG_TODO(0x457be0, "C3DMultiCutSceneCamera element slot 57 (caller, flag)");
+}
+static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
+{
+	(void)next; (void)flag; NEG_TODO(0x42abd0, "C3DCutSceneCamera element slot 56 (flag)");
+}
+// C3DFlyingCamera is a C3DObject (CGameObject at +0xc0): element slot 144 (+0x240).
+static void FlyingCameraFire(CGameObject *next)	{ (void)next; NEG_TODO(0x433f50, "C3DFlyingCamera element slot 144"); }
+// CLoadLevel (a C3DSprite): element slot 55 (+0xdc).
+static void LoadLevelFire(CGameObject *next)		{ (void)next; NEG_TODO(0x48ebf0, "CLoadLevel element slot 55"); }
+
+// C3DJimmy (a C3DObject, element = object - 0xc0): element byte +0xa99 = 0.
+static void JimmyClearA99(CGameObject *jim)		{ (void)jim; NEG_TODO(0x4795cf, "C3DJimmy +0xa99 = 0 (CallNextTrigger, LoadLevel)"); }
+
+// 0x479610..0x47973d: the LoadLevel trigger hands its level over to Jimmy (element offsets):
+//   jim+0xc18 = ll+0x708; jim->slot 121 (+0x1e4)(ll+0x600, ll+0x650, jim+0xc25, jim+0xb24, ll+0x704)
+//   if (ll+0x6fc != -1) { g_editor->m_load_pending = 0; g_54a498 = 1; jim->slot 79 (+0x13c)(1);
+//                         StartFade 0x406a40 (ll+0x6fc, ll+0x700); }
+static void LoadLevelHandOver(CGameObject *loadlevel, CGameObject *jim)
+{
+	(void)loadlevel; (void)jim;
+	NEG_TODO(0x479610, "CLoadLevel -> C3DJimmy level hand-over (C3DJimmy slots 121/79, StartFade)");
+}
+
+// C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera.
+static int JeepField9c4(CGameObject *jeep)			{ (void)jeep; NEG_TODO(0x4791dd, "C3DJeep +0x9c4"); return 0; }
+
+// CJimmyGame element slot 102 (+0x198)(jim element + 0x4c28, *(jim element + 0x4c18)).
+// (The original reads those even when there is no JIM1: a crash.)
+static void JimmyGameRestore(CGameObject *jim)
+{
+	(void)jim; NEG_TODO(0x485d00, "CJimmyGame element slot 102 (Jimmy +0x4c28, +0x4c18)");
+}
+
+// --------------------------------------------------------------------------- construction
+
+C3DTriggerType::C3DTriggerType()							// 0x478c40
+{
+	SetName((char *)"C3DTRIGGERTYPE");
+	m_toggle = -1;
+	strcpy(m_toggle_object, "none");
+	strcpy(m_next_trigger, "none");
+	g_cutscene_skipped = 0;
+	m_fade_type = -1;
+	m_fade_time = 1.0f;
+	strcpy(m_default_to, "none");
+}
+
+C3DTriggerType::~C3DTriggerType() {}						// 0x478dd0
+
+void C3DTriggerType::InitObject(void)						// 0x479000
+{
+	C3DSprite::InitObject();
+	RegisterProperty("Toggle",       &m_toggle,       PROP_LONG,  0);
+	RegisterProperty("ToggleObject", m_toggle_object, PROP_ALPHA, 0);
+	RegisterProperty("NextTrigger",  m_next_trigger,  PROP_ALPHA, 0);
+	RegisterProperty("FadeType",     &m_fade_type,    PROP_LONG,  0);
+	RegisterProperty("FadeTime",     &m_fade_time,    PROP_FLOAT, 0);
+	RegisterProperty("DefaultTo",    m_default_to,    PROP_ALPHA, 0);
+}
+
+// --------------------------------------------------------------------------- v242
+
+// 0x478e10: in the editor, holding Page Down while this trigger is selected puts the camera
+// next to the NextTrigger object: an offset (20, 20, -100) turned by the camera's own angles
+// (taken to degrees and back, as shipped).
+void C3DTriggerType::v242(float t)
+{
+	C3DSpriteType::v242(t);
+	if (!g_keys[0x22] || g_editor->m_sel_object != static_cast<CGameObject *>(this)) return;	// VK_NEXT (0x56adc2)
+	if (strcasecmp(m_next_trigger, "none") == 0) return;
+	CGameObject *next = FindObjectByTag(m_next_trigger);
+	if (!next) return;
+
+	const double to_deg = 360.0f / 16384.0f;				// 0x4cb1f8 (x87: no rounding in between)
+	const double to_angle = 16384.0f / 360.0f;				// 0x4cb228
+	const int ix = (int)((double)g_viewport->get_anglex() * to_deg * to_angle) & 0x3fff;
+	const int iy = (int)((double)g_viewport->get_angley() * to_deg * to_angle) & 0x3fff;
+	const int iz = (int)((double)g_viewport->get_anglez() * to_deg * to_angle) & 0x3fff;
+	const float *sn = OMediaCosSinTable::global.get_sintab();	// OMediaCosSinTable +0
+	const float *cs = OMediaCosSinTable::global.get_costab();	// OMediaCosSinTable +0x10004
+	const float sx = sn[ix], cx = cs[ix], sy = sn[iy], cy = cs[iy], sz = sn[iz], cz = cs[iz];
+
+	const float a = 20.0f * cz - -20.0f * sz;				// 0x4caa40 / 0x4d65cc
+	const float b = 20.0f * sz - 20.0f * cz;
+	const float p = -100.0f * cx - a * sx;					// 0x4df748
+	const float ox = b * cy - p * sy;
+	const float oz = p * cy + b * sy;
+	const float oy = a * cx - 100.0f * sx;					// 0x4d2cb0
+
+	float pos[4];
+	next->v195(pos); g_viewport->setx(ox + pos[0]);			// CGameObject +0x30c, once per axis
+	next->v195(pos); g_viewport->sety(oy + pos[1]);
+	next->v195(pos); g_viewport->setz(oz + pos[2]);
+}
+
+// --------------------------------------------------------------------------- CallNextTrigger
+
+// 0x4790b0: fire the trigger called `name`: "none" does nothing, "DEFAULT" ends the scripted
+// sequence (camera back to Jimmy or the vehicle he is in, or to DefaultTo), anything else is
+// an object tag whose class decides what firing means.
+void C3DTriggerType::CallNextTrigger(const char *name, unsigned char flag)
+{
+	if (strcasecmp(name, "none") == 0)
+	{
+		// (debug log "NextTrigger is none for %s", m_tag)
+		return;
+	}
+
+	if (strcasecmp(name, "DEFAULT") != 0)
+	{
+		CGameObject *next = FindObjectByTag(name);
+		if (!next)
+		{
+			ErrorLog("ERROR: No NextTrigger %s found", name);
+			return;
+		}
+		// (each case also writes a debug log "Calling <type> %s, NextTrigger=%s")
+		if (next->NameContains((char *)"C3DTEXTTRIGGER"))			{ TextTriggerFire(next); return; }
+		if (next->NameContains((char *)"C3DMUSICTRIGGER"))		{ MusicTriggerFire(next); return; }
+		if (next->NameContains((char *)"C3DAITRIGGER"))			{ AITriggerFire(next, this, flag); return; }
+		if (next->NameContains((char *)"C3DCUTSCENECAMERA"))		{ CutSceneCameraFire(next, flag); return; }
+		if (next->NameContains((char *)"C3DMULTICUTSCENE"))		{ MultiCutSceneFire(next, this, flag); return; }
+		if (next->NameContains((char *)"C3DFLYINGCAMERA"))		{ FlyingCameraFire(next); return; }
+		if (next->NameContains((char *)"C3DFADEOBJECT"))			{ FadeObjectFire(next); return; }
+		if (next->NameContains((char *)"C3DLOADLEVEL"))
+		{
+			g_elt_545c80.Hide();
+			CGameObject *jim = FindObjectByTag("JIM1");
+			if (!jim)
+			{
+				ErrorLog("ERROR: Unable to find JIM1 in level");
+				return;
+			}
+			// (debug log "Loading LoadLevel trigger %s for %s", name, m_tag)
+			JimmyClearA99(jim);
+			g_editor->f_7f8 = 1;
+			g_gametype->SetCamera(jim);
+			LoadLevelFire(next);
+			LoadLevelHandOver(next, jim);					// (debug logs "Callnexttrig 1" / "2" around)
+			g_active_sound_db = GetDatabase("SoundEffects.omt");
+			if (g_active_sound_db) g_54a4b8 = true;
+			return;
+		}
+		ErrorLog("ERROR: Invalid type for NextTrigger %s", name);
+		return;
+	}
+
+	// "DEFAULT"
+	// (debug logs "Reseting to DEFAULT in C3DTriggerType", "\tReseting to DEFAULT (Good job ;)")
+	CutsceneLetterbox(false);
+	g_545ef8 = 0;
+	CGameObject *jim = FindObjectByTag("JIM1");
+	g_music_volume = g_6f7518;
+	if (g_cutscene_element)
+	{
+		g_elt_545c80.Hide();
+		if (g_cutscene_element) delete g_cutscene_element;	// listener vtable +8: deleting destructor
+		g_cutscene_element = NULL;
+	}
+	if (g_camera == jim)
+	{
+		g_active_sound_db = GetDatabase("SoundEffects.omt");
+		if (g_active_sound_db) g_54a4b8 = true;
+		CLocalGameObject *l = static_cast<CLocalGameObject *>(jim);	// sic: NULL without a JIM1
+		if (l->f_4ab) l->f_4ab = 0;
+		g_cutscene_skipped = 0;
+		return;
+	}
+
+	CGameObject *o = jim;
+	if (jim)
+	{
+		if (g_menu->IsCurrentGadget(4))
+		{
+			o = FindObjectByTag("C3DJEEP");
+			if (o)
+			{
+				if (JeepField9c4(o)) g_gametype->SetCamera(o);
+				else o = FindObjectByTag("JIM1");
+			}
+		}
+		else if (g_menu->IsCurrentGadget(1))
+		{
+			o = FindObjectByTag("C3DROCKETSHIP");
+			if (o) g_gametype->SetCamera(o);
+		}
+		if (strcasecmp(m_default_to, "none") != 0) o = FindObjectByTag(m_default_to);
+		g_gametype->SetCamera(o);
+
+		float buf[4];
+		const float *p = ObjectRelativePoint(o, buf, 0.0f, 500.0f, -500.0f);	// +0x380
+		if (p)
+		{
+			const float dx = g_viewport->getx() - p[0];
+			const float dy = g_viewport->gety() - p[1];
+			const float dz = g_viewport->getz() - p[2];
+			if (sqrtf(dx * dx + dz * dz + dy * dy) > 1000.0f)	// 0x4cb1d8
+				g_viewport->place(p[0], p[1], p[2]);
+		}
+		o = FindObjectByTag("JIM1");
+		g_music_volume = g_6f7518;
+		JimmyGameRestore(o);
+	}
+	g_music_volume = g_6f7518;
+	g_active_sound_db = GetDatabase("SoundEffects.omt");
+	if (g_active_sound_db) g_54a4b8 = true;
+	CLocalGameObject *l = static_cast<CLocalGameObject *>(o);	// sic: NULL without a JIM1
+	if (l->f_4ab) l->f_4ab = 0;
+	if (g_cutscene_skipped)
+	{
+		g_545e57 = 1;
+		g_cutscene_skipped = 0;
+		return;
+	}
+	g_545e57 = 0;
+	g_545ef8 = 0;
+	g_cutscene_skipped = 0;
+}
+
+// --------------------------------------------------------------------------- v280
+
+// 0x479800: the editor's list shows this trigger and the chain of NextTriggers after it (at most
+// 100 names; a chain of more than 200 links is reported as a loop).
+void C3DTriggerType::v280(void)
+{
+	if (!g_editor) return;
+	CGameObject *o = this;
+	int shown = 0;
+	for (int n = 1; ; n++)
+	{
+		if (n > 200)
+		{
+			DrawText(300, 200, 'SMAL', "WARNING: ENDLESS LOOP FOR %s", m_tag);	// 0x4a1a80 (a copy of DrawText)
+			return;
+		}
+		if (shown < 100)									// g_editor +0x28c .. +0x41c
+		{
+			OMediaStringField *f = g_editor->m_list_fields[shown++];
+			f->set_string(std::string(o->m_tag));			// element +0xc8
+			f->force_show();
+		}
+		if (!o->NameContains((char *)"C3DTRIGGERTYPE")) return;
+		C3DTriggerType *t = static_cast<C3DTriggerType *>(o);
+		if (strcasecmp(t->m_next_trigger, "none") == 0) return;
+		o = FindObjectByTag(t->m_next_trigger);
+		if (!o) return;
+	}
+}

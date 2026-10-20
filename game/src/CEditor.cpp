@@ -6,6 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "DatabaseCache.h"
 #include "CEditor.h"
 #include "CDefaultGame.h"
 #include "CViewPort.h"
@@ -13,6 +14,7 @@
 #include "CGameObject.h"
 #include "CLocalGameObject.h"
 #include "C2DInGameMenu.h"
+#include "SaveGame.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -219,17 +221,9 @@ static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 
 // --- not reconstructed yet
 static void PhysicsReset(void)					{ NEG_TODO(0x4b40d0, "CPhysics::Reset"); }
-static void CloseAllDatabases(void)				{ NEG_TODO(0x4a4870, "CloseAllDatabases (object database cache 0x56aef4)"); }
-static const char *DatabaseName(int i)			{ NEG_TODO(0x4a4a40, "DatabaseName (object database cache 0x56aef4)"); (void)i; return NULL; }
-static bool ReadTaskFile(const char *name)		// 0x497b10: reads save\<name>'s header; true when it is usable
-{
-	NEG_TODO(0x497b10, "ReadTaskFile (savegame header)");
-	FILE *f = fopen(omf_SDLResolvePath(std::string("save\\") + name).c_str(), "rb");	// port stand-in: the file exists
-	if (f) fclose(f);
-	return f != NULL;
-}
-static void LoadTask(const char *name, int a)	{ NEG_TODO(0x498af0, "LoadTask (savegame)"); (void)name; (void)a; }
-static void RestoreTask(const char *name)		{ NEG_TODO(0x498440, "RestoreTask (savegame state after a level load)"); (void)name; }
+using neg::CloseAllDatabases;							// 0x4a4870 (DatabaseCache.cpp)
+using neg::DatabaseName;								// 0x4a4a40
+// (the savegame functions ReadTaskFile 0x497b10, LoadTask 0x498af0, RestoreTask 0x498440: SaveGame.h)
 static void MenuDrawCountdown(int a, int b, int c)	{ NEG_TODO(0x409d50, "C2DInGameMenu 0x409d50 (level-change countdown)"); (void)a; (void)b; (void)c; }
 static void CutsceneCameraPlay(CGameObject *o)	{ NEG_TODO(0x4a64e2, "C3DCutSceneCamera element slot 59"); (void)o; }
 static void MultiCutscenePlay(CGameObject *o)	{ NEG_TODO(0x4a6520, "C3DMultiCutScene element slot 61"); (void)o; }
@@ -615,7 +609,7 @@ countdown:
 				{
 					Trace("MEBTEMP GFN:%s", g_game_file);
 					Trace("MEBTEMP TFN:%s", g_task_file);
-					LoadTask("autosave.tsk", 0);
+					LoadTask("autosave.tsk", false);
 				}
 			}
 			m_load_countdown = 2;

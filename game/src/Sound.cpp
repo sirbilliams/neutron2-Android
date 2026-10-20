@@ -226,7 +226,7 @@ int neg::PlaySound(int channel, const std::string &name, bool loop)		// 0x4b8380
 {
 	if (!SfxActive())
 	{
-		g_sound_skipped = true;
+		g_cutscene_skipped = true;
 		return -1;
 	}
 	return PlayNamedSound(channel, name, loop);			// "Playing channel %d"
@@ -236,7 +236,7 @@ int neg::PlaySoundIndex(int channel, int id, bool loop)					// 0x4b8240
 {
 	if (!SfxActive())
 	{
-		g_sound_skipped = true;
+		g_cutscene_skipped = true;
 		return -1;
 	}
 	if (!g_active_sound_db || !g_active_sound_db->object_exists(OMediaSound::db_type, (omt_FSChunkID)id)) return -1;
@@ -265,7 +265,7 @@ int neg::PlaySound3DIndex(CGameObject *o, int channel, int id, bool loop)		// 0x
 {
 	if (!SfxActive())
 	{
-		g_sound_skipped = true;
+		g_cutscene_skipped = true;
 		return -1;
 	}
 	if (!g_active_sound_db || !g_active_sound_db->object_exists(OMediaSound::db_type, (omt_FSChunkID)id)) return -1;
@@ -337,7 +337,7 @@ int neg::PlayMusic(OMediaDataBase *db, int channel, int id, bool loop)
 {
 	if (!g_sound || !g_music_on)
 	{
-		g_sound_skipped = true;
+		g_cutscene_skipped = true;
 		return g_music_channel;
 	}
 	StopChannel(g_music_channel, false);

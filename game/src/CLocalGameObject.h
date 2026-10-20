@@ -7,6 +7,7 @@
 class OMediaDataBase;
 class OMediaStream;
 class OMediaViewPort;
+class OMediaMatrix_4x4;
 
 class CLocalGameObject : public CGameObject
 {
@@ -28,6 +29,7 @@ class CLocalGameObject : public CGameObject
 	virtual int  CountObjectsWithID(int id);								// SLOT 276 0x48f700
 	virtual void PauseAll(bool pause);										// SLOT 279 0x48f6a0
 	virtual unsigned char v281(OMediaViewPort *vp, float *pos, float *sx, float *sy);	// SLOT 281 0x48f900 (TODO body) project pos to screen
+	virtual void v282(OMediaMatrix_4x4 &m, float *w, float *h) { (void)m; (void)w; (void)h; }	// SLOT 282 0x4ae440 (empty) projection matrix for v281 (C3DSpriteType, C3DAnimated: layer's)
 	virtual void WriteState(OMediaStreamOperators &s);						// SLOT 284 0x48fbb0
 	virtual void ReadState(OMediaStreamOperators &s);						// SLOT 285 0x48fbf0
 

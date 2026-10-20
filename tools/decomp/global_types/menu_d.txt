@@ -1,0 +1,24 @@
+# C2DInGameMenu part d (menu.dat parser, menu texts, fades, level warp, pickups)
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x545da8 ptrarray MenuPage* g_menu_pages                     # [7] C2DInGameMenu::MenuPage*, index = v314(page name); use C2DInGameMenu::Page(i)
+0x545fd0 ptr CGameObject* g_jimmy                   # the C3DJimmy (its CLocalGameObject base, object + 0xc0), set by its constructor 0x443830
+0x545844 ptr OMediaCanvasElementWrapper* g_fade_sprite   # full-screen fade quad (canvas 544) of fade states 0, 1
+0x545a64 ptr OMediaCanvasElementWrapper* g_fade_sprite2  # the same, fade states 2..5
+0x545e60 ptr OMediaCanvasElementWrapper* g_fade_cur      # the quad v341 is fading
+0x545dd0 val int g_fade_state                            # 0/2/4 to opaque, 1/3 to clear, 5 hold (then 3 and the trigger)
+0x545dcc val float g_fade_time                           # time left in the state
+0x5324e8 val float g_fade_duration                       # duration of the state (>= 0.1)
+0x5324ec val bool g_fade_done                            # no fade running
+0x5324f0 val float g_fade_in_time                        # duration of the fade back after a hold (5 -> 3)
+0x545de0 val float g_fade_hold_time                      # duration of state 5
+0x5324fc val int g_fade_setting                          # 0: no fades, 1: only fade states 2..5, 2: all
+0x545e5c val bool g_fading                               # a fade is visible
+0x545e7c array char g_fade_trigger                       # tag of the object activated when a hold ends ("" none)
+0x5324f4 val float g_teletype_rate                       # TRIGTEXTSTRING characters per second (12)
+0x545de4 array char g_trig_text_group                    # trigger whose TRIGTEXTSTRINGs are shown ("" none)
+0x545e48 val int g_trig_text_line                        # line being typed; lower lines are shown whole
+0x545e4c val int g_trig_text_len                         # length of the line being typed, 0 = start the next one
+0x545e5b val bool g_trig_text_stop                       # set when the group is skipped / ended: nothing typed
+0x545f14 array char g_empty_string                       # never written: "" (copied to clear strings)
+0x544750 array int g_pickup_counts                       # [50][2]: count of pickup i at [2 * i] (second int unknown)
+0x545dc4 val bool g_menu_active                          # set / cleared by ActivateActiveMenu v293 / DeactivateActiveMenu v294

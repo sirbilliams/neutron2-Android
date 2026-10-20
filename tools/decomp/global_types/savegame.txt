@@ -1,0 +1,35 @@
+# Savegame system, task list, demo and texture scrolling (0x497000..0x499300, SaveGame.cpp,
+# CTaskList.cpp).
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+#
+# Real C++ objects, not views of g_data (std::list): g_tasks (0x54e698, head 0x54e69c, count
+# 0x54e6a0) and g_tex_scrolls (0x54e680, head 0x54e684, count 0x54e688), in SaveGame.cpp.
+# g_score (0x54a458) and g_keys (0x56ada0) are C++ variables too (InterfaceElement / Globals).
+
+# texture scrolling (CJimmyGame)
+0x53e644 val bool g_tex_scroll_on                   # UpdateTexScrolls runs (1 initially)
+0x54e68c val float g_tex_scroll_time                # seconds of scrolling, the wave's phase
+
+# what ReadTaskFile read from a save's header (the menu's save slots copy it)
+0x54e810 val int g_save_level_id                     # level 4cc ('LV3E' ...)
+0x54e814 val float g_save_health
+0x54e818 val short g_save_lives
+0x54e81c val int g_save_score
+0x54e820 val int g_save_cam_x                        # the camera x, read as an int (a float's bits)
+
+# saved game state
+0x54a44c val short g_lives                           # +1 by C3DRedNeutron and every 5 of 0x54a454; 0 for a new game
+0x54a4d8 array int g_object_states                   # [4200], per-object progress by the object's +0x6d8 index
+0x53b5bc val int g_resume_game_state                 # a game state kept by the menu code; 9 after a game over
+
+# task list (CTaskList; the constructor also clears the bytes 0x54e80c and 0x54e825)
+0x54e794 array char                                  # emptied by the CTaskList constructor
+0x54e824 val bool g_tasks_applied                    # CTaskList::Process gave the objects their task states
+
+# demo (CTaskList::UpdateDemo, NextDemoLevel)
+0x54e828 val int g_demo_level                        # index of the next demo level (0..16, then level1d)
+0x54e82c val int g_demo_mode                         # 0 off, 1..4 (3 and 4 press random keys)
+0x54e830 val float g_demo_time                       # seconds left in the demo level (drawn at 320,190)
+0x54e834 val float g_demo_cutscene_time              # mode 2: seconds until a cut scene is skipped
+0x54e838 val float g_demo_key_time                   # modes 3/4: seconds until the next random keys
+0x54a3d4 val bool g_cutscene_skip                    # set: the running cut scene ends

@@ -1,6 +1,7 @@
 # fetched by fetch-deps.sh
 android/app/jni/SDL/
 android/app/jni/gl4es/
+android/app/jni/unshield/
 android/app/src/main/java/org/libsdl/
 
 # build output
@@ -19,6 +20,9 @@ out/
 *.gam
 *.ase
 *.tsk
+*.iso
+*.cab
+*.hdr
 Program_Executable_Files/
 
 # Granny dumps (game assets)

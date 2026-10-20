@@ -27,6 +27,9 @@
 class OMediaDataBase;
 class OMediaFileStream;
 class OMediaElement;
+class OMedia3DShape;
+class OMedia3DMaterial;
+class OMediaCanvas;
 
 class CGameType : public OMediaElement, public CLocalGameObject
 {
@@ -79,8 +82,10 @@ class CGameType : public OMediaElement, public CLocalGameObject
 	virtual void PlaySong(void);											// ESLOT 75 0x4b0ae0  +0x12c
 	virtual void ev76(void) {}												// ESLOT 76 0x463890  +0x130 (empty; called from Process)
 	virtual void ev77(int a, void *b, int c) { (void)a; (void)b; (void)c; }	// ESLOT 77 0x4ae440 +0x134 (empty; types unknown)
-	virtual void ev78(CGameObject *o, void *a, unsigned int b, unsigned int c)	// ESLOT 78 0x464250 +0x138 (empty)
-		{ (void)o; (void)a; (void)b; (void)c; }
+	// ESLOT 78 0x464250 +0x138 (empty here): C3DObject::Process (0x49ae00 area) reports the material
+	// (and its texture) of the polygon an object stands on; CJimmyGame 0x484740 reacts to it.
+	virtual void TouchSurface(CGameObject *o, OMedia3DMaterial *mat, OMediaCanvas *tex, float dt)
+		{ (void)o; (void)mat; (void)tex; (void)dt; }
 	virtual unsigned char ev79(int a, int b, int c, int d, int e, int f)	// ESLOT 79 0x4b0cc0 +0x13c (returns 0)
 		{ (void)a; (void)b; (void)c; (void)d; (void)e; (void)f; return 0; }
 	virtual void ToggleHelp(void);											// ESLOT 80 0x4b0cd0  +0x140
@@ -114,4 +119,9 @@ extern OMediaFileStream	*g_song_stream;			// 0x56af68
 extern OMediaFileStream	*g_sound_stream;		// 0x56af6c
 extern OMediaFileStream	*g_terrain_stream;		// 0x56af70
 extern OMediaFileStream	*g_vehicle_stream;		// 0x56af74
+
+// Shape helpers next to the game type (CGameType.cpp); CJimmyGame's terrain code uses them too.
+bool ShapeExists(OMediaDataBase *db, unsigned int type, int id);		// 0x4b2d70 (type ignored: always '3DSh')
+OMedia3DShape *Load3DShape(OMediaDataBase *db, int id);				// 0x4b2c80
+void MakeShapeUnLit(OMedia3DShape *shape);								// 0x4b2520
 }
