@@ -152,3 +152,21 @@ address the 2002 constructor installs if you need them).
 
 The generator does not handle these classes yet: declare and write everything by hand in
 `<Class>.h/.cpp`.
+
+## More OMT 2002 facts (verified against OMT2.dll)
+
+* `tools/decomp/omt_vtables.py OMT2.dll <Class>` prints a 2002 OMT class's vtable with names
+  (it runs the constructor in an emulator to find the vtable). Names marked `?folded` are
+  shared identical code and may be wrong.
+* OMedia3DShapeElement element vtable: 0..42 as OMediaElement, then 43 set_shape, 44 get_shape,
+  45 process_shape_picking, 46 process_polygon_surface_picking, 47 render_draw_shape;
+  OMedia3DMorphAnim adds 48 set_anim_def. Game 3D objects (C3DObject...) add their slots from 49.
+  The OMediaAnim subobject (2002: at +0x90) has its own vtable: 0 dtor, 3 set_anim_def,
+  4 setcurrentsequence, 5/6 setcurrentframe, 7 getcurrentframe_pos, 8 advance_frame,
+  9 setplay_timebased, 10 update_logic, 11 pause, 12 find_current_frame, 13 find_next_frame.
+* The −0x14 rule (2002 offset ≥ 0x8c → 2.5 offset + 0x14) holds for OMedia3DShapeElement and
+  OMedia3DMorphAnim too: 2002 +0x8c is the shape pointer (2.5 `shape` at +0xa0).
+* OMedia3DShape (not an element): 2002 and 2.5 layouts agree as far as the code uses them
+  (0x3c visual_sphere with the radius at +0x4c, five STL vectors from +0x64: vertices at 0x64,
+  polygons at 0x84 (first/last at +0x88/+0x8c, 0x30 bytes per polygon)). Its vtable slot 17
+  (+0x44) is `find_cube(minx, maxx, miny, maxy, minz, maxz)` (check the order).
