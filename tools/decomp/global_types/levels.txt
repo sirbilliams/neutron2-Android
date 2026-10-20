@@ -1,0 +1,11 @@
+# level game types and CLoadLevel (game/src/levels) - shared globals they use
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+
+# The view C2DInGameMenu puts back (when g_view_restore is set) after a fade; CLoadLevel's
+# constructor clears it, its touch sets g_view_restore when the exit fades out.
+0x54a480 val float g_view_restore_x
+0x54a484 val float g_view_restore_y
+0x54a488 val float g_view_restore_z
+0x54a490 val float g_view_restore_ax
+0x54a494 val float g_view_restore_ay
+0x54a498 val bool g_view_restore
