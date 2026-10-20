@@ -6,6 +6,11 @@ void CGameObject::v3(int a2)	// 0x4ab1a0
 	AddTouching(a2);
 }
 
+void CGameObject::UnInitObject()	// 0x4ab3e0
+{
+	Log("UnInitObject()");
+}
+
 void CGameObject::ReLoadObject()	// 0x4ab400
 {
 	Log("ReLoadObject()");
@@ -669,6 +674,11 @@ unsigned char CGameObject::v131()	// 0x4ac8d0
 void CGameObject::v132(unsigned char a2)	// 0x4ac8e0
 {
 	f_13e = a2;
+}
+
+unsigned char CGameObject::v133()	// 0x4ac8f0
+{
+	return f_13f;
 }
 
 void CGameObject::v134(unsigned char a2)	// 0x4ac900

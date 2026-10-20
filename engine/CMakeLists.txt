@@ -83,11 +83,11 @@ else()
   target_compile_options(omt_datatest PRIVATE -w -fpermissive)
 
   # The reconstructed game (../game/src), desktop build
-  file(GLOB NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/gen/*.cpp)
+  file(GLOB_RECURSE NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp)
   if(NEG_SRC)
     add_executable(negatron ${NEG_SRC} ${OMT_MAIN})
     target_link_libraries(negatron omt)
-    target_compile_options(negatron PRIVATE -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion)
+    target_compile_options(negatron PRIVATE -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion -fno-strict-aliasing)
   endif()
 
   # OMT's own samples, built unmodified (after tools/portify.py) against the SDL layer

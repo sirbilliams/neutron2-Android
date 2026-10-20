@@ -140,6 +140,11 @@ class Gen:
         m = SIG.match(body.strip())
         if not m: return None
         n = s.arity(slot)
+        bd = getattr(s, 'base_decl', {}).get(slot)
+        if bd is not None:
+            if n is not None and n != len(bd['types']): return None
+            n = len(bd['types'])
+            if any('*' in t or '&' in t for t in bd['types']): return None
         if n is None: return None
         sc = this_scale(body) or 4
         stmts = statements(body)
@@ -233,7 +238,8 @@ class Gen:
                 if x is None: return None
                 es.append(x)
             return f'Log({", ".join(es)})'
-        k = s.arity(tgt)
+        bd = getattr(s, 'base_decl', {}).get(tgt)
+        k = len(bd['types']) if bd else s.arity(tgt)
         if k is None: return None
         if len(args) > k: args = args[:k]
         if len(args) < k: return None
@@ -247,6 +253,9 @@ class Gen:
 
     # ---------------------------------------------------------------- output
     def sig(s, slot, n, void, ptrs):
+        d = getattr(s, 'base_decl', {}).get(slot)
+        if d:                                  # an override keeps the base declaration
+            return d['ret'], ', '.join(f'{t} a{2 + j}' for j, t in enumerate(d['types']))
         ps = []
         for i in range(2, 2 + n):
             if i in ptrs: ps.append(f'{s.uf.t(("PE", slot, i))} *a{i}')
@@ -261,7 +270,11 @@ def main():
     ap.add_argument('--raw', required=True); ap.add_argument('--classes', required=True)
     ap.add_argument('--abi', required=True); ap.add_argument('--src', required=True)
     ap.add_argument('--out', required=True); ap.add_argument('--names')
+    ap.add_argument('--base', default='', help='base classes, nearest first (CLocalGameObject,CGameObject)')
+    ap.add_argument('--base-size', default='0', help='byte size of the base part; fields below it belong to the base')
     a = ap.parse_args()
+    chain = [x for x in a.base.split(',') if x]
+    base_size = num(a.base_size)
     classes, funcs = load(a.raw, a.classes)
     abi = json.load(open(a.abi))
     rows, _ = analyse(a.cls, classes, funcs)
@@ -274,21 +287,37 @@ def main():
         for k, v in json.load(open(a.names)).items():
             if v.get('name'): names[int(k)] = v['name']
     hand_slots, hand_fields = set(), []
-    for fn in (f'{a.src}/{a.cls}.cpp', f'{a.src}/{a.cls}.h'):
+    import glob
+    hand_files = sorted(set(glob.glob(f'{a.src}/**/{a.cls}*.cpp', recursive=True) + glob.glob(f'{a.src}/**/{a.cls}*.h', recursive=True)
+                            + glob.glob(f'{a.src}/**/{a.cls}_*.inc', recursive=True)) - set(glob.glob(f'{a.out}/*')))
+    for fn in hand_files:
         if os.path.exists(fn):
             t = open(fn).read()
             hand_slots |= {int(x) for x in re.findall(r'//\s*SLOT\s+(\d+)', t)}
             hand_fields += [(num(o), num(z)) for o, z in re.findall(r'//\s*FIELD\s+(0x[0-9a-f]+|\d+)\s+(0x[0-9a-f]+|\d+)', t)]
+    DECL = re.compile(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*(?:SLOT|slot)\s+(?P<n>\d+)')
+    base_decl = {}
+    for b in reversed(chain):
+        for fn in (f'{a.src}/{b}.h', f'{a.out}/{b}_slots.inc'):
+            if os.path.exists(fn):
+                for d in DECL.finditer(open(fn).read()):
+                    ps = [x.strip() for x in d.group('ps').split(',') if x.strip() and x.strip() != 'void']
+                    types = [re.sub(r'\s*\b\w+$', '', x).strip() if re.search(r'[\w*&]\s+\**\w+$', x) else x for x in ps]
+                    base_decl[int(d.group('n'))] = dict(ret=(d.group('ret').strip() + (' *' if d.group('rp') else '')),
+                                                       types=types, name=d.group('name'))
+    for si, d in base_decl.items():
+        names.setdefault(si, d['name'])
     g = Gen(a.cls, classes, funcs, abi, names)
+    g.base_decl = base_decl
     g.collect_evidence(fieldrows)
-    hdrfile = f'{a.src}/{a.cls}.h'
-    if os.path.exists(hdrfile):
+    hdrtext = ''.join(open(fn).read() for fn in hand_files if not fn.endswith('.cpp'))
+    if hdrtext:
         # `// TYPE <off> <ctype>`: a field type known from hand-written code (authoritative)
         CK = {'float': 'F', 'int': 'I', 'unsigned': 'U', 'uint': 'U', 'uchar': 'B', 'short': 'S'}
-        for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+(\w+)', open(hdrfile).read()):
+        for o, t in re.findall(r'//\s*TYPE\s+(0x[0-9a-f]+)\s+(\w+)', hdrtext):
             g.uf.ev[g.uf.f(('F', num(o)))] = {CK[t]}
         TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
-        for d in re.finditer(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*SLOT\s+(?P<n>\d+)', open(hdrfile).read()):
+        for d in re.finditer(r'virtual\s+(?P<ret>[\w ]+?)\s*(?P<rp>\*?)\s*(?P<name>\w+)\s*\((?P<ps>[^)]*)\)[^\n]*//\s*SLOT\s+(?P<n>\d+)', hdrtext):
             si = int(d.group('n'))
             names.setdefault(si, d.group('name'))
             if not d.group('rp') and d.group('ret').strip() in TK: g.uf.e(('R', si), TK[d.group('ret').strip()])
@@ -300,11 +329,22 @@ def main():
                 # a hand-declared type is authoritative
                 g.uf.ev[g.uf.f(('P', si, 2 + j))] = {TK.get(t, 'U')} if t in TK else g.uf.ev.get(g.uf.f(('P', si, 2 + j)), set())
     own = {}
+    bvt = classes[chain[0]]['vtables'][0]['methods'] if chain else []
     for si, m in enumerate(g.vt):
         ad = int(m['addr'], 16)
         f = funcs.get(ad)
-        if f and f[0].startswith(a.cls + '__'):
+        if chain:
+            if si < len(bvt) and bvt[si]['addr'] == m['addr']:
+                continue                      # inherited unchanged
+            if f: own[si] = (ad, f[1])
+        elif f and f[0].startswith(a.cls + '__'):
             own[si] = (ad, f[1])
+    # base signatures are authoritative for overrides
+    TK = {'float': 'F', 'unsigned char': 'B', 'bool': 'B', 'char': 'B', 'short': 'S', 'int': 'I', 'unsigned int': 'U'}
+    for si, d in base_decl.items():
+        if d['ret'] in TK: g.uf.ev[g.uf.f(('R', si))] = {TK[d['ret']]}
+        for j, t in enumerate(d['types']):
+            if t in TK: g.uf.ev[g.uf.f(('P', si, 2 + j))] = {TK[t]}
     gen, todo = {}, {}
     for si in sorted(own):
         ad, body = own[si]
@@ -323,7 +363,7 @@ def main():
     os.makedirs(a.out, exist_ok=True)
     claimed = lambda k: any(o <= k < o + z for o, z in hand_fields)
     hdr = '// generated by tools/decomp/gen_class.py from the decompilation of Neutron2.exe - do not edit\n'
-    allf = set(g.fields_used) | {r['off'] for r in fieldrows if r['sub'] == 0 and r['off'] >= 4}
+    allf = {k for k in (set(g.fields_used) | {r['off'] for r in fieldrows if r['sub'] == 0 and r['off'] >= 4}) if k >= max(4, base_size)}
     with open(f'{a.out}/{a.cls}_fields.inc', 'w') as fh:
         fh.write(hdr)
         SZ = {'float': 4, 'unsigned int': 4, 'int': 4, 'unsigned char': 1, 'short': 2}

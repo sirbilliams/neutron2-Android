@@ -1,0 +1,3 @@
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x545e50 ptr OMediaDataBase* g_screens_db
+0x545e78 ptr C2DInGameMenu* g_menu

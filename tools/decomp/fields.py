@@ -104,7 +104,7 @@ def load(rawdir, classes_json):
     classes = json.load(open(classes_json))['classes']
     classes = {c['name']: c for c in (classes if isinstance(classes, list) else classes.values())}
     funcs = {}
-    for fn in ['_free.c'] + [c + '.c' for c in classes]:
+    for fn in ['_free.c', '_extra.c'] + [c + '.c' for c in classes]:
         try:
             text = open(f'{rawdir}/{fn}', encoding='utf-8', errors='replace').read()
         except FileNotFoundError:
