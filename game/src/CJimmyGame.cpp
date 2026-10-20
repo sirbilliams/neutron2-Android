@@ -5,6 +5,7 @@
     many C3DJimmy / C3DPlayerObject slots; that class is not reconstructed yet, so those accesses
     are the small TODO functions below, named after what the original does with them.        */
 
+#include "SaveGame.h"
 #include "CJimmyGame.h"
 #include "C3DObject.h"
 #include "C2DInGameMenu.h"
@@ -29,8 +30,6 @@
 #include <strings.h>
 
 namespace neg {
-std::list<TextureScroll *>	g_texture_scrolls;
-float						g_texture_scroll_time = 0.0f;
 std::string					g_queued_sfx;
 }
 using namespace neg;
@@ -182,51 +181,8 @@ static int NameChar(const std::string &name, size_t i)
 
 // --------------------------------------------------------------------------- texture scrolls (0x497xxx)
 
-static void ClearTextureScrolls(void)											// 0x497090
-{
-	while (!g_texture_scrolls.empty())
-	{
-		delete g_texture_scrolls.front();
-		g_texture_scrolls.pop_front();
-	}
-}
-
-static void AddTextureScroll(OMedia3DPolygon *p, float du, float dv)			// 0x4972b0
-{
-	TextureScroll *t = new TextureScroll;
-	t->polygon = p;
-	t->du = du;
-	t->dv = dv;
-	g_texture_scrolls.push_back(t);
-}
-
-// 0x4970e0. Quirks: du is never applied (only v moves, by dv per second), and each polygon's
-// vertex list is copied into a scratch buffer that is thrown away.
-static void UpdateTextureScrolls(float dt)
-{
-	if (g_gametype->IsPaused() || !g_53e644) return;
-	g_texture_scroll_time += dt;
-	for (std::list<TextureScroll *>::iterator i = g_texture_scrolls.begin(); i != g_texture_scrolls.end(); i++)
-	{
-		TextureScroll *t = *i;
-		omt_3DPolygonVertexList &v = t->polygon->get_vertices();
-		omt_3DPolygonVertexList scratch(v);					// (unused copy, as in the original)
-		(void)scratch;
-		for (short k = 0; k < (int)v.size(); k++)
-		{
-			if (t->du == -99999.0f && t->dv == -99999.0f)	// compared as raw 0xc7c34f80
-			{
-				// x87: both sums are computed before either is stored
-				const double tt = g_texture_scroll_time;
-				const double nv = ((cos(tt * 3.0) + 1.0) * 0.5 - 0.5) * dt * 0.12f + v[k].v;	// 0x4cb1e8, 0x516aec
-				const double nu = ((cos(tt * 3.2f) + 1.0) * 0.5 - 0.5) * dt * 0.15f + v[k].u;	// 0x516ae8, 0x4d7f7c
-				v[k].u = (float)nu;
-				v[k].v = (float)nv;
-			}
-			else v[k].v = dt * t->dv + v[k].v;
-		}
-	}
-}
+// The texture-scroll list 0x497090 / 0x4970e0 / 0x4972b0 is in SaveGame.cpp (neg::ClearTexScrolls,
+// UpdateTexScrolls, AddTexScroll), with the other free functions of that address range.
 
 // --------------------------------------------------------------------------- construction
 
@@ -248,7 +204,7 @@ void CJimmyGame::ResetObject(void)											// 0x482a70
 
 void CJimmyGame::Process(float dt)											// 0x484260
 {
-	if (m_no_texture_scroll == 0) UpdateTextureScrolls(dt);				// 0x4970e0
+	if (m_no_texture_scroll == 0) neg::UpdateTexScrolls(dt);				// 0x4970e0
 	if (m_refog)
 	{
 		m_refog = 0;
@@ -379,7 +335,7 @@ void CJimmyGame::InitGame(void)												// 0x482910
 	Log("InitGame()");
 	f_564 = 0;
 	CGameType::InitGame();
-	ClearTextureScrolls();													// 0x497090
+	neg::ClearTexScrolls();													// 0x497090
 	g_gravity_x = 0.0f;
 	g_gravity_y = -800.0f;
 	g_gravity_z = 0.0f;
@@ -681,20 +637,20 @@ bool CJimmyGame::SetupTextureScroll(OMedia3DPolygon *p)
 	if (!id) return false;
 	if (id >= 800 && id < 880)
 	{
-		if (id < 810) AddTextureScroll(p, 0.0f, 0.2f);
-		else if (id < 820) AddTextureScroll(p, 0.2f, 0.2f);
-		else if (id < 830) AddTextureScroll(p, 0.2f, -0.2f);
-		else if (id < 840) AddTextureScroll(p, 0.0f, -0.2f);
-		else if (id < 850) AddTextureScroll(p, -0.2f, -0.2f);
-		else if (id < 860) AddTextureScroll(p, -0.2f, 0.0f);
-		else if (id < 870) AddTextureScroll(p, -0.2f, 0.2f);
-		else AddTextureScroll(p, -99999.0f, -99999.0f);					// wobble
+		if (id < 810) neg::AddTexScroll(p, 0.0f, 0.2f);
+		else if (id < 820) neg::AddTexScroll(p, 0.2f, 0.2f);
+		else if (id < 830) neg::AddTexScroll(p, 0.2f, -0.2f);
+		else if (id < 840) neg::AddTexScroll(p, 0.0f, -0.2f);
+		else if (id < 850) neg::AddTexScroll(p, -0.2f, -0.2f);
+		else if (id < 860) neg::AddTexScroll(p, -0.2f, 0.0f);
+		else if (id < 870) neg::AddTexScroll(p, -0.2f, 0.2f);
+		else neg::AddTexScroll(p, -99999.0f, -99999.0f);					// wobble
 		return true;
 	}
 	if (id >= 900 && id < 910)
 	{
 		static const float speed[10] = { 0.05f, 0.08f, 0.1f, 0.13f, 0.17f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f };
-		AddTextureScroll(p, speed[id - 900], speed[id - 900]);
+		neg::AddTexScroll(p, speed[id - 900], speed[id - 900]);
 		return true;
 	}
 	return false;

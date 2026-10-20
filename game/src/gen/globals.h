@@ -355,6 +355,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_prev_game_mode (*(int *)&neg::g_data[0x95b8])
 #define g_53b5bc (*(int *)&neg::g_data[0x95bc])
 #define g_mode_before_pause (*(int *)&neg::g_data[0x95bc])
+#define g_resume_game_state (*(int *)&neg::g_data[0x95bc])
 #define g_53b5c0 (*(unsigned char *)&neg::g_data[0x95c0])
 #define g_has_focus (*(unsigned char *)&neg::g_data[0x95c0])
 #define g_53b648 (*(char *)&neg::g_data[0x9648])
@@ -375,7 +376,8 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_53e5b4 (&neg::g_data[0xc5b4])		// address only
 #define g_53e5e8 (*(unsigned int *)&neg::g_data[0xc5e8])
 #define g_53e62c (&neg::g_data[0xc62c])		// address only
-#define g_53e644 (*(char *)&neg::g_data[0xc644])
+#define g_53e644 (*(bool *)&neg::g_data[0xc644])
+#define g_tex_scroll_on (*(bool *)&neg::g_data[0xc644])
 #define g_53e6dc (&neg::g_data[0xc6dc])		// address only
 #define g_53e724 (&neg::g_data[0xc724])		// address only
 #define g_53e908 (&neg::g_data[0xc908])		// address only
@@ -960,6 +962,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_5461d0 ((int *)&neg::g_data[0x141d0])		// array, stride 260
 #define g_5461d8 (&neg::g_data[0x141d8])		// address only
 #define g_54a3d4 (*(bool *)&neg::g_data[0x183d4])
+#define g_cutscene_skip (*(bool *)&neg::g_data[0x183d4])
 #define g_cutscene_skipped (*(bool *)&neg::g_data[0x183d4])
 #define g_54a3dc (&neg::g_data[0x183dc])		// address only
 #define g_54a400 (*(float *)&neg::g_data[0x18400])
@@ -976,6 +979,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_54a444 (*(float *)&neg::g_data[0x18444])
 #define g_54a448 (*(float *)&neg::g_data[0x18448])
 #define g_54a44c (*(short *)&neg::g_data[0x1844c])
+#define g_lives (*(short *)&neg::g_data[0x1844c])
 #define g_54a450 (neg::g_ptrs[0x6114])		// pointer
 #define g_54a454 (*(int *)&neg::g_data[0x18454])
 #define g_54a464 (*(int *)&neg::g_data[0x18464])
@@ -1007,29 +1011,44 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_queued_sfx_pending (*(char *)&neg::g_data[0x184ba])
 #define g_54a4cc (neg::g_ptrs[0x6133])		// pointer
 #define g_54a4d4 (*(int *)&neg::g_data[0x184d4])
-#define g_54a4d8 ((int *)&neg::g_data[0x184d8])		// array, stride 4
+#define g_54a4d8 ((int *)&neg::g_data[0x184d8])
+#define g_object_states ((int *)&neg::g_data[0x184d8])
 #define g_54e678 (&neg::g_data[0x1c678])		// address only
+#define g_54e684 (neg::g_ptrs[0x71a1])		// pointer
 #define g_54e688 (*(int *)&neg::g_data[0x1c688])
+#define g_54e68c (*(float *)&neg::g_data[0x1c68c])
+#define g_tex_scroll_time (*(float *)&neg::g_data[0x1c68c])
 #define g_54e69c (neg::g_ptrs[0x71a7])		// pointer
 #define g_54e6a0 (*(int *)&neg::g_data[0x1c6a0])
 #define g_54e6a4 ((char *)&neg::g_data[0x1c6a4])
 #define g_game_file ((char *)&neg::g_data[0x1c6a4])
 #define g_54e71c ((char *)&neg::g_data[0x1c71c])
 #define g_task_file ((char *)&neg::g_data[0x1c71c])
-#define g_54e794 (&neg::g_data[0x1c794])		// address only
+#define g_54e794 ((char *)&neg::g_data[0x1c794])
 #define g_54e80c (*(unsigned char *)&neg::g_data[0x1c80c])
 #define g_54e810 (*(int *)&neg::g_data[0x1c810])
-#define g_54e814 (&neg::g_data[0x1c814])		// address only
-#define g_54e818 (&neg::g_data[0x1c818])		// address only
-#define g_54e81c (*(unsigned int *)&neg::g_data[0x1c81c])
-#define g_54e820 (*(unsigned int *)&neg::g_data[0x1c820])
-#define g_54e824 (*(char *)&neg::g_data[0x1c824])
+#define g_save_level_id (*(int *)&neg::g_data[0x1c810])
+#define g_54e814 (*(float *)&neg::g_data[0x1c814])
+#define g_save_health (*(float *)&neg::g_data[0x1c814])
+#define g_54e818 (*(short *)&neg::g_data[0x1c818])
+#define g_save_lives (*(short *)&neg::g_data[0x1c818])
+#define g_54e81c (*(int *)&neg::g_data[0x1c81c])
+#define g_save_score (*(int *)&neg::g_data[0x1c81c])
+#define g_54e820 (*(int *)&neg::g_data[0x1c820])
+#define g_save_cam_x (*(int *)&neg::g_data[0x1c820])
+#define g_54e824 (*(bool *)&neg::g_data[0x1c824])
+#define g_tasks_applied (*(bool *)&neg::g_data[0x1c824])
 #define g_54e825 (*(unsigned char *)&neg::g_data[0x1c825])
 #define g_54e828 (*(int *)&neg::g_data[0x1c828])
+#define g_demo_level (*(int *)&neg::g_data[0x1c828])
 #define g_54e82c (*(int *)&neg::g_data[0x1c82c])
+#define g_demo_mode (*(int *)&neg::g_data[0x1c82c])
 #define g_54e830 (*(float *)&neg::g_data[0x1c830])
+#define g_demo_time (*(float *)&neg::g_data[0x1c830])
 #define g_54e834 (*(float *)&neg::g_data[0x1c834])
+#define g_demo_cutscene_time (*(float *)&neg::g_data[0x1c834])
 #define g_54e838 (*(float *)&neg::g_data[0x1c838])
+#define g_demo_key_time (*(float *)&neg::g_data[0x1c838])
 #define g_54e844 (neg::g_ptrs[0x7211])		// pointer
 #define g_54e84c (neg::g_ptrs[0x7213])		// pointer
 #define g_54e858 (*(int *)&neg::g_data[0x1c858])

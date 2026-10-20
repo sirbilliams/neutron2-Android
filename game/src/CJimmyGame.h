@@ -123,15 +123,5 @@ class CJimmyGame : public CGameType
 
 // --------------------------------------------------------------------------- globals CJimmyGame owns
 namespace neg {
-// One scrolling texture: entries are made by SetupTextureScroll while the terrain is created,
-// moved every frame by Process (0x4970e0) and deleted by InitGame (0x497090).
-struct TextureScroll
-{
-	OMedia3DPolygon	*polygon;			// +0
-	float			du;					// +4  (only tested for the wobble marker, see 0x4970e0)
-	float			dv;					// +8  v moves by dv per second; du = dv = -99999 wobbles u and v
-};
-extern std::list<TextureScroll *>	g_texture_scrolls;		// 0x54e684 (count 0x54e688)
-extern float						g_texture_scroll_time;	// 0x54e68c  seconds, for the wobble
 extern std::string					g_queued_sfx;			// 0x54a4a8  played by Process once channel g_queued_sfx_after is free (set by 0x48f310)
 }
