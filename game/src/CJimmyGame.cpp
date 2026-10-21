@@ -50,8 +50,8 @@ static void SetTaskValue(const char *task, int v)	{ neg::SetTaskState(task, v); 
 static int  GetTaskValue(const char *task)		{ return neg::GetTaskState(task); }		// 0x497a40
 static void LoadTask(const char *name, int a)	{ neg::LoadTask(name, a != 0); }		// 0x498af0
 
-// Granny (RAD); g_granny is 0 on this port.
-static void GrannyAdvanceTime(unsigned int ver, double t)	{ (void)ver; (void)t; NEG_TODO(0x4ca464, "GrannyAdvanceTime"); }
+// Granny (RAD): granny.dll import 0x4ca464 GrannyAdvanceTime, game/granny/granny_compat.h.
+#include "granny_compat.h"
 
 // C2DInGameMenu 0x409b20: hand out the pickup announced by 0x545e64 (ANTIHOLO, inventory...).
 static void MenuGivePendingPickup(void)			{ NEG_TODO(0x409b20, "C2DInGameMenu pending pickup (0x545e64)"); }

@@ -89,10 +89,11 @@ if(EXISTS ${UNSHIELD_DIR}/lib/libunshield.h)
 endif()
 
 # --------------------------------------------------------------------------- Granny 1.2b replacement
-# game/granny: the 26 granny.dll functions the game imports, on converted .grc data (tools/granny/grn2grc.py,
-# docs/granny-replacement.md).  Its float arithmetic reproduces the DLL's bit for bit, which needs IEEE
+# game/granny: the 26 granny.dll functions the game imports, reading the game's .grn files directly
+# (docs/granny-replacement.md).  Its float arithmetic reproduces the DLL's bit for bit, which needs IEEE
 # float/double operations exactly as written: no fused multiply-add, no x87 excess precision.
-add_library(granny_compat STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny/granny_compat.cpp)
+add_library(granny_compat STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny/granny_compat.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny/granny_grn.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny/granny_bink.cpp)
 target_include_directories(granny_compat PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../game/granny)
 target_compile_options(granny_compat PRIVATE -ffp-contract=off -fno-fast-math)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(i.86|x86)$")

@@ -2,7 +2,8 @@
 
     Built twice from this one file:
       Win32 (reference):  i686-w64-mingw32-gcc -O2 -o grntest.exe grntest.c        (loads the real granny.dll, run under Wine)
-      native (ours):      cc -O2 -DGRNTEST_COMPAT -I game/granny grntest.c game/granny/granny_compat.cpp -lstdc++ -lm
+      native (ours):      cc -O2 -DGRNTEST_COMPAT -I game/granny grntest.c game/granny/granny_{compat,grn,bink}.cpp -lstdc++ -lm
+                          (both read the .grn files of the grn directory; tools/granny/verify.sh builds and runs them)
     usage: grntest <script.txt> <out.gtst> [grn directory]
 
     Script: one command per line, '#' comments.  Names are symbolic handles.

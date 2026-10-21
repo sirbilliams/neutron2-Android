@@ -1,38 +1,50 @@
 # Granny 1.2b replacement (`game/granny/`)
 
 A portable reimplementation of the 26 RAD Granny functions that `Neutron2.exe` imports from
-`granny.dll` ("1.2b", 2000), running on converted data. The API (names, arguments, handles, error
-codes, call order) is the DLL's; see [granny-api.md](granny-api.md) for how the game calls it.
+`granny.dll` ("1.2b", 2000). It reads the game's `.grn` files directly and builds from them what the DLL
+builds at load time (decoded textures, render meshes, skeletons, animation tracks), so nothing has to be
+converted and no DLL has to run. The API (names, arguments, handles, error codes, call order) is the DLL's;
+see [granny-api.md](granny-api.md) for how the game calls it.
 
 | | |
 |---|---|
-| runtime | `game/granny/granny_compat.h`, `granny_compat.cpp` (C++98, no dependencies), CMake target `granny_compat` |
-| converter | `tools/granny/grn2grc.py` (+ `grnfile.py` .grn parser, `grnextract.c` Win32 extractor run under Wine) |
-| verification | `tools/granny/verify.sh`, `grntest.c` (one script runner for both the DLL and the replacement), `grntest.py`, `tests/*.txt` |
+| runtime | `game/granny/granny_compat.h`, `granny_compat.cpp` (the 26 functions), `granny_math.h` (the DLL's transform arithmetic) |
+| loader | `granny_grn.cpp` (.grn files, render meshes, bindings, the DLL's Bink tables), `granny_bink.cpp` (the DLL's Bink texture decoder), `granny_internal.h` |
+| build | C++98, no dependencies, CMake target `granny_compat`; x86-64 and arm64, no byte-order, alignment or pointer-size assumptions |
+| verification | `tools/granny/verify.sh`: `grnextract.c` + `grncheck.cpp` (load time), `grntest.c` / `grntest.py` / `tests/*.txt` (run time) |
 
 ## Status
 
-Every output compared with the real DLL is **bit-identical**: skinned positions and normals, texture
-coordinates, colours, triangle lists, transforms, texture pixels, bone states, animation parameters, error
-codes and which handle words are filled in. `tools/granny/verify.sh` runs 15 scripts (the sweep alone
-compares 5 449 records with 567 000 skinned vertices) with max error 0, covering:
+Every output compared with the real DLL is **bit-identical**, on x86-64 (gcc) and on arm64 (gcc and clang,
+run under qemu-aarch64 with glibc), on all 389 `.grn` files of the game:
 
-- every one of the 389 `.grn` files opened as a model, rendered in its bind pose, and played (looping) on
-  its base model (`sweep`); several characters and props side by side (`multi`);
-- one animation at the game's frame rate, the game's own call pattern (lock `0x3b` at load, `0x11` per
-  frame, blend-in/out, release, prop attached by bone name) (`basic`, `game`);
-- two and more animations at once with blend weights, end-time moves, release/remove, upper/lower body
-  layering (`blend2`); speed changes, a frozen control, finite loop counts, all weight parameters (`speed`);
-- animations on models they were not made for (`cross`); b-spline + keyframe tracks (`rawmotion`);
-- attach, detach, re-attach (`attach3`); textures queued per model instance (`textures1`);
-- 22 100 frames of a looping walk (12 minutes): granny's root-motion accumulation drifts the root's scale
-  by +0.042 % over that time and the replacement drifts identically (`drift`);
-- error paths, stale handles, the lock state machine, closing objects that are still in use (`errors`,
-  `handles`, `close2`, `notex`).
+- **Load time** (`grncheck` against `grnextract`'s dump of the DLL's internal objects): 389 files, 85 decoded
+  textures (10 039 296 pixel bytes) + 2 image-less ones, 96 render meshes (24 442 render vertices with
+  positions, normals, texture coordinates and colours, 18 245 triangles, 879 bone bindings with their
+  inverse rest transforms, weight lists, copy lists, normal-to-vertex maps), the rendering states' textures
+  and blend modes: 4 975 compared items, 0 differences.
+- **Run time**: `verify.sh` runs 15 scripts on the DLL (Wine) and on the replacement (the sweep alone
+  compares 5 449 records with 567 000 skinned vertices) with max error 0: skinned positions and normals,
+  texture coordinates, colours, triangle lists, transforms, texture pixels, bone states, animation
+  parameters, error codes and which handle words are filled in. Covered:
+  - every one of the 389 `.grn` files opened as a model, rendered in its bind pose, and played (looping) on
+    its base model (`sweep`); several characters and props side by side (`multi`);
+  - one animation at the game's frame rate, the game's own call pattern (lock `0x3b` at load, `0x11` per
+    frame, blend-in/out, release, prop attached by bone name) (`basic`, `game`);
+  - two and more animations at once with blend weights, end-time moves, release/remove, upper/lower body
+    layering (`blend2`); speed changes, a frozen control, finite loop counts, all weight parameters (`speed`);
+  - animations on models they were not made for (`cross`); b-spline + keyframe tracks (`rawmotion`);
+  - attach, detach, re-attach (`attach3`); textures queued per model instance (`textures1`);
+  - 22 100 frames of a looping walk (12 minutes): granny's root-motion accumulation drifts the root's scale
+    by +0.042 % over that time and the replacement drifts identically (`drift`);
+  - error paths, stale handles, the lock state machine, closing objects that are still in use (`errors`,
+    `handles`, `close2`, `notex`).
 
-The comparison was made on x86-64 Linux (glibc). On other targets the only possible source of a
-difference is `acos`/`sin` in the slerp of blended rotations (libm results may differ in the last bit of a
-double, which only rarely survives the rounding to float); everything else is plain IEEE arithmetic.
+  The one expected difference is `notex` (4 records, see below).
+
+The only operations whose results could differ between C libraries are `acos`/`sin` in the slerp of blended
+rotations and `sqrt`/`fmod` (glibc on x86-64 and arm64 give identical results; Android's bionic was not
+available here); everything else is plain IEEE arithmetic or integer code.
 
 What is deliberately different:
 
@@ -43,62 +55,65 @@ What is deliberately different:
 - **Use after close.** The DLL keeps answering `HasControlExpired`/`GetAnimationParameter` for a control
   whose sequence was closed by reading freed memory; the replacement returns `GrannyInvalidHandle`.
 - **Materials without an image** (only in two animation files that carry meshes, `seagullmove.grn`,
-  `hermanAttack2.grn`): the DLL queues a format-0 "new texture" with uninitialised width/height and has
-  been seen to report blend modes 1/0 or 6/7 for it depending on what was loaded before; the
-  replacement reports width = height = 0 and the blend modes extracted at conversion time (6/7).
+  `hermanAttack2.grn`): the DLL queues a format-0 "new texture" with uninitialised width/height, and its
+  states' blend modes come from an uninitialised byte (`0x10013003` tests a stack slot that the texture
+  lookup at `0x10012b6a` may or may not have filled): seen as 6/7 after other models were loaded and as 1/0
+  in a fresh process. The replacement reports width = height = 0 and blend modes 6/7, so `notex` (the file
+  opened first) differs in these 4 values.
 - Not implemented (the game never does it): attaching by a child bone other than 0 (an approximate
-  inverse is used), degrees of freedom other than `0x1ff`, texture formats other than 4.
+  inverse is used), degrees of freedom other than `0x1ff`, texture formats other than 4, Bink blocks that
+  refer to a previous frame (a texture is one key frame; none of the game's textures has one).
 
-## Conversion
+## Files
 
-```sh
-python3 tools/granny/grn2grc.py <game>/Program_Executable_Files/grn <out dir> [--gxtr keep.gxtr] [files...]
-```
+The runtime maps a file name passed to `GrannyOpenModel`/`GrannyOpenAnimation` (`\` or `/`, any case: each
+path component is matched without regard to case, as the game's names do not always match the installed
+files) to the path relative to the current directory - the game passes `grn\<name>.grn` and runs in the game
+folder - or to `<dir>/<base name>` after `GrannyCompatSetDataDirectory(dir)`. Files are shared between opens.
 
-Writes `<out dir>/<name lower case>.grc` for each `.grn` (389 files, 17 MB, ~4 s including the Wine run).
-Skeletons, bone names and animation curves are parsed from the `.grn` files (`grnfile.py`). What granny
-builds at load time is taken from the DLL itself, losslessly (raw float bits): `grnextract.exe` (built with
-`i686-w64-mingw32-gcc`, cached in `~/.cache/grn2grc-wine` with a copy of `granny.dll` from the game
-directory) opens every file under Wine and dumps the decoded textures (the files store them Bink-compressed),
-the bind-pose rendering states, and the internal mesh object of each state: render-order vertex arrays,
-bone bindings with their inverse rest transforms, per-vertex weight lists, copy lists, normal-to-vertex
-mapping and per-state triangle lists. The mesh object is reached from the version object
-(`*(*(0x100721fc) + 0x10)`): `mesh = *((V[0x194] & ~3) + 0x0c)` while a state is locked; `--gxtr` keeps
-/ reuses that dump. Converted data must not be committed (`.gitignore`: `*.grc`, `*.gxtr`, `*.gtst`).
+The texture decoder needs the Bink tables of the player's own `granny.dll`, which is read as a data file (it
+is never loaded or run; the bytes are not in this source tree): from `GrannyCompatSetDllPath(path)`, else
+`<directory of the first .grn file>/../granny.dll` (the installed layout: `grn/` next to `granny.dll`), then
+that directory, then the current directory. The tables are checked by crc32: Huffman lookup tables
+`0x1005f848` (16 tables, addresses at `0x1006eda0`, index widths `0x1005fc20`), run lengths `0x1005fc30`,
+run-block patterns `0x1005f440`, DCT scan order `0x1006f05c`, intra quantisers `0x10060018`. Without a usable
+DLL the models load with image-less textures (a message is printed once).
 
-The runtime maps a file name passed to `GrannyOpenModel`/`GrannyOpenAnimation` (`\` or `/`, any case) to
-`<directory of that path>/<base name lower case>.grc`, or to `<dir>/<base name lower case>.grc` after
-`GrannyCompatSetDataDirectory(dir)`. Files are shared between opens.
+## Reading a .grn file (what granny.dll builds at GrannyOpenModel)
 
-## `.grc` format (version 1, little-endian)
+Layout and node tags: see the comments in `granny_grn.cpp` (and `tools/granny/grnfile.py`). The model is the
+first `0c00`; its skeleton (`0c08`, 1-based) gives the bones (`0506`: parent, position, quaternion,
+scale/shear), named by the tool nodes of `0c02`. Animation tracks (`1204`) are named by their tool node.
 
-`str` = `u32 length` + bytes (no terminator). Floats are the DLL's bits.
+**Textures.** One "new texture" per texture map (`0e00`) whose material exists; its image is the texture
+(`0d03`, 1-based) of that material: `0301 > 0303 { w, h, format, Bink file }`. The Bink file is revision `i`,
+one key frame; granny.dll decodes it with the Bink library linked into it (BinkOpen `0x1003c440`, BinkDoFrame
+`0x1003db40` with the plane decoder `0x10043480`, BinkCopyToBuffer `0x1003d590`): Huffman-coded bundles of
+block types, colours, patterns, runs and DCs read a block row ahead, 8x8 and scaled 16x16 blocks (run,
+intra DCT, fill, pattern, raw), the integer IDCT of `0x10049b30` (dequantise `c * q >> 11`, rows rounded
+`(x + 0x7f) >> 8`, stored as bytes without clamping). The chroma planes follow at the offset in the frame's
+first word (V, then U). RGB24 comes from the MMX blitter `0x1004a7e0` with the tables of `0x10046880`:
+`Y' = (sat(Y - 16) * 4 * 0x4a85) >> 16`, `R = Y' + Vr[V]`, `G = Y' + Ug[U] + Vg[V]`, `B = Y' + Ub[U]`,
+clamped, chroma by nearest sample, with `Vr = (V-128)*0xcc4b/32768`, `Ug = (128-U)*0x3225/32768`,
+`Vg = (128-V)*0x680f/32768`, `Ub = (U-128)*0x10235/32768` (C division). Bytes R, G, B, rows top down.
 
-```
-"GRC1"  u32 version = 1  u32 flags (1: model part present, 2: animation part present)
-model part:
-  u32 nbones   { str name; i32 parent (root: 0); f32 pos[3]; f32 quat[4] (x y z w); f32 scale_shear[9] }
-  u32 ntextures{ u32 width, height, format (4 = RGB24), bytes_per_pixel, pitch, size; u8 pixels[size] }
-  u32 nmeshes  {
-    u32 nbindings { u32 bone; f32 bt[3] (= -rest translation); f32 B[9] (inverse rest rotation*scale) }
-    u32 nrender;  f32 positions[nrender][3], normals[nrender][3], texcoords[nrender][3], colours[nrender][3]
-    u32 nsource                         (0 = rigid mesh: every vertex follows binding 0)
-    u32 nw; u32 weights[nw]             per source vertex: n, n x { u32 binding, f32 weight }
-    u32 nc; u32 copies[nc]              per source vertex: n, n x (render index - source index)
-    u32 nn; u32 normal_vertex[nn]       per render normal: source vertex whose weights it uses (~0: none)
-    u32 nstates { u32 texture (index into the textures, ~0: none); u32 src_blend, dst_blend;
-                  u32 ntriangles; u16 indices[ntriangles][3]; pad to 4 bytes } }
-animation part:
-  f64 duration                          (largest last knot / key time of all tracks)
-  u32 ntracks { str bone name; u32 kind;
-    kind 0 (keyframes): u32 nkeys; f32 key[nkeys][17] = { time, pos[3], quat[4], scale_shear[9] }
-    kind 1 (b-splines): 3 x { u32 nknots; f32 knots[nknots] }   (knot arrays)
-                        3 x { u32 degree; u32 knot array; f32 control[nknots of that array][dim] }
-                        for position (dim 3), rotation (4), scale/shear (9) }
-```
-
-Track 0 is the root track (`__Root`). All files have exactly one model part and one animation part (base
-models carry an animation with 0 or a few tracks; some animation files carry meshes).
+**Render meshes**, one per mesh of the model (`0c03`, in the model's order) with one rendering state each:
+- Render vertices: the first ones are the file's vertices (positions) in order, each taking the normal and
+  texture-layer values of the first triangle corner that uses it; a later corner of the same position with a
+  different normal or layer value (compared as floats, so NaN normals never match) reuses an earlier
+  duplicate with the same values or appends a new render vertex. Triangles in file order, corners in order;
+  the state's triangle list is the corners' render vertices. A position no triangle uses stays all zero.
+- The texture map of a mesh (`0e02`: mesh index) lists per triangle one index per corner and layer (`0e06`)
+  into the uv layers (`0804 > 0803`) named by `0e04`. With one layer it gives the texture coordinates; with
+  two the first is the vertex colour and the second the texture coordinates. Otherwise the colour is the
+  material's (`0d02`) or white.
+- Skinned meshes (`0702`): the weight list is the file's, per position `{n, n x {binding, weight}}`; the
+  copy list gives each position's duplicates (render index - position); each render normal uses the weights
+  of its position.
+- Bindings (`0c0a`, built at `0x100247a3..0x1002494e`): the bone's composed rest transform `{q, t, M}`
+  (computed like a sequence's bind pose), with `t` negated (`bt`) and `M` inverted by cofactors in place
+  (determinant `0x10018fd0` and `1/det` in double; a singular `M` is kept).
+- The state uses texture 0 (blend modes 1/0; 6/7 for an image-less one, see above).
 
 ## Semantics (from `granny.dll`'s machine code)
 
@@ -172,16 +187,26 @@ children and deletes its controls.
   (`0x41d7d3`, `0x41dcb2`) also yields texture coordinates and triangles.
 - Starting an animation (`0x41d5df`): `Add`, then param 2 = the object's speed (float at `+0x4f0`),
   param 3 = 9999 (looping) or 1, params 6 / 8 = blend time or 0.
-- Place the `.grc` files next to where the game expects the `.grn` files (or call
-  `GrannyCompatSetDataDirectory`).
+- Pass the file names as the game does (`grn\<name>.grn`, relative to the game folder); `granny.dll` must be
+  in the game folder (the importer installs it) for the textures.
 
 ## Verifying
 
 ```sh
-tools/granny/verify.sh <game>/Program_Executable_Files/grn <grc dir> [work dir] [test...]
+tools/granny/verify.sh <game>/grn [work dir] [test...]
 ```
 
-Builds `grntest.exe` (DLL, Wine) and the native runner, runs each `tools/granny/tests/<test>.txt` on both
-and prints the comparison (exit status 1 on a mismatch, 2 on a nonzero float difference). Script commands
-are listed in `grntest.c` (`model`, `seq`, `anim`, `add`, `param`, `advance`, `advancen`, `render`,
-`textures`, `bones`, `attach`, `close*`, raw `lock`/`left`/`unlock`, …; `~` stands for a space in names).
+Builds `grnextract.exe` and `grntest.exe` (DLL, Wine: `i686-w64-mingw32-gcc`, a 32-bit prefix in
+`WINEPREFIX`) and the native `grncheck` and `grntest`, then
+1. dumps what granny.dll builds from every `.grn` file (`grnextract`, a `.gxtr`: decoded textures, the bind-pose
+   rendering states, and the internal mesh object of each state, reached from the version object
+   `*(*(0x100721fc) + 0x10)`: `mesh = *((V[0x194] & ~3) + 0x0c)` while a state is locked) and compares it
+   with what `granny_grn.cpp` builds, bit for bit (`grncheck`);
+2. runs each `tools/granny/tests/<test>.txt` on both and prints the comparison (`grntest.py`).
+
+Exit status 1 on a mismatch. Script commands are listed in `grntest.c` (`model`, `seq`, `anim`, `add`,
+`param`, `advance`, `advancen`, `render`, `textures`, `bones`, `attach`, `close*`, raw `lock`/`left`/`unlock`,
+…; `~` stands for a space in names). For another architecture set `CC`/`CXX` to cross compilers and `RUN` to
+the emulator, e.g. `CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ RUN="qemu-aarch64 -L /usr/aarch64-linux-gnu"`
+(apt: `gcc-aarch64-linux-gnu g++-aarch64-linux-gnu qemu-user`; clang works the same with
+`--target=aarch64-linux-gnu`). Dumps and records must not be committed (`.gitignore`: `*.gxtr`, `*.gtst`).

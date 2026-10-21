@@ -23,7 +23,7 @@
 
 using namespace neg;
 
-// Granny (RAD): game/granny/granny_compat.cpp reimplements the granny.dll calls on converted .grc data
+// Granny (RAD): game/granny/granny_compat.cpp reimplements the granny.dll calls, reading the .grn files
 // (docs/granny-replacement.md, docs/granny-api.md).
 #include "granny_compat.h"
 

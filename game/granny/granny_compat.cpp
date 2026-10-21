@@ -6,8 +6,12 @@
     Every routine below follows the order of operations of the corresponding granny.dll function (its
     address is noted) with double temporaries and explicit float stores, which makes the results
     bit-identical (tools/granny/verify.sh).  This file must be compiled without FMA contraction
-    (-ffp-contract=off) and with IEEE double (SSE2 / ARM64; not x87).                                  */
+    (-ffp-contract=off) and with IEEE double (SSE2 / ARM64; not x87).
+
+    The transform arithmetic is in granny_math.h; the .grn files are read by granny_grn.cpp.          */
 #include "granny_compat.h"
+#include "granny_internal.h"
+#include "granny_math.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -21,352 +25,9 @@
 #pragma STDC FP_CONTRACT OFF
 #endif
 
-typedef uint32_t u32;
-typedef uint16_t u16;
-typedef double D;
-
 namespace {
 
-/* --------------------------------------------------------------------------------------- math --- */
-
-struct Local            /* granny's decomposed transform (16 floats, bone + 0xac) */
-{
-	float pos[3];
-	float q[4];         /* x y z w */
-	float ss[9];        /* scale/shear, row-major */
-};
-
-struct World            /* granny's composed transform (16 floats, bone + 0xec) */
-{
-	float q[4];
-	float t[3];
-	float M[9];         /* = R(q) * scale/shear, row-major, column vectors */
-};
-
-static void local_identity(Local &l)
-{
-	memset(&l, 0, sizeof l);
-	l.q[3] = 1.0f;
-	l.ss[0] = l.ss[4] = l.ss[8] = 1.0f;
-}
-
-static inline float F(D v) { return (float)v; }
-
-/* the normalisation used after sampling, in 0x100220b0 and at the end of 0x10021910:
-   one Newton step towards unit length, sum taken as ((x*x + y*y) + z*z) + w*w */
-static void qnorm_a(float q[4])
-{
-	D x = q[0], y = q[1], z = q[2], w = q[3];
-	D s = (3.0 - (((x * x + y * y) + z * z) + w * w)) * 0.5;
-	q[0] = F(s * x); q[1] = F(s * y); q[2] = F(s * z); q[3] = F(s * w);
-}
-
-/* rotation matrix of a quaternion (0x100185f0; same code inline in 0x100220b0 / 0x10021b90) */
-static void rotmat(const float q[4], float m[9])
-{
-	D x = q[0], y = q[1], z = q[2], w = q[3];
-	D xx = x * x, yy = y * y, zz = z * z, xy = y * x, zw = w * z;
-	float XZ = F(z * x), YZ = F(z * y), XW = F(w * x), YW = F(w * y);
-	m[0] = F(1.0 - (zz + yy) * 2.0);
-	m[1] = F((xy - zw) * 2.0);
-	m[2] = F(((D)YW + (D)XZ) * 2.0);
-	m[3] = F((zw + xy) * 2.0);
-	m[4] = F(1.0 - (zz + xx) * 2.0);
-	m[5] = F(((D)YZ - (D)XW) * 2.0);
-	m[6] = F(((D)XZ - (D)YW) * 2.0);
-	m[7] = F(((D)XW + (D)YZ) * 2.0);
-	m[8] = F(1.0 - (yy + xx) * 2.0);
-}
-
-/* local -> composed form (0x100220b0): q normalised, M = R(q) * ss, t = pos */
-static void local_to_world(const Local &l, World &w)
-{
-	float q[4] = { l.q[0], l.q[1], l.q[2], l.q[3] }, R[9];
-	qnorm_a(q);
-	memcpy(w.q, q, sizeof q);
-	{
-		/* 0x100220b0 computes the rotation with the same sequence as rotmat but takes x*z as z*x
-		   etc.; products commute, so rotmat is exact here */
-		D x = q[0], y = q[1], z = q[2], ww = q[3];
-		D xx = x * x, yy = y * y, zz = z * z, xy = y * x, zw = ww * z;
-		float XZ = F(x * z), YZ = F(y * z), XW = F(x * ww), YW = F(y * ww);
-		R[0] = F(1.0 - (zz + yy) * 2.0);
-		R[1] = F((xy - zw) * 2.0);
-		R[2] = F(((D)YW + (D)XZ) * 2.0);
-		R[3] = F((zw + xy) * 2.0);
-		R[4] = F(1.0 - (zz + xx) * 2.0);
-		R[5] = F(((D)YZ - (D)XW) * 2.0);
-		R[6] = F(((D)XZ - (D)YW) * 2.0);
-		R[7] = F(((D)XW + (D)YZ) * 2.0);
-		R[8] = F(1.0 - (yy + xx) * 2.0);
-	}
-	for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++)
-			w.M[r * 3 + c] = F(((D)l.ss[c] * R[r * 3 + 0] + (D)l.ss[3 + c] * R[r * 3 + 1]) + (D)l.ss[6 + c] * R[r * 3 + 2]);
-	w.t[0] = l.pos[0]; w.t[1] = l.pos[1]; w.t[2] = l.pos[2];
-}
-
-/* child := parent o child in composed form (0x100217b0) */
-static void world_compose(World &c, const World &p)
-{
-	D cx = c.q[0], cy = c.q[1], cz = c.q[2], cw = c.q[3];
-	D px = p.q[0], py = p.q[1], pz = p.q[2], pw = p.q[3];
-	c.q[0] = F(((cz * py - cy * pz) + cw * px) + cx * pw);
-	c.q[1] = F(((cx * pz - cz * px) + cw * py) + cy * pw);
-	c.q[2] = F(((cy * px - cx * py) + cw * pz) + cz * pw);
-	c.q[3] = F(cw * pw - ((cz * pz + cy * py) + cx * px));
-	D tx = c.t[0], ty = c.t[1], tz = c.t[2];
-	float t[3];
-	for (int r = 0; r < 3; r++)
-		t[r] = F((tz * p.M[r * 3 + 2] + ty * p.M[r * 3 + 1]) + tx * p.M[r * 3 + 0]);
-	for (int r = 0; r < 3; r++) c.t[r] = F((D)p.t[r] + (D)t[r]);
-	float m[9];
-	const float *C = c.M;
-	for (int r = 0; r < 3; r++)
-	{
-		const float *P = p.M + r * 3;
-		m[r * 3 + 0] = F(((D)P[1] * C[3] + (D)C[6] * P[2]) + (D)P[0] * C[0]);
-		m[r * 3 + 1] = F(((D)C[7] * P[2] + (D)P[1] * C[4]) + (D)P[0] * C[1]);
-		m[r * 3 + 2] = F(((D)P[1] * C[5] + (D)C[2] * P[0]) + (D)C[8] * P[2]);
-	}
-	memcpy(c.M, m, sizeof m);
-}
-
-/* out = A * B (0x10021e50) */
-static void mat_mul_e50(const float A[9], const float B[9], float out[9])
-{
-	float o[9];
-	for (int r = 0; r < 3; r++)
-	{
-		const float *a = A + r * 3;
-		o[r * 3 + 0] = F(((D)a[0] * B[0] + (D)B[3] * a[1]) + (D)B[6] * a[2]);
-		o[r * 3 + 1] = F(((D)a[0] * B[1] + (D)a[2] * B[7]) + (D)a[1] * B[4]);
-		o[r * 3 + 2] = F(((D)B[8] * a[2] + (D)B[5] * a[1]) + (D)B[2] * a[0]);
-	}
-	memcpy(out, o, sizeof o);
-}
-
-/* out = A^T * B (0x10021ec0) */
-static void mat_tmul_ec0(const float A[9], const float B[9], float out[9])
-{
-	float o[9];
-	for (int r = 0; r < 3; r++)
-	{
-		D a0 = A[r], a1 = A[3 + r], a2 = A[6 + r];
-		o[r * 3 + 0] = F((a0 * B[0] + (D)B[3] * a1) + (D)B[6] * a2);
-		o[r * 3 + 1] = F((a0 * B[1] + a2 * B[7]) + a1 * B[4]);
-		o[r * 3 + 2] = F((a2 * B[8] + (D)B[5] * a1) + (D)B[2] * a0);
-	}
-	memcpy(out, o, sizeof o);
-}
-
-/* v = M v (0x10021f30) */
-static void mat_vec_f30(const float M[9], float v[3])
-{
-	D x = v[0], y = v[1], z = v[2];
-	for (int r = 0; r < 3; r++) v[r] = F((z * M[r * 3 + 2] + y * M[r * 3 + 1]) + x * M[r * 3 + 0]);
-}
-
-/* A := A o B in decomposed form, B acting as the parent (0x10021b90; used with the per-bone offset of
-   a control, with a sequence's placement for the root, and to flatten a bone chain) */
-static void local_compose(Local &A, const Local &B)
-{
-	D ax = A.q[0], ay = A.q[1], az = A.q[2], aw = A.q[3];
-	D bx = B.q[0], by = B.q[1], bz = B.q[2], bw = B.q[3];
-	float x = F(((az * by - ay * bz) + ax * bw) + aw * bx);
-	float y = F(((ax * bz - az * bx) + ay * bw) + aw * by);
-	float z = F(((ay * bx - ax * by) + az * bw) + aw * bz);
-	D w = aw * bw - ((ax * bx + az * bz) + ay * by);
-	D s = (3.0 - (((w * w + (D)z * z) + (D)y * y) + (D)x * x)) * 0.5;
-	A.q[0] = F((D)x * s); A.q[1] = F((D)y * s); A.q[2] = F((D)z * s); A.q[3] = F(w * s);
-	float T1[9], T2[9], X[9];
-	rotmat(B.q, T1);
-	rotmat(A.q, T2);
-	const float *S = A.ss;
-	for (int r = 0; r < 3; r++)
-	{
-		const float *t = T2 + r * 3;
-		X[r * 3 + 0] = F(((D)t[1] * S[3] + (D)S[6] * t[2]) + (D)t[0] * S[0]);
-		X[r * 3 + 1] = F(((D)t[1] * S[4] + (D)t[2] * S[7]) + (D)t[0] * S[1]);
-		X[r * 3 + 2] = F(((D)t[1] * S[5] + (D)S[2] * t[0]) + (D)S[8] * t[2]);
-	}
-	mat_mul_e50(B.ss, X, A.ss);
-	mat_tmul_ec0(T2, A.ss, A.ss);
-	mat_vec_f30(B.ss, A.pos);
-	mat_vec_f30(T1, A.pos);
-	for (int i = 0; i < 3; i++) A.pos[i] = F((D)B.pos[i] + (D)A.pos[i]);
-}
-
-/* A := blend(A, B, w): lerp position and scale/shear, slerp rotation (0x10021910) */
-static void blend(Local &A, float w, const Local &B)
-{
-	float omw = F(1.0 - (D)w);
-	for (int i = 0; i < 3; i++) A.pos[i] = F((D)F((D)A.pos[i] * omw) + (D)F((D)B.pos[i] * w));
-	float ca = omw, cb = w, sign = 1.0f;
-	float d = F(((((D)A.q[0] * B.q[0] + (D)A.q[1] * B.q[1]) + (D)A.q[2] * B.q[2]) + (D)A.q[3] * B.q[3]));
-	if (d < 0.0f) { sign = -1.0f; d = -d; }
-	if (1.0 - (D)d > (D)9.99999974737875e-05f)
-	{
-		D th = acos((D)d), inv = 1.0 / sin(th);
-		ca = F(sin(th * ca) * inv * sign);
-		cb = F(sin(th * cb) * inv);
-	}
-	else
-		ca = F((D)sign * ca);
-	float q[4];
-	for (int i = 0; i < 4; i++) q[i] = F((D)F((D)B.q[i] * cb) + (D)F((D)A.q[i] * ca));
-	for (int i = 0; i < 9; i++) A.ss[i] = F((D)w * B.ss[i] + (D)omw * A.ss[i]);
-	memcpy(A.q, q, sizeof q);
-	qnorm_a(A.q);
-}
-
-/* ------------------------------------------------------------------ root motion (0x10026c60) --- */
-
-/* out = A * B, sums in index order (0x100183e0) */
-static void m3_mul(const float A[9], const float B[9], float out[9])
-{
-	float o[9];
-	for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++)
-			o[r * 3 + c] = F(((D)A[r * 3] * B[c] + (D)A[r * 3 + 1] * B[3 + c]) + (D)A[r * 3 + 2] * B[6 + c]);
-	memcpy(out, o, sizeof o);
-}
-
-static void m3_transpose(const float m[9], float out[9])     /* 0x10018260 */
-{
-	float o[9];
-	for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) o[c * 3 + r] = m[r * 3 + c];
-	memcpy(out, o, sizeof o);
-}
-
-/* out = M v, sums in index order (0x10018470) */
-static void m3_vec(const float M[9], const float v[3], float out[3])
-{
-	float o[3];
-	for (int r = 0; r < 3; r++) o[r] = F(((D)v[0] * M[r * 3] + (D)v[1] * M[r * 3 + 1]) + (D)v[2] * M[r * 3 + 2]);
-	memcpy(out, o, sizeof o);
-}
-
-/* 3x3 inverse by cofactors (0x100182b0); a singular matrix is returned unchanged */
-static void m3_inverse(const float m[9], float out[9])
-{
-	D c0 = (D)m[4] * m[8] - (D)m[7] * m[5];
-	float c1 = F((D)m[3] * m[8] - (D)m[6] * m[5]);
-	float c2 = F((D)m[7] * m[3] - (D)m[6] * m[4]);
-	D det = (c0 * m[0] - (D)c1 * m[1]) + (D)c2 * m[2];
-	if (det == 0.0) { memcpy(out, m, 36); return; }
-	D id = 1.0 / det;
-	float r[9];
-	r[0] = F(c0 * id);
-	r[3] = F(-((D)c1 * id));
-	r[6] = F((D)c2 * id);
-	r[1] = F(-(((D)m[1] * m[8] - (D)m[7] * m[2]) * id));
-	r[4] = F(((D)m[0] * m[8] - (D)m[6] * m[2]) * id);
-	r[7] = F(-(((D)m[7] * m[0] - (D)m[6] * m[1]) * id));
-	r[2] = F(((D)m[1] * m[5] - (D)m[2] * m[4]) * id);
-	r[5] = F(-(((D)m[0] * m[5] - (D)m[3] * m[2]) * id));
-	r[8] = F(((D)m[4] * m[0] - (D)m[3] * m[1]) * id);
-	memcpy(out, r, sizeof r);
-}
-
-/* inverse of a decomposed transform as 0x10026c60 computes it inline:
-   q' = conj q, ss' = R(q')^T ss^-1 R(q'), pos' = R(q') ss' (-pos) */
-static void root_inverse(const Local &a, Local &o)
-{
-	float cq[4] = { -a.q[0], -a.q[1], -a.q[2], a.q[3] };
-	float Rc[9], Rct[9], inv[9], M[9], neg[3], v[3];
-	rotmat(cq, Rc);
-	m3_inverse(a.ss, inv);
-	m3_transpose(Rc, Rct);
-	m3_mul(Rct, inv, M);
-	m3_mul(M, Rc, M);
-	for (int i = 0; i < 3; i++) neg[i] = -a.pos[i];
-	m3_vec(M, neg, v);
-	m3_vec(Rc, v, o.pos);
-	memcpy(o.q, cq, sizeof cq);
-	memcpy(o.ss, M, sizeof M);
-}
-
-/* out = X o Y (Y applied first) in decomposed form.  round_ww selects 0x100280c0, which rounds
-   wX*wY to float before subtracting the dot product; the inline copy in 0x10026c60 (quaternion
-   product 0x100186d0) does not */
-static void root_compose(const Local &X, const Local &Y, Local &out, bool round_ww)
-{
-	const float *vx = X.q, *vy = Y.q;
-	float wx = X.q[3], wy = Y.q[3];
-	float p1[3], p2[3], c[3], q[4];
-	for (int i = 0; i < 3; i++) { p1[i] = F((D)wy * vx[i]); p2[i] = F((D)wx * vy[i]); }
-	c[0] = F((D)vy[2] * vx[1] - (D)vx[2] * vy[1]);
-	c[1] = F((D)vx[2] * vy[0] - (D)vy[2] * vx[0]);
-	c[2] = F((D)vy[1] * vx[0] - (D)vy[0] * vx[1]);
-	for (int i = 0; i < 3; i++) q[i] = F((D)F((D)c[i] + p2[i]) + p1[i]);
-	D dot = ((D)vx[0] * vy[0] + (D)vx[1] * vy[1]) + (D)vx[2] * vy[2];
-	q[3] = round_ww ? F((D)F((D)wy * wx) - dot) : F((D)wy * wx - dot);
-	float RX[9], RY[9], RYt[9], S[9], v[3], pos[3];
-	rotmat(X.q, RX);
-	rotmat(Y.q, RY);
-	m3_transpose(RY, RYt);
-	m3_mul(RYt, X.ss, S);
-	m3_mul(S, RY, S);
-	m3_mul(S, Y.ss, S);
-	m3_vec(X.ss, Y.pos, v);
-	m3_vec(RX, v, v);
-	for (int i = 0; i < 3; i++) pos[i] = F((D)v[i] + X.pos[i]);
-	memcpy(out.pos, pos, sizeof pos);
-	memcpy(out.q, q, sizeof q);
-	memcpy(out.ss, S, sizeof S);
-}
-
-/* the per-track offset of a control (0x10031080 called from 0x1002ac50): B o A^-1 where granny looks
-   both A and B up by the track's name in the same table, the sequence's model skeleton - so it is the
-   bone's rest transform composed with its own inverse: an identity up to rounding noise (positions
-   ~1e-6, scale/shear ~1e-7) that granny composes onto every sample of every track 1.. */
-static void track_offset(const Local &b, const Local &a, Local &out)
-{
-	Local inv;
-	root_inverse(a, inv);
-	root_compose(b, inv, out, false);
-}
-
-/* inverse of a 3x3 by cofactors (as 0x10024853 / 0x1002a600) - only used for attaching by a child bone
-   other than 0, which the game never does */
-static void mat_inverse(const float m[9], float o[9])
-{
-	D det = ((D)m[4] * m[8] - (D)m[7] * m[5]) * m[0] - ((D)m[3] * m[8] - (D)m[6] * m[5]) * m[1]
-	      + ((D)m[7] * m[3] - (D)m[6] * m[4]) * m[2];
-	if (det == 0.0) { memcpy(o, m, 36); return; }
-	D id = 1.0 / det;
-	float r[9];
-	r[0] = F(((D)m[8] * m[4] - (D)m[5] * m[7]) * id);
-	r[3] = F(-(((D)m[8] * m[3] - (D)m[6] * m[5]) * id));
-	r[6] = F(((D)m[7] * m[3] - (D)m[6] * m[4]) * id);
-	r[1] = F(-(((D)m[8] * m[1] - (D)m[7] * m[2]) * id));
-	r[4] = F(((D)m[8] * m[0] - (D)m[2] * m[6]) * id);
-	r[7] = F(-(((D)m[7] * m[0] - (D)m[1] * m[6]) * id));
-	r[2] = F(((D)m[5] * m[1] - (D)m[2] * m[4]) * id);
-	r[5] = F(-(((D)m[5] * m[0] - (D)m[2] * m[3]) * id));
-	r[8] = F(((D)m[0] * m[4] - (D)m[1] * m[3]) * id);
-	memcpy(o, r, sizeof r);
-}
-
-/* inverse of a decomposed transform (approximately what 0x10021f70 + 0x1001c140 compute) */
-static void local_inverse(const Local &a, Local &o)
-{
-	World w;
-	local_to_world(a, w);
-	float Mi[9];
-	mat_inverse(w.M, Mi);
-	o.q[0] = -w.q[0]; o.q[1] = -w.q[1]; o.q[2] = -w.q[2]; o.q[3] = w.q[3];
-	float R[9], Rt[9];
-	rotmat(o.q, R);
-	for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) Rt[r * 3 + c] = R[c * 3 + r];
-	/* ss = R(o.q)^T * M^-1 */
-	for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++)
-			o.ss[r * 3 + c] = F((D)Rt[r * 3] * Mi[c] + (D)Rt[r * 3 + 1] * Mi[3 + c] + (D)Rt[r * 3 + 2] * Mi[6 + c]);
-	for (int r = 0; r < 3; r++)
-		o.pos[r] = F(-((D)Mi[r * 3] * w.t[0] + (D)Mi[r * 3 + 1] * w.t[1] + (D)Mi[r * 3 + 2] * w.t[2]));
-}
+using namespace granny_internal;
 
 /* ----------------------------------------------------------------------------------- b-splines --- */
 
@@ -413,23 +74,6 @@ static void bspline_eval(int degree, float t, const float *k, const float *c, in
 	}
 }
 
-struct Curve
-{
-	int degree;
-	int knots;                    /* knot array used */
-	std::vector<float> cps;       /* padded: 3 copies of the first, n points, 2 copies of the last */
-};
-
-struct Track
-{
-	std::string name;
-	int kind;                     /* 1 = b-spline, 0 = raw keys */
-	std::vector<float> knots[3];  /* padded: k0-3, k0-2, k0-1, n knots, last, last */
-	int nknots[3];
-	Curve curve[3];               /* position (3), orientation (4), scale/shear (9) */
-	std::vector<float> keys;      /* raw: n x { time, pos[3], quat[4], ss[9] } */
-};
-
 static const int curve_dim[3] = { 3, 4, 9 };
 
 /* bspline_motion::sample (0x1001f8c0) / raw_motion::sample (0x1001f160) */
@@ -465,74 +109,22 @@ static bool sample_track(const Track &tr, D t, Local &out)
 
 /* --------------------------------------------------------------------------------- data files --- */
 
-struct Binding { u32 bone; float bt[3]; float B[9]; };
-
-struct MeshState { u32 texture; u32 src_blend, dst_blend; std::vector<u16> tris; };
-
-struct Mesh
-{
-	std::vector<Binding> bindings;
-	u32 nrender;
-	std::vector<float> pos, nrm, uv, col;
-	u32 nsource;
-	std::vector<u32> weights;     /* per source vertex: n, n x { binding, f32 bits } */
-	std::vector<u32> wofs;        /* offset of each source vertex in weights */
-	std::vector<u32> copies;      /* per source vertex: n, n x relative render index */
-	std::vector<u32> normal_vertex;
-	std::vector<MeshState> states;
-	bool rigid() const { return nsource == 0 && bindings.size() < 2; }
-};
-
-struct TextureData { u32 w, h, format, bpp, pitch; std::vector<unsigned char> pixels; };
-
-struct BoneDef
-{
-	std::string name;
-	int parent;
-	Local rest;
-	Local offset;       /* rest o rest^-1 as granny computes it: see track_offset */
-};
-
-struct GrcFile
-{
-	std::string path;
-	int refs;
-	bool has_model, has_anim;
-	std::vector<BoneDef> bones;
-	std::vector<TextureData> textures;
-	std::vector<Mesh> meshes;
-	D duration;
-	std::vector<Track> tracks;
-};
-
-struct Reader
-{
-	const unsigned char *p, *e;
-	bool ok;
-	u32 u() { if (e - p < 4) { ok = false; return 0; } u32 v; memcpy(&v, p, 4); p += 4; return v; }
-	float f() { u32 v = u(); float r; memcpy(&r, &v, 4); return r; }
-	D d() { if (e - p < 8) { ok = false; return 0; } D v; memcpy(&v, p, 8); p += 8; return v; }
-	void bytes(void *dst, size_t n) { if ((size_t)(e - p) < n) { ok = false; return; } memcpy(dst, p, n); p += n; }
-	void floats(std::vector<float> &v, size_t n) { v.resize(n); if (n) bytes(&v[0], n * 4); }
-	void words(std::vector<u32> &v, size_t n) { v.resize(n); if (n) bytes(&v[0], n * 4); }
-	std::string str() { u32 n = u(); if ((u32)(e - p) < n) { ok = false; return std::string(); } std::string s((const char *)p, n); p += n; return s; }
-};
-
-static std::map<std::string, GrcFile *> g_files;
+static std::map<std::string, FileData *> g_files;
 static std::string g_datadir;
 
-static std::string grc_path(const char *file)
+/* the file the game names: '\' or '/' separated, any case (the game's names do not always match the case
+   of the installed files), relative to the current directory or, after GrannyCompatSetDataDirectory, its
+   base name in that directory */
+static std::string grn_path(const char *file)
 {
 	std::string s(file);
 	for (size_t i = 0; i < s.size(); i++) if (s[i] == '\\') s[i] = '/';
-	size_t slash = s.rfind('/');
-	std::string dir = slash == std::string::npos ? std::string() : s.substr(0, slash + 1);
-	std::string base = slash == std::string::npos ? s : s.substr(slash + 1);
-	size_t dot = base.rfind('.');
-	if (dot != std::string::npos) base = base.substr(0, dot);
-	for (size_t i = 0; i < base.size(); i++) if (base[i] >= 'A' && base[i] <= 'Z') base[i] = (char)(base[i] - 'A' + 'a');
-	if (!g_datadir.empty()) return g_datadir + "/" + base + ".grc";
-	return dir + base + ".grc";
+	if (!g_datadir.empty())
+	{
+		size_t slash = s.rfind('/');
+		s = g_datadir + "/" + (slash == std::string::npos ? s : s.substr(slash + 1));
+	}
+	return grn_find_file(s);
 }
 
 static void pad_track(Track &t)
@@ -564,112 +156,23 @@ static void pad_track(Track &t)
 	}
 }
 
-static GrcFile *load_grc(const char *file, granny_result *err)
+/* files are shared between opens (the DLL reads the file again for every open, with the same result) */
+static FileData *load_file(const char *file, granny_result *err)
 {
-	std::string path = grc_path(file);
-	std::map<std::string, GrcFile *>::iterator it = g_files.find(path);
+	std::string path = grn_path(file);
+	std::map<std::string, FileData *>::iterator it = g_files.find(path);
 	if (it != g_files.end()) { it->second->refs++; return it->second; }
-	FILE *fp = fopen(path.c_str(), "rb");
-	if (!fp) { *err = GrannyUnableToReadFromFile; return 0; }
-	std::vector<unsigned char> buf;
-	{
-		unsigned char tmp[65536];
-		size_t n;
-		while ((n = fread(tmp, 1, sizeof tmp, fp)) > 0) buf.insert(buf.end(), tmp, tmp + n);
-		fclose(fp);
-	}
-	Reader r = { buf.empty() ? 0 : &buf[0], buf.empty() ? 0 : &buf[0] + buf.size(), true };
-	if (buf.size() < 12 || memcmp(&buf[0], "GRC1", 4)) { *err = GrannyUnableToParseFile; return 0; }
-	r.p += 4;
-	GrcFile *g = new GrcFile;
-	g->path = path; g->refs = 1;
-	u32 version = r.u(), flags = r.u();
-	if (version != 1) { delete g; *err = GrannyUnableToParseFile; return 0; }
-	g->has_model = (flags & 1) != 0; g->has_anim = (flags & 2) != 0;
-	g->duration = 0;
-	if (g->has_model)
-	{
-		u32 nb = r.u();
-		g->bones.resize(nb);
-		for (u32 i = 0; i < nb && r.ok; i++)
-		{
-			BoneDef &b = g->bones[i];
-			b.name = r.str(); b.parent = (int)r.u();
-			r.bytes(b.rest.pos, 12); r.bytes(b.rest.q, 16); r.bytes(b.rest.ss, 36);
-			track_offset(b.rest, b.rest, b.offset);
-		}
-		u32 nt = r.u();
-		g->textures.resize(nt);
-		for (u32 i = 0; i < nt && r.ok; i++)
-		{
-			TextureData &t = g->textures[i];
-			t.w = r.u(); t.h = r.u(); t.format = r.u(); t.bpp = r.u(); t.pitch = r.u();
-			u32 size = r.u();
-			t.pixels.resize(size);
-			if (size) r.bytes(&t.pixels[0], size);
-		}
-		u32 nm = r.u();
-		g->meshes.resize(nm);
-		for (u32 i = 0; i < nm && r.ok; i++)
-		{
-			Mesh &m = g->meshes[i];
-			u32 nbd = r.u();
-			m.bindings.resize(nbd);
-			for (u32 k = 0; k < nbd && r.ok; k++) { m.bindings[k].bone = r.u(); r.bytes(m.bindings[k].bt, 12); r.bytes(m.bindings[k].B, 36); }
-			m.nrender = r.u();
-			r.floats(m.pos, m.nrender * 3); r.floats(m.nrm, m.nrender * 3);
-			r.floats(m.uv, m.nrender * 3); r.floats(m.col, m.nrender * 3);
-			m.nsource = r.u();
-			r.words(m.weights, r.u());
-			r.words(m.copies, r.u());
-			r.words(m.normal_vertex, r.u());
-			m.wofs.resize(m.nsource + 1);
-			{
-				u32 p = 0;
-				for (u32 v = 0; v < m.nsource; v++) { m.wofs[v] = p; p += 1 + 2 * (p < m.weights.size() ? m.weights[p] : 0); }
-				m.wofs[m.nsource] = p;
-				if (p > m.weights.size()) r.ok = false;
-			}
-			u32 ns = r.u();
-			m.states.resize(ns);
-			for (u32 s = 0; s < ns && r.ok; s++)
-			{
-				MeshState &st = m.states[s];
-				st.texture = r.u(); st.src_blend = r.u(); st.dst_blend = r.u();
-				u32 nt3 = r.u();
-				st.tris.resize(nt3 * 3);
-				if (nt3) r.bytes(&st.tris[0], nt3 * 6);
-				if ((nt3 * 6) & 2) r.p += 2;
-			}
-		}
-	}
-	if (g->has_anim)
-	{
-		g->duration = r.d();
-		u32 nt = r.u();
-		g->tracks.resize(nt);
-		for (u32 i = 0; i < nt && r.ok; i++)
-		{
-			Track &t = g->tracks[i];
-			t.name = r.str();
-			t.kind = (int)r.u();
-			if (t.kind == 0) { u32 nk = r.u(); r.floats(t.keys, nk * 17); continue; }
-			for (int a = 0; a < 3; a++) { t.nknots[a] = (int)r.u(); r.floats(t.knots[a], t.nknots[a]); }
-			for (int c = 0; c < 3; c++)
-			{
-				t.curve[c].degree = (int)r.u(); t.curve[c].knots = (int)r.u();
-				if (t.curve[c].knots < 0 || t.curve[c].knots > 2) { r.ok = false; break; }
-				r.floats(t.curve[c].cps, t.nknots[t.curve[c].knots] * curve_dim[c]);
-			}
-			pad_track(t);
-		}
-	}
-	if (!r.ok) { delete g; *err = GrannyUnableToParseFile; return 0; }
+	FileData *g = grn_load(path, err, 0);
+	if (!g) return 0;
+	g->path = path;
+	g->refs = 1;
+	for (size_t i = 0; i < g->bones.size(); i++) track_offset(g->bones[i].rest, g->bones[i].rest, g->bones[i].offset);
+	for (size_t i = 0; i < g->tracks.size(); i++) if (g->tracks[i].kind == 1) pad_track(g->tracks[i]);
 	g_files[path] = g;
 	return g;
 }
 
-static void release_grc(GrcFile *g)
+static void release_file(FileData *g)
 {
 	if (g && --g->refs == 0) { g_files.erase(g->path); delete g; }
 }
@@ -689,13 +192,13 @@ struct TextureInst { Model *model; u32 index; granny_cookie cookie; bool deliver
 struct Model
 {
 	u32 id;
-	GrcFile *file;
+	FileData *file;
 	std::vector<TextureInst *> textures;
 	u32 refs;           /* open sequences */
 	bool closed;
 };
 
-struct Animation { u32 id; GrcFile *file; u32 refs; bool closed; };
+struct Animation { u32 id; FileData *file; u32 refs; bool closed; };
 
 struct Control
 {
@@ -771,7 +274,7 @@ static Control *find_ctrl(u32 c0, u32 c1, u32 c2)
 	return c && !c->released && c->seq->id == c1 ? c : 0;
 }
 
-static const GrcFile *seq_file(const Sequence *s) { return s->model->file; }
+static const FileData *seq_file(const Sequence *s) { return s->model->file; }
 
 /* total length (0x10022600), end time (0x10022620) */
 static D ctrl_total(const Control *c) { return c->duration / c->speed * c->loops; }
@@ -932,14 +435,14 @@ static void free_model(Model *m)
 		delete m->textures[k];
 	}
 	for (size_t i = 0; i < g_models.size(); i++) if (g_models[i] == m) { g_models.erase(g_models.begin() + (long)i); break; }
-	release_grc(m->file);
+	release_file(m->file);
 	delete m;
 }
 
 static void free_anim(Animation *a)
 {
 	for (size_t i = 0; i < g_anims.size(); i++) if (g_anims[i] == a) { g_anims.erase(g_anims.begin() + (long)i); break; }
-	release_grc(a->file);
+	release_file(a->file);
 	delete a;
 }
 
@@ -1076,6 +579,8 @@ extern "C" {
 
 void GrannyCompatSetDataDirectory(const char *dir) { g_datadir = dir ? dir : ""; }
 
+void GrannyCompatSetDllPath(const char *path) { grn_set_dll_path(path); }
+
 granny_result GrannyGetLastError(void) { return g_last_error; }
 
 granny_result GrannyOpenVersion(const char *version, const char *platform, const char *date,
@@ -1106,9 +611,9 @@ granny_result GrannyOpenModel(granny_uint32 version, const char *file, granny_ui
 	out_model[0] = version;     /* the DLL fills in the first word even when the open fails */
 	if (!file) return ret(GrannyInvalidString);
 	granny_result err = GrannyOK;
-	GrcFile *g = load_grc(file, &err);
+	FileData *g = load_file(file, &err);
 	if (!g) return ret(err);
-	if (!g->has_model) { release_grc(g); return ret(GrannyUnableToFindData); }
+	if (!g->has_model) { release_file(g); return ret(GrannyUnableToFindData); }
 	Model *m = new Model;
 	m->id = g_next_id++;
 	m->file = g;
@@ -1133,9 +638,9 @@ granny_result GrannyOpenAnimation(granny_uint32 version, const char *file, grann
 	out_animation[0] = version;
 	if (!file) return ret(GrannyInvalidString);
 	granny_result err = GrannyOK;
-	GrcFile *g = load_grc(file, &err);
+	FileData *g = load_file(file, &err);
 	if (!g) return ret(err);
-	if (!g->has_anim) { release_grc(g); return ret(GrannyUnableToFindData); }
+	if (!g->has_anim) { release_file(g); return ret(GrannyUnableToFindData); }
 	Animation *a = new Animation;
 	a->id = g_next_id++;
 	a->file = g;
@@ -1184,7 +689,7 @@ granny_result GrannyAddControlledAnimation(granny_uint32 s0, granny_uint32 s1, g
 	c->id = g_next_id++;
 	c->seq = s; c->anim = a;
 	a->refs++;
-	const GrcFile *mf = seq_file(s);
+	const FileData *mf = seq_file(s);
 	const std::vector<Track> &tracks = a->file->tracks;
 	c->track_bone.assign(tracks.size(), -1);
 	for (size_t k = 1; k < tracks.size(); k++)
@@ -1315,7 +820,7 @@ granny_result GrannyLockSequenceForRendering(granny_uint32 s0, granny_uint32 s1,
 	if (g_lock) return ret(GrannyInvalidCall);
 	Lock *l = new Lock;
 	l->seq = s; l->present = present; l->next = 0; l->state_locked = false;
-	const GrcFile *f = seq_file(s);
+	const FileData *f = seq_file(s);
 	for (u32 m = 0; m < f->meshes.size(); m++)
 		for (u32 k = 0; k < f->meshes[m].states.size(); k++) l->states.push_back(std::make_pair(m, k));
 	l->pos.resize(f->meshes.size()); l->nrm.resize(f->meshes.size()); l->done.assign(f->meshes.size(), false);
@@ -1354,7 +859,7 @@ granny_result GrannyLockNextRenderingState(granny_uint32 l0, granny_uint32 l1, g
 	u32 mi = l->states[l->next].first, si = l->states[l->next].second;
 	l->next++;
 	l->state_locked = true;
-	const GrcFile *f = seq_file(l->seq);
+	const FileData *f = seq_file(l->seq);
 	const Mesh &m = f->meshes[mi];
 	const MeshState &ms = m.states[si];
 	bool want_pos = (l->present & GrannyStreamPositions) != 0, want_nrm = (l->present & GrannyStreamNormals) != 0;
@@ -1463,7 +968,7 @@ granny_result GrannyGetBoneIndexFromName(granny_uint32 s0, granny_uint32 s1, con
 	if (!index) return ret(GrannyInvalidPointer);
 	*index = 0;
 	if (!name) return ret(GrannyInvalidString);
-	const GrcFile *f = seq_file(s);
+	const FileData *f = seq_file(s);
 	for (u32 i = 0; i < f->bones.size(); i++)
 		if (f->bones[i].name == name) { *index = i; return ret(GrannyOK); }
 	return ret(GrannyInvalidString);
@@ -1585,12 +1090,12 @@ granny_result GrannyClose(granny_uint32 version)
 	delete g_lock; g_lock = 0;
 	while (!g_controls.empty()) destroy_control(g_controls.back());
 	while (!g_seqs.empty()) { delete g_seqs.back(); g_seqs.pop_back(); }
-	while (!g_anims.empty()) { release_grc(g_anims.back()->file); delete g_anims.back(); g_anims.pop_back(); }
+	while (!g_anims.empty()) { release_file(g_anims.back()->file); delete g_anims.back(); g_anims.pop_back(); }
 	while (!g_models.empty())
 	{
 		Model *m = g_models.back();
 		for (size_t k = 0; k < m->textures.size(); k++) delete m->textures[k];
-		release_grc(m->file); delete m; g_models.pop_back();
+		release_file(m->file); delete m; g_models.pop_back();
 	}
 	g_new_textures.clear();
 	g_open = false;
