@@ -96,7 +96,8 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	virtual void CopyPropertiesTo(CGameObject *dst);						// SLOT 257 0x4ae9a0
 	virtual void DeleteAllProperties(void);									// SLOT 259 0x4af3f0
 	virtual void v248(void);												// SLOT 248 0x4ae3a0 element angles from the rotation (v249)
-	virtual void v262(CGameObject *other, float dist);						// SLOT 262 0x4af030 (TODO body)
+	virtual void v262(CGameObject *other, float dist);						// SLOT 262 0x4af030 pushed by a touching object
+	virtual void v263(CGameObject *other, OMedia3DVector pos, float r_other, float dist);	// SLOT 263 0x4af0b0 the push
 	virtual void v221(float a, float b, float c, float d);					// SLOT 221 0x4ad5e0 (TODO body)
 	virtual void v23(CGameObject *o) { (void)o; }							// SLOT 23 0x464ee0 (empty)
 	virtual void v24(CGameObject *o) { (void)o; }							// SLOT 24 0x464ee0 (empty)

@@ -3,6 +3,7 @@
 
 #include "CGameObject.h"
 #include "Game.h"
+#include "Physics.h"
 #include "Todo.h"
 #include "OMediaStreamOperators.h"
 #include <SDL.h>
@@ -15,6 +16,7 @@
 #include <math.h>
 #include "Bridge.h"
 #include "OMediaTrigo.h"
+#include "OMedia3DVector.h"
 
 std::list<CGameObject *> g_objects;					// 0x56af34
 
@@ -566,10 +568,58 @@ void CGameObject::v248(void)
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-void CGameObject::v262(CGameObject *other, float dist)	// 0x4af030: push away unless other is a C3DWHEEL
+// 0x4af030: touching `other` (centre distance `dist`): pushed away by it, unless it is a C3DWHEEL.
+// (The original pushes `dist` for slot 263 before it calls slot 151, which takes no argument.)
+void CGameObject::v262(CGameObject *other, float dist)
 {
-	(void)other; (void)dist;
-	NEG_TODO(0x4af030, "CGameObject slot 262");
+	if (other->NameContains((char *)"C3DWHEEL")) return;	// vtable +0x18
+	float p[4];
+	other->v195(p);											// +0x30c
+	const float r = other->v151();							// +0x25c radius
+	v263(other, OMedia3DVector(p[0], p[1], p[2], p[3]), r, dist);	// +0x41c
+}
+
+// 0x4af0b0: the push between two touching spheres. Unless this object is fixed (slot 93 = 2) or
+// has no physics, it is pushed out along the line of centres by the overlap (half of it unless
+// the other one is fixed; never downwards): the velocity gets overlap * normal * overlap (sic),
+// the position is moved against the terrain by overlap * normal. Unless slot 129, a moving other
+// also spins it round Y: (its direction turned 90 degrees round Y . normal) * its speed * 0.05.
+void CGameObject::v263(CGameObject *other, OMedia3DVector pos, float r_other, float dist)
+{
+	if (v93() == 2) return;									// +0x174
+	const float s = v151() + r_other;						// +0x25c
+	if (!(s > dist)) return;
+	if (!v131()) return;									// +0x20c
+	float me[4];
+	v195(me);
+	OMedia3DVector n(me[0] - pos.x, me[1] - pos.y, me[2] - pos.z, 0.0f);
+	if (n.quick_magnitude() == 0.0f) return;				// 0x4caa44 (an unordered result returns too)
+	float inv = 1.0f / n.quick_magnitude();					// 0x4caa6c
+	n.x = inv * n.x; n.y = inv * n.y; n.z = inv * n.z;
+	const OMedia3DVector normal = n;
+	float k = s - dist;
+	if (other->v93() != 2) k = k * 0.5f;					// 0x4caa5c
+	n.x = n.x * k;
+	if (n.y > 0.0f) n.y = n.y * k;
+	else n.y = 0;
+	n.z = n.z * k;
+	v178(n.x * k, n.y * k, n.z * k);						// +0x2c8 velocity +=
+	float p[4];
+	v195(p);
+	OMedia3DVector at(p[0], p[1], p[2], p[3]);
+	PhysicsMoveAgainstTerrain(this, &at, n, true);			// 0x4b6500
+	v196(at.x, at.y, at.z, at.w);							// +0x310
+	if (v129()) return;										// +0x204
+	float ov[4];
+	other->v174(ov);										// +0x2b8 velocity
+	OMedia3DVector u(ov[0], ov[1], ov[2], ov[3]);
+	const float m = u.quick_magnitude();
+	if (!(m > 0.0f)) return;
+	inv = 1.0f / u.quick_magnitude();
+	u.x = inv * u.x; u.y = inv * u.y; u.z = inv * u.z;
+	u.rotate(0, 0x1000, 0);									// (inline, OMediaCosSinTable)
+	const float spin = (u.z * normal.z + u.y * normal.y + u.x * normal.x) * m * 0.05f;	// 0x4d2cbc
+	v173(0, spin, 0);										// +0x2b4 spin +=
 }
 
 void CGameObject::v221(float a, float b, float c, float d)	// 0x4ad5e0: velocity / heading physics
