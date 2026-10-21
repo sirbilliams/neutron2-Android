@@ -16,6 +16,7 @@
     lower, translated here.                                                                    */
 #include "../C3DJimmy.h"
 #include "../level3c/C3DHoverCycle.h"
+#include "../level3d/C3DCraneBoom.h"
 #include "../C3DRocketShip.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
@@ -1054,7 +1055,10 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			v136(0);
 			g_5461cc = 0;
 			PlayGameSound(-1, std::string("cranestart"), false);
-			NEG_TODO(0x44adfb, "C3DCraneBoom +0x8c8 (cgo) = Jimmy (driver)");
+			{
+				C3DCraneBoom *b = dynamic_cast<C3DCraneBoom *>(c);
+				if (b) b->m_driver = static_cast<CGameObject *>(this);	// 0x44adfb (port: checked)
+			}
 			cam = c;
 			break;
 		}
@@ -1310,7 +1314,12 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			NEG_TODO(0x449c71, "C3DCraneBoom +0x8cc (cgo, channel) stopped; +0x8c8 = 0");
+			C3DCraneBoom *b = dynamic_cast<C3DCraneBoom *>(c);	// (port: checked)
+			if (b)
+			{
+				StopGameSound(b->m_channel, false);			// 0x449c71 (0x48f0d0)
+				b->m_driver = NULL;
+			}
 			break;
 		}
 
