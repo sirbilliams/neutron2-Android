@@ -104,17 +104,6 @@ void Caption(std::string &out)
 	}
 }
 
-const char *MenuItemName(int page, int id)
-{
-	for (std::list<C2DInGameMenu::MenuObject *>::iterator i = C2DInGameMenu::s_objects.begin();
-		 i != C2DInGameMenu::s_objects.end(); ++i)
-	{
-		C2DInGameMenu::MenuObject *m = *i;
-		if (m && m->type == C2DInGameMenu::MOBJ_MENUITEM && m->page == page && m->id == id) return m->name;
-	}
-	return NULL;
-}
-
 void Build(std::string &o)
 {
 	o = "{";
@@ -133,25 +122,20 @@ void Build(std::string &o)
 	Key(o, "lives"); Int(o, g_lives);
 	Key(o, "score"); Int(o, g_score);
 
-	// gadgets: the inventory page (menu.dat MENUITEMs of INV_MENU)
+	// gadgets: the inventory page (page 0, items 0..10, built in code by CreateMenuPages; the
+	// item type is the menu state SetItemState gives it, 0 = not shown). No names: the game has none.
 	Key(o, "gadget"); Int(o, g_cur_gadget);
 	if (g_menu)
 	{
-		const char *n = MenuItemName(C2DInGameMenu::MENU_INV, g_cur_gadget);
-		if (n && g_cur_gadget) { Key(o, "gadget_name"); Str(o, n); }
 		C2DInGameMenu::MenuPage *inv = C2DInGameMenu::Page(C2DInGameMenu::MENU_INV);
 		Key(o, "gadgets"); o += '[';
 		bool first = true;
-		for (std::list<C2DInGameMenu::MenuObject *>::iterator i = C2DInGameMenu::s_objects.begin();
-			 i != C2DInGameMenu::s_objects.end(); ++i)
+		for (int i = 0; inv && i < C2DInGameMenu::MENU_ITEMS; i++)
 		{
-			C2DInGameMenu::MenuObject *m = *i;
-			if (!m || m->type != C2DInGameMenu::MOBJ_MENUITEM || m->page != C2DInGameMenu::MENU_INV) continue;
-			if (m->id < 0 || m->id >= C2DInGameMenu::MENU_ITEMS) continue;
+			if (!inv->items[i].active && !inv->items[i].type) continue;
 			if (!first) o += ',';
 			first = false;
-			o += '['; Int(o, m->id); o += ','; Str(o, m->name); o += ',';
-			Int(o, inv ? inv->items[m->id].type : -1); o += ']';
+			o += '['; Int(o, i); o += ','; Int(o, inv->items[i].type); o += ']';
 		}
 		o += ']';
 	}

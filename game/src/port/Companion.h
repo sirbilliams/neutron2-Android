@@ -15,8 +15,8 @@
       mode     game mode (0 starting, 1 loading, 2 saving, 3 cut scene, 4 menu, 5 playing, 6 paused);
       cut      1 in a cut scene
       energy   neutron energy 0..100 (the HUD bar);  energy_max 100;  lives;  score
-      gadget   current gadget number (0 = none);  gadget_name  its menu.dat item name
-      gadgets  [[number, name, menu item type], ...] the inventory page items (type 0: not shown)
+      gadget   current gadget number (0 = none)
+      gadgets  [[item, menu state], ...] the inventory page items (state 0: not shown / not owned)
       tasks    [[name, state], ...] the story tasks
       caption  the caption being typed (C3DTextTrigger lines of the current group, so far)
       boss     {"name", "hp" 0..1, "bar" 1 while its bar is up} (C3DHerman)

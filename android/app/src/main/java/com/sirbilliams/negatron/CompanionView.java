@@ -90,8 +90,16 @@ final class CompanionView extends View {
 
         // gadget
         int gadget = d.optInt("gadget", 0);
-        String gname = d.optString("gadget_name", "");
-        text(c, "Gadget: " + (gadget == 0 ? "none" : (gname.isEmpty() ? "#" + gadget : gname)), x, y + 32 * u, 30 * u, TEXT);
+        StringBuilder owned = new StringBuilder();
+        JSONArray gadgets = d.optJSONArray("gadgets");
+        for (int i = 0; gadgets != null && i < gadgets.length(); i++) {
+            JSONArray g = gadgets.optJSONArray(i);
+            if (g == null || g.optInt(1, 0) == 0) continue;
+            int n = g.optInt(0, -1);
+            owned.append(n == gadget ? " [" + n + "]" : " " + n);
+        }
+        text(c, "Gadget: " + (gadget == 0 ? "none" : "#" + gadget) + "    Have:" + (owned.length() == 0 ? " -" : owned.toString()),
+                x, y + 32 * u, 30 * u, TEXT);
         y += 48 * u;
 
         // collected counts
