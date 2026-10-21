@@ -98,6 +98,38 @@ the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1`
 snapshot once a second, and `NEG_COMPANION_DUMP=<dir>` writes the map, the snapshot and the icons
 there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel from them.
 
+## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
+
+The original has no menu before the game (manual p. 6-7; CEditor::UpdateGame 0x4a5c70): the
+installer's `save\StartLevel.txt` says `autosave`, so every start continues `save\autosave.tsk`;
+without one (first run, or the shipped DUMMY placeholder) a new game starts in level1d.gam
+(title / logo screens, then the story) and the autosaves are deleted. Its Main Menu is the PDA
+that ESC opens; New / Load / Save / Delete are on its Load/Save page (slots
+`save\JimmyGame1..10.tsk`). Details: `game/src/port/StartMode.h`.
+
+The launcher sets `NEG_START` in the environment before the engine starts (like
+`NEG_WIDESCREEN`; unset it when not wanted, the process can outlive a run):
+
+| NEG_START | What happens |
+|---|---|
+| unset / `menu` | The original start; when a saved game was continued, the original Main Menu (PDA) opens as soon as Jimmy plays. The default ("original menu"). |
+| `original` | Exactly the original start, no menu. |
+| `new` | New game (level1d.gam; the autosaves are deleted, as the original's New). |
+| `continue` | The autosave; a new game when there is none. |
+| `load:<n>` | Save slot n = 1..10 (`save\JimmyGame<n>.tsk`); the original start when the slot is empty. |
+
+`NEG_TEST_PLAY` (level picker) wins over `NEG_START`.
+
+Save list for the launcher: `save/slots.txt` in the game folder, written by the game at
+start-up and whenever the autosave or a slot is written or deleted (missing = the game has not
+run yet, no saves). Lines starting with `#` are comments; one line per saved game, TAB-separated:
+`<slot> <level id> <level name> <gam file> <score> <mtime>`, e.g.
+`3	LV5F	dinosaurs	Level5f.gam	1200	1792617355`. slot = `autosave` or 1..10 (the
+`load:<n>` number); level name = the game's own Load/Save page name (may be empty); mtime = Unix
+seconds (the save date). Empty and DUMMY slots are not listed. (A launcher may also parse the
+.tsk header itself: big-endian; strings are a length byte + chars: version ("DUMMY   " =
+empty), int level 4cc, string gam file, string task file, float health, short lives, int score.)
+
 ## Pointer helpers
 
 `game/src/Mouse.h` has the shared pointer helpers: `GetMousePos` 0x4b1d10, `SetMousePos`

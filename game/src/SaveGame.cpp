@@ -8,6 +8,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "SaveGame.h"
+#include "port/StartMode.h"
 #include "CGameObject.h"
 #include "CLocalGameObject.h"
 #include "CGameType.h"
@@ -516,6 +517,7 @@ void neg::WriteTaskFile(const char *name)
 		Local(o)->WriteState(fs);							// slot 284
 	}
 	fs.close();
+	WriteSaveSlotList();									// port: save\slots.txt (StartMode.h)
 }
 
 void neg::SaveTask(const char *name)

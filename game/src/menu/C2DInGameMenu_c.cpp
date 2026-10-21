@@ -31,6 +31,7 @@
 #include <string.h>
 #include <strings.h>
 #include <string>
+#include "../port/StartMode.h"
 
 using namespace neg;
 
@@ -95,7 +96,7 @@ static void SetItemState(short menu, short item, short state)
 }
 
 // Name of a level (save menu), by its 4cc. NULL for an unknown one.
-static const char *LevelName(int level)
+const char *neg::SaveLevelName(int level)		// port: shared with port/StartMode.cpp (save\slots.txt)
 {
 	switch (level)
 	{
@@ -120,6 +121,7 @@ static const char *LevelName(int level)
 	}
 	return NULL;
 }
+static const char *LevelName(int level) { return neg::SaveLevelName(level); }
 
 // Save slots: save-menu items 6..15 are save\JimmyGame1..10.tsk.
 static const char *const kSaveFiles[10] = {
@@ -866,6 +868,7 @@ void C2DInGameMenu::SaveToSlot(void)									// 0x40e7a0
 	strcpy(src, "save\\");
 	strcat(src, "autosave.tsk");
 	if (g_save_slot >= 6 && g_save_slot <= 15) CopyFileDos(src, kSaveFiles[g_save_slot - 6]);
+	neg::WriteSaveSlotList();										// port: save\slots.txt
 	f_5ac = 1.0f;
 	ForceShow(g_game_saved_box);
 	SetGameState(5);
@@ -874,6 +877,7 @@ void C2DInGameMenu::SaveToSlot(void)									// 0x40e7a0
 void C2DInGameMenu::DeleteSaveSlot(void)								// 0x40e6e0
 {
 	if (g_save_slot >= 6 && g_save_slot <= 15) DeleteFileDos(kSaveFiles[g_save_slot - 6]);
+	neg::WriteSaveSlotList();										// port: save\slots.txt
 }
 
 // --------------------------------------------------------------------------- options file
