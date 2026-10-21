@@ -16,6 +16,7 @@
 #include "../Todo.h"
 #include "../CGameType.h"
 #include "../Sound.h"
+#include "../CEditor.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -84,8 +85,6 @@ static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame s
 // (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 // Menu helper 0x40c0f0 (letterbox in/out around cut scenes), used by SetGameMode.
 static void CutsceneLetterbox(bool on)	{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
-// g_editor->f_74c = 0 (CEditor not reconstructed).
-static void EditorClearFlag74c(void)	{ NEG_TODO(0x40ac30, "g_editor->f_74c = 0"); }
 
 // --------------------------------------------------------------------------- input / system helpers
 
@@ -895,7 +894,7 @@ void C2DInGameMenu::Process(float dt)
 
 void C2DInGameMenu::v260()
 {
-	EditorClearFlag74c();
+	g_editor->m_load_pending = 0;							// +0x74c: the level has loaded
 	g_545f0e = 0;
 }
 

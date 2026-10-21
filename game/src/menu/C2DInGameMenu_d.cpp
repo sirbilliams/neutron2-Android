@@ -12,6 +12,7 @@
     call casts and is marked (merged: calls now use the real slot types).  */
 
 #include "../C2DInGameMenu.h"
+#include "../CEditor.h"
 #include "../CGameType.h"
 #include "../CanvasWrapper.h"
 #include "../CGameObject.h"
@@ -38,8 +39,6 @@ enum { VK_ESCAPE_KEY = 0x1b };
 // --------------------------------------------------------------------------- stubs (other systems)
 
 // Sound: PlaySound 0x4b8380 / StopChannel 0x4b88e0 (Sound.h)
-// g_editor +0x74c (a byte) = 0 when a fade ends.
-static void EditorClear74c(void)		{ NEG_TODO(0x406bdc, "CEditor +0x74c = 0 (fade end)"); }
 // g_gametype +0x490: the running level's 4cc ('LV5C' ...).
 static int GameTypeLevelID(void)		{ NEG_TODO(0x40fe7f, "CGameType +0x490 (level id)"); return 0; }
 // 0x4b1d50: puts the cursor in the middle of the viewport (g_viewport +0xd4..0xe0, world +0x38 ...).
@@ -708,7 +707,7 @@ void C2DInGameMenu::v341(float dt)
 		{
 			case 0: case 1: case 2: case 3:
 				g_fade_done = true;
-				EditorClear74c();
+				g_editor->m_load_pending = 0;		// 0x406bdc: +0x74c
 				g_fade_cur->hide(true);
 				break;
 			case 4:
