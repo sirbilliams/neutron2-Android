@@ -63,6 +63,7 @@ C3DPlayerObject::C3DPlayerObject()							// 0x464d50
 	f_930 = 1.0f;
 	g_5461cc = 0;
 	f_934 = -1;
+	strcpy(f_938, g_545f14);
 	g_5461ce = 0;
 }
 
