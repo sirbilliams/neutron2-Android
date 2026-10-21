@@ -12,6 +12,7 @@
 #include "../CGameType.h"
 #include "../Game.h"
 #include "../Globals.h"
+#include "../Mouse.h"
 #include "../Physics.h"
 #include "../Sound.h"
 #include "../Todo.h"
@@ -147,14 +148,68 @@ static bool KeyListDown(const int *list)
 }
 static bool PlayerKeyBrake(void) { return KeyListDown(g_key_brake); }	// 0x4656f0
 
-// 0x4a39f0 (CAweReal): the mouse movement with a dead zone and a sensitivity
-// (dx, dy, dt, 8, 6, 50, 10 here). Not reconstructed yet: no mouse steering.
+// 0x4a39f0 (CAweReal): the mouse steering, (dx, dy, dt, 8, 6, 50, 10) here. Per axis, the pointer's
+// distance from the viewport's centre (centre - pointer): inside the dead zone (+-lim), with the
+// held value inside it too, the axis is 0 and the held value cleared; outside, the distance / k
+// (k <= 0: 0.0001) is kept when it is further out than the held value (g_56aebe x, g_56aec0 y;
+// the last one computed in g_56aeba / g_56aebc), and the held value is the result. Every 0.2 s
+// (g_56aea8) the pointer goes back to the centre. Nothing happens while g_56aed0 is set.
 static void MouseSteer(short *dx, short *dy, float dt, float kx, float ky, short limx, short limy)
 {
-	(void)dt; (void)kx; (void)ky; (void)limx; (void)limy;
-	NEG_TODO(0x4a39f0, "mouse movement with dead zone (C3DHoverCycle steering)");
-	*dx = 0;
-	*dy = 0;
+	if (g_56aed0) return;
+	short x = 0, y = 0;
+	GetMousePos(&x, &y);									// 0x4b1d10
+	const short rx = (short)(MouseCentreX() - x);			// 0x4b1da0
+	const short ry = (short)(MouseCentreY() - y);			// 0x4b1dc0
+	short held = g_56aebe;
+	if (rx > limx || rx < -limx || held > limx || held < -limx)
+	{
+		if (kx <= 0.0f) kx = 0.0001f;						// 0x4caa44, 0x38d1b717
+		if (rx > limx)
+		{
+			g_56aeba = (short)(int)((float)rx / kx);		// 0x4ba850 (ftol)
+			if (g_56aeba > held) { held = g_56aeba; g_56aebe = held; }
+		}
+		if (rx < -limx)
+		{
+			g_56aeba = (short)(int)((float)rx / kx);
+			if (g_56aeba < held) { held = g_56aeba; g_56aebe = held; }
+		}
+		*dx = held;
+	}
+	else
+	{
+		g_56aebe = 0;
+		*dx = 0;
+	}
+	held = g_56aec0;
+	if (ry > limy || ry < -limy || held > limy || held < -limy)
+	{
+		if (ky <= 0.0f) ky = 0.0001f;
+		if (ry > limy)
+		{
+			g_56aebc = (short)(int)((float)ry / ky);
+			if (g_56aebc > held) { held = g_56aebc; g_56aec0 = held; }
+		}
+		if (ry < -limy)
+		{
+			g_56aebc = (short)(int)((float)ry / ky);
+			if (g_56aebc < held) { held = g_56aebc; g_56aec0 = held; }
+		}
+		*dy = held;
+	}
+	else
+	{
+		g_56aec0 = 0;
+		*dy = 0;
+	}
+	if (g_56aea8 > 0.0)										// 0x4d17c0 (a double)
+	{
+		g_56aea8 = g_56aea8 - dt;
+		return;
+	}
+	CenterMouse();											// 0x4b1d50
+	g_56aea8 = 0.2f;
 }
 
 // The rider: C3DJimmy element slot 134 (+0x218) hurts him.
