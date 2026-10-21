@@ -7,6 +7,7 @@
 #include "C3DJetpackFire.h"
 #include "C3DTargetCursor.h"
 #include "C3DPointCursor.h"
+#include "C3DASEObj.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
@@ -25,7 +26,6 @@ namespace neg {
 CGameObject *New_C3DRocketShip(void);		// 0x46a290
 CGameObject *New_C3DWaterBalloon(void);		// 0x47c780
 CGameObject *New_C3DGoddard(void);			// 0x4383d0
-CGameObject *New_C3DASEObj(void);			// 0x4207e0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
@@ -268,12 +268,16 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_d5c = As<C3DPlayerObject>(New_C3DGoddard());			// 0x1bcc bytes
 	f_d40 = new C3DRadar;									// 0x640 bytes
 	f_d48 = 0;
-	f_d44 = As<C3DAnimated>(New_C3DASEObj());				// 0xbb0 bytes
+	f_d44 = new C3DASEObj;									// 0xbb0 bytes
 	if (f_d44)
 	{
-		// C3DASEObj +0x988 / +0x924 "energybubble.ase", +0x9ec "vrtankbubble.ase",
-		// +0xa50 "stratobubble.ase", +0xab4 "bubble.png", +0xb80 0.5, +0xb84 0.1
-		NEG_TODO(0x4443ee, "C3DASEObj bubble files (+0x924..+0xab4) and +0xb80 / +0xb84");
+		strcpy(f_d44->f_988, "energybubble.ase");			// STOP
+		strcpy(f_d44->f_924, "energybubble.ase");			// ANIMATE
+		strcpy(f_d44->f_9ec, "vrtankbubble.ase");			// ANIM1
+		strcpy(f_d44->f_a50, "stratobubble.ase");			// ANIM2
+		strcpy(f_d44->f_ab4, "bubble.png");
+		f_d44->f_b80 = 0.5f;								// texture scrolling
+		f_d44->f_b84 = 0.1f;
 		f_d44->f_89c = 0.2f;								// "Translucent"
 		f_d44->HideAgain();									// element +0xdc
 		f_d44->v52(0);										// +0xd0
