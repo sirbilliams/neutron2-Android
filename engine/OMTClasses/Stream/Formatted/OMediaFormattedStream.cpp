@@ -29,6 +29,7 @@
 ******************************************************************/
  
 #include "OMediaFormattedStream.h"
+#include "OMediaFileStream.h"
 #include "OMediaTimeCounter.h"
 #include "OMediaStream.h"
 #include "OMediaError.h"
@@ -55,6 +56,14 @@ OMediaFormattedStream::~OMediaFormattedStream()
 	flush_buffer_chunk();
 	flush_buffer();
 
+	// port: a database on a read-only file is never rewritten. OMediaDataBase::get_object creates
+	// a chunk it doesn't have (the game asks for a few, e.g. a missing OmtIndex), which marks the
+	// header dirty; compressing and saving it here then wrote to the read-only .omt file (EBADF),
+	// and the exception ended the game at the next level change. Game files are never written.
+	{
+		OMediaFileStream *fs = dynamic_cast<OMediaFileStream*>(stream);
+		if (fs && fs->isreadonly()) update_header = false;
+	}
 	if (update_header) 
 	{	
 		chunk_open = NULL;		
