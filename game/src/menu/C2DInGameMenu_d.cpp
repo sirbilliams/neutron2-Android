@@ -19,6 +19,7 @@
 #include "../Game.h"
 #include "../Todo.h"
 #include "../Sound.h"
+#include "../C3DTriggerType.h"
 #include "OMediaViewPort.h"
 #include "OMediaRGBColor.h"
 #include <list>
@@ -47,7 +48,8 @@ static void CenterCursor(void)			{ NEG_TODO(0x4b1d50, "centre the cursor"); }
 // A C3DTriggerType (element vtable +0xdc, its CGameObject base at +0xc8) activated by name.
 static void TriggerTypeActivate(CGameObject *o, const char *name, int a)
 {
-	NEG_TODO(0x406cb0, "C3DTriggerType element slot 55 (activate)"); (void)o; (void)name; (void)a;
+	C3DTriggerType *t = o ? dynamic_cast<C3DTriggerType *>(o) : NULL;	// 0x406cb0 (o - 0xc8)
+	if (t) t->CallNextTrigger(name, (unsigned char)a);					// element +0xdc
 }
 // A C3DFlyingCamera (element vtable +0x240, its CGameObject base at +0xc0).
 namespace neg { void FlyingCameraTrigger(CGameObject *o); }			// objects/C3DFlyingCamera.cpp

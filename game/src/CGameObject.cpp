@@ -448,6 +448,23 @@ OMedia3DVector CGameObject::v224(float x, float y, float z)
 	return OMedia3DVector(p[0] + rx, p[1] + ry, p[2] + rz, 1.0f);
 }
 
+// 0x4ad990: as v224 without the position: (x, y, z) rotated by the object's angles v201, w 0.
+OMedia3DVector CGameObject::v226(float x, float y, float z)
+{
+	float rot[4];
+	v201(rot);											// vtable +0x324
+	const float kDegToAngle = 45.511112213134766f;		// 0x4cb228: 16384 / 360
+	omt_Angle ax = (omt_Angle)((int)(rot[0] * kDegToAngle) & omc_MaxAngleMask);
+	omt_Angle ay = (omt_Angle)((int)(rot[1] * kDegToAngle) & omc_MaxAngleMask);
+	omt_Angle az = (omt_Angle)((int)(rot[2] * kDegToAngle) & omc_MaxAngleMask);
+	OMediaCosSinTable &t = OMediaCosSinTable::global;
+	float sx = t.sin(ax), cx = t.cos(ax), sy = t.sin(ay), cy = t.cos(ay), sz = t.sin(az), cz = t.cos(az);
+	float a = cz * y - sz * x;							// about z
+	float b = sz * y + cz * x;
+	float c = cx * z - a * sx;							// about x
+	return OMedia3DVector(b * cy - c * sy, a * cx + sx * z, c * cy + b * sy, 0.0f);	// about y
+}
+
 unsigned char CGameObject::v231(CGameObject *other)		// 0x410490: PhysicsCollideObjects asks both objects
 {
 	(void)other;

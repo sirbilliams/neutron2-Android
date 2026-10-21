@@ -6,7 +6,6 @@
 void CGameObject::v20(unsigned int *a2, unsigned int a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7)	{ NEG_TODO(0x4abb30, "CGameObject slot 20"); }
 unsigned int CGameObject::v223(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6)	{ NEG_TODO(0x4ad950, "CGameObject slot 223"); return (unsigned int)0; }
 unsigned int CGameObject::v225(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6)	{ NEG_TODO(0x4ada90, "CGameObject slot 225"); return (unsigned int)0; }
-void CGameObject::v226(float a2, float a3, float a4, unsigned int a5)	{ NEG_TODO(0x4ad990, "CGameObject slot 226"); }
 void CGameObject::v227(float a2, unsigned int a3)	{ NEG_TODO(0x4adad0, "CGameObject slot 227"); }
 unsigned int CGameObject::v228(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8, unsigned int a9, unsigned int a10)	{ NEG_TODO(0x4addb0, "CGameObject slot 228"); return (unsigned int)0; }
 unsigned int CGameObject::v229(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8, unsigned int a9)	{ NEG_TODO(0x4add60, "CGameObject slot 229"); return (unsigned int)0; }

@@ -38,14 +38,10 @@ static CGameObject *FindObjectByTag(const char *tag)
 	return NULL;
 }
 
-// The original reads C3DPickupItem's member +0x6d8 (game-object offset; object +0x798), the
-// item's index into g_object_states. C3DPickupItem is not reconstructed yet.
-static int PickupItemIndex(CGameObject *item)
-{
-	(void)item;
-	NEG_TODO(0x41c203, "C3DPickupItem +0x6d8 (pickup index) for PickupLink");
-	return -1;
-}
+// The original reads C3DPickupItem's member +0x6d8 (game-object offset; object +0x7a0), the
+// item's index into g_object_states (pickups/CPickupType.cpp).
+namespace neg { int PickupIndexOf(CGameObject *o); }
+static int PickupItemIndex(CGameObject *item)	{ return neg::PickupIndexOf(item); }	// 0x41c203
 
 static void SetAllBlend(OMedia3DShape *sh, omt_BlendFunc src, omt_BlendFunc dst)
 {

@@ -12,7 +12,6 @@
 #include "../Sound.h"
 #include "../gen/globals.h"
 #include "OMedia3DVector.h"
-#include "OMediaTrigo.h"
 #include "OMediaStreamOperators.h"
 #pragma GCC diagnostic pop
 #include <math.h>
@@ -51,25 +50,6 @@ static void PositionSprite(OMediaCanvasElementWrapper *e, float x, float y)
 	const float px = sx * x - (float)((short)g_screen_w / 2);
 	const float py = ((float)((short)g_screen_h / 2) - e->get_height()) - sy * y;
 	e->place(px, py, 0);
-}
-
-// CGameObject slot 226 (0x4ad990): the local direction (x, y, z) turned by the object's angles
-// v201 (as v224, without the position), w 0. port: a static copy - the generated slot is still
-// a TODO with the wrong signature, and no class overrides it.
-static OMedia3DVector LocalDirection(CGameObject *o, float x, float y, float z)
-{
-	float rot[4];
-	o->v201(rot);											// vtable +0x324
-	const float kDegToAngle = 45.511112213134766f;			// 0x4cb228: 16384 / 360
-	omt_Angle az = (omt_Angle)((int)(rot[2] * kDegToAngle) & omc_MaxAngleMask);
-	omt_Angle ay = (omt_Angle)((int)(rot[1] * kDegToAngle) & omc_MaxAngleMask);
-	omt_Angle ax = (omt_Angle)((int)(rot[0] * kDegToAngle) & omc_MaxAngleMask);
-	OMediaCosSinTable &t = OMediaCosSinTable::global;
-	const float sx = t.sin(ax), cx = t.cos(ax), sy = t.sin(ay), cy = t.cos(ay), sz = t.sin(az), cz = t.cos(az);
-	const float a = cz * y - sz * x;						// about z
-	const float b = sz * y + cz * x;
-	const float c = cx * z - a * sx;						// about x
-	return OMedia3DVector(b * cy - c * sy, sx * z + a * cx, b * sy + c * cy, 0);	// about y
 }
 
 static OMedia3DVector Position(CGameObject *o)
@@ -176,7 +156,7 @@ void C3DCarl::AddTouching(CGameObject *other)				// 0x425e90
 	float v[4];
 	other->v174(v);											// +0x2b8: the balloon's velocity
 	OMedia3DVector vel(v[0], v[1], v[2], v[3]);
-	const OMedia3DVector f0 = LocalDirection(this, 0, 0, 1.0f);	// +0x388 (slot 226): the way we face
+	const OMedia3DVector f0 = v226(0, 0, 1.0f);				// +0x388: the way we face
 	const float speed = sqrtf(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
 	OMedia3DVector fwd = f0;
 	float inv = 1.0f / fwd.quick_magnitude();
