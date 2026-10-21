@@ -20,6 +20,7 @@
 #include "../Todo.h"
 #include "../Sound.h"
 #include "../C3DTriggerType.h"
+#include "../port/Widescreen.h"
 #include "OMediaViewPort.h"
 #include "OMediaRGBColor.h"
 #include <list>
@@ -757,6 +758,13 @@ void C2DInGameMenu::v341(float dt)
 			break;
 		default:
 			return;
+	}
+	// port: widescreen - the black quad (screens.omt 0x220, 640x480) stretched over the window.
+	if (WideMargin() > 0 && g_fade_cur->m_c8 == 0x220)
+	{
+		const float half = (float)((short)g_screen_w / 2), m = WideMargin();
+		g_fade_cur->set_size(2.0f * (half + m), g_fade_cur->get_height());
+		g_fade_cur->place(-half - m, g_fade_cur->gety(), g_fade_cur->getz());
 	}
 	g_fade_cur->set_diffuse(OMediaFARGBColor(a, a, a, a));		// 2002 +0x90..0x9c, all four = a
 	g_fade_cur->force_show();									// hide_count = 1 + hide(false) when hidden

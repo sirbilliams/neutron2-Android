@@ -322,6 +322,11 @@ static void ResetPickupPictures(void)
 	for (int i = 0; i < 16; i++) e[i]->Reset();		// (the original resets them in another order; same result)
 }
 
+// port: widescreen - the 640-wide letterbox bars stretched over the whole window (width and x
+// in the 640x480 space; 640 and 0 with widescreen off).
+static float LbW(void) { return 640.0f + 2.0f * WideMargin(); }
+static float LbX(void) { return -WideMargin(); }
+
 // --------------------------------------------------------------------------- 0x40c0f0
 
 // A menu method (ecx = g_menu). on: a cut scene starts - out of the menu (back to Playing) if
@@ -347,8 +352,8 @@ void neg::CutsceneLetterbox(bool on)
 		g_545d98 = 1;
 		InterfaceElt *top = g_interface.Find("LetterBoxTop");			// 0x480970
 		InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-		top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, -1.0f, 0.0f, -1.0f);	// 0x480ba0
-		bottom->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+		top->QueueMorph(0, 1.0f, true, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), -1.0f, LbX(), -1.0f);	// 0x480ba0
+		bottom->QueueMorph(0, 1.0f, true, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 		return;
 	}
 	if (!g_54a468) SetGameMode(5);
@@ -357,8 +362,8 @@ void neg::CutsceneLetterbox(bool on)
 	g_545d98 = 0;
 	InterfaceElt *top = g_interface.Find("LetterBoxTop");
 	InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-	top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 64.0f, 640.0f, 0.0f, 0.0f, -1.0f, 0.0f, -1.0f);
-	bottom->QueueMorph(0, 1.0f, false, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+	top->QueueMorph(0, 1.0f, true, true, true, LbW(), 64.0f, LbW(), 0.0f, LbX(), -1.0f, LbX(), -1.0f);
+	bottom->QueueMorph(0, 1.0f, false, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 }
 
 // --------------------------------------------------------------------------- inlined blocks
@@ -976,8 +981,8 @@ void C2DInGameMenu::v270(int old_mode, int new_mode)
 					g_545d98 = 0;
 					InterfaceElt *top = g_interface.Find("LetterBoxTop");
 					InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-					top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 64.0f, 640.0f, 0.0f, 0.0f, -1.0f, 0.0f, -1.0f);
-					bottom->QueueMorph(0, 1.0f, false, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+					top->QueueMorph(0, 1.0f, true, true, true, LbW(), 64.0f, LbW(), 0.0f, LbX(), -1.0f, LbX(), -1.0f);
+					bottom->QueueMorph(0, 1.0f, false, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 				}
 				g_score_box->hide(true);
 				g_score_box2->hide(true);
