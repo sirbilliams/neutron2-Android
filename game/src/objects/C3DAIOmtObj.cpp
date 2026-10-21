@@ -314,3 +314,10 @@ void C3DAIOmtObj::v260(void)								// 0x417ca0
 		f_1bd0 = PlayGameSound3DNoDoppler(this, -1, std::string("traintracks"), true);	// 0x48f0f0
 	f_968 = f_1b3c;											// the speed: "InitialSpeed"
 }
+
+unsigned char C3DAIOmtObj::v231(CGameObject *other)			// 0x417f40 (C3DAIGranny's code)
+{
+	if (g_camera == other) return 1;
+	const int id = other->m_object_id;
+	return id == '3GOD' || id == '3JIM' || id == '3WBL';
+}
