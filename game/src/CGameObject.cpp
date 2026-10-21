@@ -639,8 +639,39 @@ void CGameObject::v263(CGameObject *other, OMedia3DVector pos, float r_other, fl
 	v173(0, spin, 0);										// +0x2b4 spin +=
 }
 
-void CGameObject::v221(float a, float b, float c, float d)	// 0x4ad5e0: velocity / heading physics
+// 0x4ad5e0: bounce off a surface of normal (a, b, c): the horizontal velocity is mirrored about
+// the normal (with the length it had, less the slot 145 share), the vertical one kept, and the
+// object spins round Y by the turn (degrees, wrapped to -180..180) * speed * 0.001. `d` is unused.
+void CGameObject::v221(float a, float b, float c, float d)
 {
-	(void)a; (void)b; (void)c; (void)d;
-	NEG_TODO(0x4ad5e0, "CGameObject slot 221");
+	(void)d;
+	float v[4];
+	v174(v);												// +0x2b8 velocity
+	OMedia3DVector h(v[0], 0.0f, v[2], v[3]);
+	const float speed = h.quick_magnitude();
+	float inv = 1.0f / h.quick_magnitude();					// 0x4caa6c
+	h.x = inv * h.x; h.y = inv * h.y; h.z = inv * h.z;
+	const float dot = -(h.z * c + a * h.x + b * h.y);
+	OMedia3DVector r(a * dot + a * dot + h.x, dot * b + dot * b + h.y, c * dot + c * dot + h.z, 0.0f);
+	r.x = r.x * speed;
+	float cur[4];
+	v174(cur);
+	r.y = cur[1];											// the vertical velocity stays
+	r.z = r.z * speed;
+	const float f = v145();									// +0x244
+	v176(r.x - f * r.x, r.y, r.z - f * r.z);				// +0x2c0
+	omt_Angle ax, ay;
+	h.angles(ax, ay);										// the old heading
+	const float before = (float)(short)ay * 0.02197265625f;	// 0x4cb1f8: 360 / 16384
+	r.y = 0;
+	inv = 1.0f / r.quick_magnitude();
+	r.x = inv * r.x; r.y = inv * r.y; r.z = inv * r.z;
+	r.angles(ax, ay);										// the new one
+	float turn = before - (float)(short)ay * 0.02197265625f;
+	if (turn != 0.0f)
+	{
+		if (turn > 180.0f) turn -= 360.0f;					// 0x4cb1f4, 0x4cb208
+		else if (turn < -180.0f) turn += 360.0f;			// 0x4cb204
+	}
+	v173(0, turn * speed * 0.001f, 0);						// +0x2b4: spin; 0x51b19c
 }

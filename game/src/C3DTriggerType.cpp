@@ -44,11 +44,12 @@ using neg::GetDatabase;
 using neg::CutsceneLetterbox;
 
 // CGameObject slot 224 (+0x380, 0x4ad800): a point relative to the object (struct return).
-// Until it exists the caller skips the camera move (the original always has a point).
 static float *ObjectRelativePoint(CGameObject *o, float *out, float a, float b, float c)
 {
-	(void)o; (void)out; (void)a; (void)b; (void)c;
-	NEG_TODO(0x4ad800, "CGameObject slot 224 (point relative to the object)"); return NULL;
+	if (!o) return NULL;								// port: the original calls through NULL
+	const OMedia3DVector v = o->v224(a, b, c);
+	out[0] = v.x; out[1] = v.y; out[2] = v.z; out[3] = v.w;
+	return out;
 }
 
 // The next trigger's own entry points. Each is a virtual its class introduces (the element
