@@ -48,7 +48,8 @@ class C3DPlayerObject : public C3DAnimated
 	virtual void WriteState(OMediaStreamOperators &s);						// SLOT 284 0x4651b0 (CLocalGameObject's)
 	virtual void ReadState(OMediaStreamOperators &s);						// SLOT 285 0x4651a0 (CLocalGameObject's)
 
-	// ---- data members (object offsets; 0x924..0x92f and 0x938..0x95f are never used)
+	// ---- data members (object offsets; 0x924..0x92f are never used)
 	float				f_930;			// 0x930  1.0
-	int					f_934;			// 0x934  -1 (C3DJimmy v270 uses it)
+	int					f_934;			// 0x934  -1; != -1 while a cut scene has replaced our animation (v270 of C3DJimmy, C3DGoddard, the friends)
+	char				f_938[40];		// 0x938  g_545f14 (""): the animation to go back to after the cut scene (v270)
 };

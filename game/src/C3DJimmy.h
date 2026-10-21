@@ -65,7 +65,6 @@ class C3DJimmy : public C3DPlayer
 #include "jimmy/C3DJimmy_b.inc"
 
 	// ---- data members (object offsets). Names say what is known; "?" = not established.
-	char				f_938[40];		// 0x938  (C3DPlayerObject's unused range) animation to go back to after a cut scene (v270)
 	int					f_cac;			// 0xcac  0
 	// 0xcb0..0xcbb never used
 	C3DObject			*f_cbc;			// 0xcbc  shrink-ray effect: hidden when the ray stops / out of energy (0; set elsewhere)
