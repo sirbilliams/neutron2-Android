@@ -19,6 +19,7 @@
 #include "../Physics.h"
 #include "../CanvasWrapper.h"
 #include "../levels/CLevel04Games.h"
+#include "../lab/C3DBot.h"
 #include "OMediaViewPort.h"
 #include "OMedia3DShape.h"
 #include "OMedia3DPolygon.h"
@@ -1006,10 +1007,22 @@ void C3DJimmy::AddTouching(CGameObject *other)				// 0x444fc0
 	if (other->NameContains((char *)"C3DBOT"))
 	{
 		if (f_a68 == 2) return;
-		// the bot's members (+0xc40 stunned, +0x96c state, +0x1b50 timer; knocked back: element
-		// slot 107 (5), +0xc10 = 1500, +0xc3c = 10 or 5): C3DBot is not reconstructed yet.
-		NEG_TODO(0x44512a, "C3DJimmy::AddTouching: C3DBot members");
-		if (f_4cb8) return;
+		C3DBot *bot = dynamic_cast<C3DBot *>(other);		// 0x44512a (port: the original subtracts 0xc0 without looking)
+		if (!bot) return;
+		if (bot->f_c40) return;								// state locked
+		if (f_4cb8)											// we are hurt: an unstunned bot only backs off
+		{
+			if (bot->f_1b50 > 0) return;
+			bot->ev107(5);									// flee ...
+			bot->f_c10 = 1500.0f;							// ... beyond 1500
+			bot->f_c3c = 5.0f;								// for 5 s
+			return;
+		}
+		if (bot->f_96c != 0 && bot->f_96c != 11) return;	// only an attacking bot hurts
+		if (bot->f_1b50 > 0) return;						// stunned
+		bot->ev107(5);
+		bot->f_c10 = 1500.0f;
+		bot->f_c3c = 10.0f;
 		if (f_8a7) return;
 		ev134(-2.0f, -1, 3.0f, 1);
 		ev114((char *)"HIT");
