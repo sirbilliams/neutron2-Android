@@ -16,6 +16,7 @@
 #include "../Todo.h"
 #include "../gen/globals.h"
 #pragma GCC diagnostic pop
+#include "../port/Widescreen.h"
 #include "OMediaViewPort.h"
 #include "OMediaWindow.h"
 #include "OMediaRect.h"
@@ -203,7 +204,8 @@ static void CreateAltViewport(bool plus_one)
 	vp->setbounds(&r);										// +0xac
 	OMediaRect b;
 	vp->getbounds(&b);										// 2002 +0xe4
-	const int dx = -b.left - (int)(sx * -450.0f);			// 0x4d7840
+	const int dx = -b.left - (int)(sx * -450.0f)
+				 + (int)WideMargin();			// 0x4d7840; port: + widescreen margin
 	const int dy = (int)(sy * 286.0f) - b.top;				// 0x4d7844
 	b.left += dx; b.top += dy;
 	b.right += dx; b.bottom += dy;
