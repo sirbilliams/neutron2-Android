@@ -162,7 +162,7 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
    level1d is only the logo intro (THQ, AWE, Nick: the C3DFish letters, cut scene cameras cam4 / cam6 /
    nickcam2 timed by their voice clips). It ends with the LOAD trigger `startgame`, which loads
    **level5.gam** (the museum: Fowl, the friends, a flying camera); that level's exit `tolab` loads
-   **level3.gam** (Negatron's lab), and only there, about 6 minutes in, does the player get Jimmy (HUD on).
+   **level3.gam** (Negatron's lab), and only there, after several minutes of cut scenes, does the player get Jimmy (HUD on).
    The port now plays the logo intro as the original and loads level5.gam; level5's LoadGame stops at
    its first missing class (3FOW), so its opening never starts and the game sits in mode 1 (Loading).
    Needed next, in file order: level5 - C3DFowl 3FOW, C3DSheen 3SHE, C3DLibby 3LIB, C3DCarl 3CAR,
