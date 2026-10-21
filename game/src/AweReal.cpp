@@ -94,8 +94,15 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 			if (g_editor && g_editor->m_editing) g_editor->ViewportClicked((OMediaPickRequest *)param);	// vtable +0xcc
 			break;
 
-		case omsg_Event:					// -0x65: game event switch (0x56ad9c / 0x56aea6 flags)
-			// TODO(0x4a3380): cases 1..4
+		case omsg_Event:					// -0x65: the mouse buttons (the SDL event manager sends these, as OMT's window procedure did)
+			switch (((OMediaEvent *)param)->type)
+			{
+				case omtet_LMouseDown: g_mouse_down = 1; break;		// 0x56ad9c
+				case omtet_LMouseUp:   g_mouse_down = 0; break;
+				case omtet_RMouseDown: g_mouse_rdown = 1; break;	// 0x56aea6
+				case omtet_RMouseUp:   g_mouse_rdown = 0; break;
+				default: break;
+			}
 			break;
 	}
 	OMediaApplication::listen_to_message(msg, param);

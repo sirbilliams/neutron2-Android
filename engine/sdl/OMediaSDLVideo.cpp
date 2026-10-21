@@ -16,6 +16,7 @@
 
 OMediaSoundEngine *omf_SDLCreateSoundEngine(OMediaWindow *master);
 OMediaInputEngine *omf_SDLCreateInputEngine(OMediaWindow *master);
+void omf_SDLPadInit(void);
 
 static void omf_SDLInit(void)
 {
@@ -24,6 +25,7 @@ static void omf_SDLInit(void)
 	done = true;
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER | SDL_INIT_TIMER) != 0)
 		SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
+	omf_SDLPadInit();
 	// OMT's GL renderer is fixed-function GL 1.x. With gl4es (Android, or OMT_GL4ES builds on
 	// desktop) it is translated onto an OpenGL ES 2.0 context that SDL creates.
 #ifdef OMT_USE_GL4ES
@@ -679,6 +681,20 @@ static void omf_SDLComputeMapping(SDL_Window *w)
 	omg_scale = sx < sy ? sx : sy;
 	omg_offx = (omg_dw - ow->get_width() * omg_scale) * 0.5f;
 	omg_offy = (omg_dh - ow->get_height() * omg_scale) * 0.5f;
+}
+
+// Logical OMT window coordinates -> window (SDL) coordinates, the centre of that logical pixel.
+void omf_SDLLogicalToWindow(OMediaWindow *ow, int lx, int ly, int &px, int &py)
+{
+	OMediaSDLRtgWindow *rtg = (OMediaSDLRtgWindow*)ow->get_retarget();
+	px = lx; py = ly;
+	if (!rtg || !rtg->sdlwin) return;
+	int ww, wh; SDL_GetWindowSize(rtg->sdlwin, &ww, &wh);
+	omf_SDLComputeMapping(rtg->sdlwin);
+	if (omg_dw <= 0 || omg_dh <= 0 || omg_scale <= 0) return;
+	float dx = omg_offx + (lx + 0.5f) * omg_scale, dy = omg_offy + (ly + 0.5f) * omg_scale;	// drawable pixels
+	px = int(dx * ww / omg_dw);
+	py = int(dy * wh / omg_dh);
 }
 
 // Window (SDL event) coordinates -> logical OMT window coordinates.

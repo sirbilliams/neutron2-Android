@@ -14,6 +14,11 @@
       button 4  0x407240 pause menu               button 8  0x4657c0 turn around
       button 9  0x406ee0 help
     Nothing reads Z, rX, rY, rZ, the POV angle, g_joy_prev_buttons or g_joy_any_button.
+    (That list is every read of 0x56b020..0x56b071 in the exe outside this module; buttons 5..7 and
+    10..19 are polled but never read.) The JOY_01..JOY_09 names in dat\keys.txt play no part: the
+    exe's TextToKeys (0x4660d0) has no JOY_ names, so they log "not found" and count as KEY_NONE,
+    on Windows as here. Which physical button carries which number is up to the HID layer
+    (engine/sdl/OMediaSDLInput.cpp; the Thor layout is in docs/controls.md).
 
     0x4b3260 CInput::CInput      0x4b3370 CInput::~CInput     0x4b33f0 CreateInputEngine
     0x4b3410 CInput::Release     0x4b3460 FindDevice          0x4b35d0 UpdateInput (the poll)
@@ -35,7 +40,12 @@
 #include "gen/globals.h"
 #include "OMediaEngineFactory.h"
 #include "OMediaInputEngine.h"
+#include "OMediaViewPort.h"
+#include "Mouse.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <SDL.h>
 
 using namespace neg;
 
@@ -139,6 +149,28 @@ bool neg::FindDevice(int type)
 		}
 	}
 	return false;
+}
+
+// Port: test hook. NEG_JOY_LOG=1 logs what the game sees of the joystick whenever it changes
+// (the pressed button numbers and the X/Y axes rounded to tenths), with the keys down in g_keys
+// (Windows key codes, hex) and the mouse buttons.
+static void LogJoyChanges(void)
+{
+	static int on = -1;
+	if (on < 0) on = getenv("NEG_JOY_LOG") != NULL;
+	if (!on) return;
+	static char last[256];
+	char now[256];
+	int n = snprintf(now, sizeof now, "x %.1f y %.1f buttons", (double)g_joy_x, (double)g_joy_y);
+	for (int b = 0; b < JOY_BUTTONS && n < (int)sizeof now - 4; b++)
+		if (JoyButtons()[b]) n += snprintf(now + n, sizeof now - n, " %d", b);
+	n += snprintf(now + n, sizeof now - n, " keys");
+	for (int k = 0; k < 256 && n < (int)sizeof now - 4; k++)
+		if (g_keys[k]) n += snprintf(now + n, sizeof now - n, " %02x", k);
+	if (n < (int)sizeof now - 16) snprintf(now + n, sizeof now - n, " mouse %d%d", g_mouse_down, g_mouse_rdown);
+	if (strcmp(now, last) == 0) return;
+	strcpy(last, now);
+	SDL_Log("joystick: %s", now);
 }
 
 // --------------------------------------------------------------------------- 0x4b35d0
@@ -282,5 +314,48 @@ bool neg::UpdateInput(void)
 		g_joy_frames++;
 		ClearJoyButtons();
 	}
+	LogJoyChanges();							// port: test hook
 	return true;
+}
+
+// --------------------------------------------------------------------------- the mouse pointer
+// (CGfx 0x4b1d10..0x4b1dc0 and CAweReal 0x4a3990; Mouse.h. Not part of the input module in the exe,
+// kept here with the other input code.)
+
+void omf_SDLSetMousePosition(short x, short y);		// engine/sdl/OMediaSDLInput.cpp
+
+// 0x4b1d10: the world's input engine (vtable +0x38), its get_mouse_position (+0x20).
+void neg::GetMousePos(short *x, short *y)
+{
+	*x = *y = 0;
+	if (g_input_engine) g_input_engine->get_mouse_position(*x, *y);
+}
+
+// 0x4b1d30: the same engine's set_mouse_position (+0x24; OMT 2.5 has no such call, the SDL layer
+// provides it).
+void neg::SetMousePos(short x, short y)
+{
+	omf_SDLSetMousePosition(x, y);
+}
+
+// 0x4b1da0 / 0x4b1dc0: half the viewport's bounds (2002 +0xd4..+0xe0: left, top, right, bottom).
+short neg::MouseCentreX(void) { return (short)(g_viewport->getbwidth() / 2); }
+short neg::MouseCentreY(void) { return (short)(g_viewport->getbheight() / 2); }
+
+// 0x4b1d50
+void neg::CenterMouse(void)
+{
+	SetMousePos(MouseCentreX(), MouseCentreY());
+}
+
+// 0x4a3990: how far the pointer is from the viewport's centre (centre - pointer, so right / down
+// are negative), then it goes back to the centre. Nothing happens while g_56aed0 is set.
+void neg::GetMouseDelta(short *dx, short *dy)
+{
+	if (g_56aed0) return;
+	short x, y;
+	GetMousePos(&x, &y);
+	*dx = (short)(MouseCentreX() - x);
+	*dy = (short)(MouseCentreY() - y);
+	CenterMouse();
 }
