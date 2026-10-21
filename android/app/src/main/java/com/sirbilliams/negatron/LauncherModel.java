@@ -50,6 +50,9 @@ final class LauncherModel {
     private final ArrayList<Listener> mListeners = new ArrayList<>();
     /** A picture from the game's own files (read at run time), shown in the info window; or null. */
     Object art;
+    /** The game's box art, which the player chose (Settings), shown alone on the bottom screen
+     *  while the main menu is up; or null (then the picture above, or a drawn atom). */
+    Object boxArt;
 
     void listen(Listener l) { mListeners.add(l); }
 

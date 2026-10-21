@@ -19,10 +19,15 @@ public final class RenderMenu {
         if (a.length > 2) m.art = Bitmap.wrap(ImageIO.read(new File(a[2])));
         m.reset(LauncherPages.main(LauncherPages.slots(save)[0], true));
         draw(m, out, "main");
+        if (a.length > 3) {                         // a stand-in for the player's box art
+            m.boxArt = Bitmap.wrap(ImageIO.read(new File(a[3])));
+            draw(m, out, "main_boxart");
+            m.boxArt = null;
+        }
         m.push(LauncherPages.newGame());
         draw(m, out, "new");
         m.pop();
-        m.push(LauncherPages.settings(true, true, true, false));
+        m.push(LauncherPages.settings(true, true, true, false, false));
         draw(m, out, "settings");
         m.pop();
         m.push(LauncherPages.load(LauncherPages.slots(save)));

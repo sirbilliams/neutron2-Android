@@ -61,6 +61,7 @@ final class LauncherView extends View {
     private final Typeface mMono = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
     private Bitmap mChrome;
     private int mChromeW, mChromeH;
+    private boolean mCover;                 // the chrome is the main menu's cover background
 
     LauncherView(Context c, LauncherModel model, boolean bottom) {
         super(c);
@@ -114,7 +115,12 @@ final class LauncherView extends View {
         int w = getWidth(), h = getHeight();
         if (w <= 0 || h <= 0) return;
         float u = scale();
-        if (mChrome == null || mChromeW != w || mChromeH != h) buildChrome(w, h, u, offX(), offY());
+        LauncherModel.Page pg = mModel.page();
+        boolean cover = mBottom && pg != null && pg.id.equals("main");
+        if (mChrome == null || mChromeW != w || mChromeH != h || cover != mCover) {
+            mCover = cover;
+            buildChrome(w, h, u, offX(), offY());
+        }
         c.drawBitmap(mChrome, 0, 0, null);
         c.save();
         c.translate(offX(), offY());
@@ -203,6 +209,10 @@ final class LauncherView extends View {
 
     private void drawBottom(Canvas c, LauncherModel.Page p) {
         long t = SystemClock.uptimeMillis();
+        if (p.id.equals("main")) {
+            drawCover(c, t);
+            return;
+        }
         text(c, p.title.toUpperCase(java.util.Locale.ROOT), B_HEAD.left + 48, B_HEAD.top + 68, 40, LED_ON, Paint.Align.LEFT, true);
         for (int i = 0; i < 4; i++)
             led(c, B_HEAD.right - 150 + i * 32, B_HEAD.centerY(), 9, (t / 300 + i) % 4 == 0 ? 2 : 1, LED_ON);
@@ -241,6 +251,24 @@ final class LauncherView extends View {
             ty += 10;
         }
         info(c, mModel.selected(), l.left + 30, ty, l.width() - 60, 32);
+    }
+
+    /** Bottom screen, main menu: the box art alone (aspect kept, centred on dark steel), else the
+     *  game's own menu picture, else the atom. */
+    private void drawCover(Canvas c, long t) {
+        Bitmap b = mModel.boxArt instanceof Bitmap ? (Bitmap) mModel.boxArt
+                : mModel.art instanceof Bitmap ? (Bitmap) mModel.art : null;
+        if (b == null) {
+            atom(c, BW / 2, BH / 2, 300, t);
+            return;
+        }
+        float m = 24, sc = Math.min((BW - 2 * m) / b.getWidth(), (BH - 2 * m) / b.getHeight());
+        float w = b.getWidth() * sc, h = b.getHeight() * sc;
+        mRect.set((BW - w) / 2, (BH - h) / 2, (BW + w) / 2, (BH + h) / 2);
+        mFill.setShader(null);
+        mFill.setColor(Color.argb(140, 0, 0, 0));
+        c.drawRect(mRect.left + 6, mRect.top + 10, mRect.right + 6, mRect.bottom + 10, mFill);
+        c.drawBitmap(b, null, mRect, mBmp);
     }
 
     // ------------------------------------------------------------------ shared pieces
@@ -397,7 +425,11 @@ final class LauncherView extends View {
         c.save();
         c.translate(ox, oy);
         c.scale(u, u);
-        if (mBottom) {
+        if (mBottom && mCover) {
+            mFill.setShader(null);
+            mFill.setColor(Color.argb(150, 10, 12, 16));
+            c.drawRect(-4000, -4000, BW + 4000, BH + 4000, mFill);   // the whole screen
+        } else if (mBottom) {
             plate(c, B_HEAD);
             plate(c, B_LIST);
             plate(c, B_PREV);

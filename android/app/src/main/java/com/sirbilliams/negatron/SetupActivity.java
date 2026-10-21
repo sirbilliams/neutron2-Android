@@ -43,6 +43,7 @@ import java.util.zip.ZipInputStream;
 public class SetupActivity extends Activity {
 
     private static final int PICK_ZIP = 1;
+    private static final int PICK_BOXART = 2;
     private static final String[] GAME_DIRS = { "omt", "gam", "grn", "ase", "png", "dat", "save" };
 
     private TextView message;
@@ -111,6 +112,60 @@ public class SetupActivity extends Activity {
     static final String PREF_MENU_ORIGINAL = "menu_original";
     /** Intent extra: show the launcher even when the original menu is chosen. */
     static final String EXTRA_LAUNCHER = "launcher";
+    /** The player's box art picture, copied into the app's private files (never shipped in the repo). */
+    static final String BOX_ART = "boxart.img";
+
+    private File boxArtFile() { return new File(getFilesDir(), BOX_ART); }
+
+    /** Decodes a picture at most about 2048 pixels on its long side (null if it isn't one). */
+    private static android.graphics.Bitmap decodeScaled(File f) {
+        if (!f.isFile()) return null;
+        android.graphics.BitmapFactory.Options o = new android.graphics.BitmapFactory.Options();
+        o.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
+        if (o.outWidth <= 0 || o.outHeight <= 0) return null;
+        int sample = 1;
+        while (Math.max(o.outWidth, o.outHeight) / sample > 2048) sample *= 2;
+        o = new android.graphics.BitmapFactory.Options();
+        o.inSampleSize = sample;
+        try {
+            return android.graphics.BitmapFactory.decodeFile(f.getPath(), o);
+        } catch (OutOfMemoryError e) {
+            return null;
+        }
+    }
+
+    /** Settings -> Box art: copies the chosen picture into the app's files and shows it. */
+    private void setBoxArt(Uri uri) {
+        File tmp = new File(getFilesDir(), BOX_ART + ".tmp");
+        try (InputStream in = getContentResolver().openInputStream(uri);
+             OutputStream out = new FileOutputStream(tmp)) {
+            if (in == null) throw new IOException("can't open the picture");
+            byte[] buf = new byte[64 * 1024];
+            int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        } catch (IOException | SecurityException e) {
+            tmp.delete();
+            return;
+        }
+        android.graphics.Bitmap b = decodeScaled(tmp);
+        if (b == null) {                                    // not a picture: keep the old one
+            tmp.delete();
+            return;
+        }
+        File f = boxArtFile();
+        f.delete();
+        if (!tmp.renameTo(f)) {
+            tmp.delete();
+            return;
+        }
+        if (mMenu != null) {
+            mMenu.boxArt = b;
+            if (mMenu.page() != null && mMenu.page().id.equals("settings")) mMenu.replace(settingsPage());
+            else mMenu.changed();
+        }
+    }
+
     /** The game's main menu background, saved by the game on its first run (NEG_MENU_ART). */
     static final String MENU_ART = "launcher-art.png";
 
@@ -148,6 +203,7 @@ public class SetupActivity extends Activity {
         }
         mMenu = new LauncherModel();
         mMenu.art = android.graphics.BitmapFactory.decodeFile(new File(getExternalFilesDir(null), MENU_ART).getPath());
+        mMenu.boxArt = decodeScaled(boxArtFile());
         mMenu.reset(mainPage());
         mTop = new LauncherView(this, mMenu, false);
         mTop.setFocusable(true);
@@ -176,7 +232,7 @@ public class SetupActivity extends Activity {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), CompanionPanel.wanted(p, second), second,
-                p.getBoolean(PREF_MENU_ORIGINAL, false));
+                p.getBoolean(PREF_MENU_ORIGINAL, false), boxArtFile().isFile());
     }
 
     private android.hardware.display.DisplayManager displays() {
@@ -214,6 +270,19 @@ public class SetupActivity extends Activity {
             showBottom();
         } else if (id.equals("style")) {
             p.edit().putBoolean(PREF_MENU_ORIGINAL, !p.getBoolean(PREF_MENU_ORIGINAL, false)).apply();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("boxart")) {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            try {
+                startActivityForResult(i, PICK_BOXART);
+            } catch (android.content.ActivityNotFoundException e) {
+                // no picker on this device
+            }
+        } else if (id.equals("boxart_clear")) {
+            boxArtFile().delete();
+            mMenu.boxArt = null;
             mMenu.replace(settingsPage());
         } else if (id.equals("levels")) mMenu.push(LauncherPages.levels(levelFiles()));
         else if (id.startsWith("level:")) launch("negatron", id.substring(6), null);
@@ -257,7 +326,7 @@ public class SetupActivity extends Activity {
         else if (repeat) return true;
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
-            if (it != null && it.value != null) choose();
+            if (it != null && (it.id.equals("wide") || it.id.equals("panel") || it.id.equals("style"))) choose();
         } else if (act == 4) choose();
         else if (act == 5) back();
         else if (act == 6) {
@@ -454,6 +523,10 @@ public class SetupActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_BOXART && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            setBoxArt(data.getData());
+            return;
+        }
         if (requestCode == PICK_ZIP && resultCode == RESULT_OK && data != null && data.getData() != null) {
             importZip(data.getData());
         }

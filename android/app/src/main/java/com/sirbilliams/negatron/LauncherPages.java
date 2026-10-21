@@ -161,7 +161,8 @@ final class LauncherPages {
         return p;
     }
 
-    static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen, boolean original) {
+    static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen, boolean original,
+            boolean boxArt) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
         i.value = wide ? "ON" : "OFF";
@@ -172,6 +173,12 @@ final class LauncherPages {
         i = p.add("style", "Menu style", "NEW: this menu. ORIGINAL: the game's own title menu, from the next start "
                 + "(to come back here: hold Back in the game, then Menu style).");
         i.value = original ? "ORIGINAL" : "NEW";
+        i = p.add("boxart", "Box art: choose image...", "A picture of the game's box (your own photo or "
+                + "scan) for the bottom screen while the main menu is up. It is copied into the app.");
+        i.value = boxArt ? "SET" : "NONE";
+        i = p.add("boxart_clear", "Box art: clear", "Remove the chosen box art (the bottom screen then shows "
+                + "a picture from the game).");
+        i.enabled = boxArt;
         i = p.add("hd", "HD image pack", "Sharper pictures for the game: not available yet.");
         i.enabled = false;
         i.value = "LATER";
