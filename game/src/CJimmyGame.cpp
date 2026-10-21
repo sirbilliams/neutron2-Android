@@ -9,6 +9,8 @@
 #include "Physics.h"
 #include "CJimmyGame.h"
 #include "C3DObject.h"
+#include "C3DJimmy.h"
+#include "C3DRadar.h"
 #include "C2DInGameMenu.h"
 #include "CanvasWrapper.h"
 #include "Game.h"
@@ -56,9 +58,10 @@ static void LoadTask(const char *name, int a)	{ neg::LoadTask(name, a != 0); }		
 // C2DInGameMenu 0x409b20: hand out the pickup announced by 0x545e64 (ANTIHOLO, inventory...).
 static void MenuGivePendingPickup(void)			{ NEG_TODO(0x409b20, "C2DInGameMenu pending pickup (0x545e64)"); }
 
-// The player's HUD object (C3DJimmy +0xd40, minus 200 to its element) and its hide (0x468aa0).
-static OMediaElement *PlayerHud(void)			{ NEG_TODO(0x483b9d, "C3DJimmy HUD object (+0xd40)"); return NULL; }
-static void HudHide(OMediaElement *hud)			{ (void)hud; NEG_TODO(0x468aa0, "player HUD hide"); }
+// The player's HUD object (C3DJimmy +0xd40, minus 200 to its element; NULL if none) and its
+// hide (C3DRadar 0x468aa0).
+static OMediaElement *PlayerHud(void)			{ C3DRadar *r = Jimmy()->f_d40; return r ? static_cast<OMediaElement *>(r) : NULL; }	// 0x483b9d
+static void HudHide(OMediaElement *hud)			{ static_cast<C3DRadar *>(hud)->Hide(); }
 
 // g_camera's element slot 105 (+0x1a4): called once when the health has run out.
 static void CameraPlayerDead(CGameObject *camera) { (void)camera; NEG_TODO(0x4843d9, "camera element slot 105 (health ran out)"); }

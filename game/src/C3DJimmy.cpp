@@ -2,6 +2,7 @@
     hooks C3DPlayer.h declares weak. The slots are in jimmy/C3DJimmy_a.cpp and _b.cpp.       */
 #include "C3DJimmy.h"
 #include "C3DPermanentSprite.h"
+#include "C3DRadar.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
@@ -21,7 +22,6 @@ CGameObject *New_C3DRocketShip(void);		// 0x46a290
 CGameObject *New_C3DShadow(void);			// 0x46e9f0
 CGameObject *New_C3DWaterBalloon(void);		// 0x47c780
 CGameObject *New_C3DGoddard(void);			// 0x4383d0
-CGameObject *New_C3DRadar(void);			// 0x468180
 CGameObject *New_C3DASEObj(void);			// 0x4207e0
 }
 
@@ -266,7 +266,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_4d64 = 0;
 
 	f_d5c = As<C3DPlayerObject>(New_C3DGoddard());			// 0x1bcc bytes
-	f_d40 = As<C3DPermanentSprite>(New_C3DRadar());			// 0x640 bytes
+	f_d40 = new C3DRadar;									// 0x640 bytes
 	f_d48 = 0;
 	f_d44 = As<C3DAnimated>(New_C3DASEObj());				// 0xbb0 bytes
 	if (f_d44)

@@ -17,6 +17,8 @@
 #include "../CGameType.h"
 #include "../Sound.h"
 #include "../CEditor.h"
+#include "../C3DJimmy.h"
+#include "../C3DRadar.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -56,16 +58,12 @@ static bool GameTypeLevelIs(int id)
 	return false;
 }
 
-// The player's HUD object: C3DJimmy (g_545fd0 - 0xc0)->f_d40 - 200, NULL when f_d40 is 0.
-static void *PlayerHud(void)
-{
-	NEG_TODO(0x40b676, "C3DJimmy HUD object (g_545fd0 - 0xc0)->f_d40");
-	return NULL;
-}
+// The player's HUD object (a C3DRadar): C3DJimmy (g_545fd0 - 0xc0)->f_d40 - 200, NULL when f_d40 is 0.
+static void *PlayerHud(void)			{ return Jimmy()->f_d40; }	// 0x40b676
 // hud->f_61c (the HUD panel is shown). The original reads through a NULL hud when there is none.
-static bool HudShown(void *hud)			{ (void)hud; return false; }
-static void HudShow(void *hud)			{ (void)hud; NEG_TODO(0x468a50, "player HUD show"); }	// 0x468a50
-static void HudHide(void *hud)			{ (void)hud; NEG_TODO(0x468aa0, "player HUD hide"); }	// 0x468aa0
+static bool HudShown(void *hud)			{ return static_cast<C3DRadar *>(hud)->IsShown(); }
+static void HudShow(void *hud)			{ static_cast<C3DRadar *>(hud)->Show(); }	// 0x468a50
+static void HudHide(void *hud)			{ static_cast<C3DRadar *>(hud)->Hide(); }	// 0x468aa0
 
 // C3DJimmy element-family slots, called on (g_545fd0 - 0xc0).
 static void PlayerAnimEvents(void)		{ NEG_TODO(0x44e0b0, "C3DJimmy slot 67 (anim events)"); }
