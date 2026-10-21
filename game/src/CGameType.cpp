@@ -46,7 +46,11 @@ using namespace neg;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-static void ResetParticles(void)			{ NEG_TODO(0x49b260, "C3DParticle::Reset"); }
+// 0x49b260 C3DParticle::Reset (debug logs "+C3DParticle::Reset()" / "-..."): puts every particle of
+// the list 0x54e848 back to its start state (hidden, 'PART', ...). Nothing in the shipped game
+// adds to that list (only its static constructor / destructor and this function use it), so the
+// loop never runs.
+static void ResetParticles(void)			{}
 // 0x4a3930 (as in CEditor.cpp): capture centres the pointer (hiding the Windows cursor has no
 // equivalent on the Thor); release only clears the flag.
 static void CaptureMouse(bool capture)
