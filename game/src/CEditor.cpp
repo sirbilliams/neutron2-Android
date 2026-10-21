@@ -599,6 +599,7 @@ countdown:
 				if (fscanf(f, "%s", m_level_name) < 0) {}		// (an empty file leaves the name as it was)
 				if (fclose(f) != 0) SDL_Log("The file 'startlevel.txt' was not closed\n");
 			}
+			if (const char *t = TestPlayLevel()) strcpy(m_level_name, t);	// port: test-only (NEG_TEST_PLAY)
 			if (strcasecmp(m_level_name, "autosave") == 0)
 			{
 				if (!ReadTaskFile("autosave.tsk"))
@@ -763,7 +764,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	if (g_task_file[0]) RestoreTask(g_task_file);			// 0x498440
 	Trace("File closed, Calling ResetLevel 2");
 	g_splash->hide(true);
-	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY, desktop)
+	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY)
 }
 
 // --------------------------------------------------------------------------- 0x4a8100
