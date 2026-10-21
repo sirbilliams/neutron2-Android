@@ -3,6 +3,8 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DFish.h"
 #include "C3DGoddard.h"
+#include "level3a/C3DMiniSub.h"
+#include "C3DRocketShip.h"
 #include "objects/C3DAITrigger.h"
 #include "Game.h"
 #include "Todo.h"
@@ -39,17 +41,23 @@ __attribute__((weak)) void neg::JimmyHurt(CGameObject *jimmy, float damage, int 
 
 // C3DMiniSub (element +0x9f4: the C3DJimmy driving it): Jimmy +0x4cb8 = 0, then his element
 // slot 134 (-5, -5, 5, 1).
-static void MiniSubHurtDriver(CGameObject *sub)
+static void MiniSubHurtDriver(CGameObject *sub)			// 0x4328a1
 {
-	(void)sub;
-	NEG_TODO(0x4328a1, "C3DMiniSub +0x9f4 (driver): +0x4cb8 = 0, element slot 134");
+	C3DMiniSub *m = dynamic_cast<C3DMiniSub *>(sub);
+	if (!m || !m->f_9f4) return;							// port: checked
+	JimmySetHurtFlag(m->f_9f4, 0);							// +0x4cb8
+	JimmyHurt(m->f_9f4, -5.0f, -5, 5.0f, 1);				// element +0x218
 }
 
 // C3DMiniSub: +0xa30 = 5.0, +0x9fc = 1, +0xa3c = 0, +0xa00 = 0 (it crashes).
-static void MiniSubCrash(CGameObject *sub)
+static void MiniSubCrash(CGameObject *sub)					// 0x4328f6
 {
-	(void)sub;
-	NEG_TODO(0x4328f6, "C3DMiniSub +0xa30 / +0x9fc / +0xa3c / +0xa00 (crash)");
+	C3DMiniSub *m = dynamic_cast<C3DMiniSub *>(sub);
+	if (!m) return;
+	m->f_a30 = 5.0f;
+	m->f_9fc = 1;
+	m->f_a3c = 0;
+	m->f_a00 = 0;
 }
 
 // C3DGoddard element +0x1b60 = 1 (he rides along).

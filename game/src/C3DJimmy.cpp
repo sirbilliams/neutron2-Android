@@ -345,6 +345,18 @@ void neg::JimmyHurt(CGameObject *jimmy, float damage, int points, float time, un
 	if (j) j->ev134(damage, points, time, a);
 }
 
+// C3DRocketShip.h: Jimmy's +0x4cb8, the hit flag (the mini sub and the rocket ship clear it before a hit).
+unsigned char neg::JimmyHurtFlag(CGameObject *jimmy)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	return j ? j->f_4cb8 : 0;
+}
+void neg::JimmySetHurtFlag(CGameObject *jimmy, unsigned char v)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->f_4cb8 = v;
+}
+
 // --------------------------------------------------------------------------- hooks (C3DRocketShip.h)
 
 // Jimmy's element slot 148 (+0x250): the next water balloon (the rocket ship's shots).
