@@ -1,6 +1,7 @@
 package com.sirbilliams.negatron;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -27,6 +28,9 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -129,9 +133,9 @@ public class SetupActivity extends Activity {
         root.addView(play, wrap());
 
         Button jump = new Button(this);
-        jump.setText("Jump to Jimmy (test)");
+        jump.setText("Jump to a level (test)");
         jump.setTextSize(18);
-        jump.setOnClickListener(v -> launch("negatron", "Level5.gam"));     // skips the openings
+        jump.setOnClickListener(v -> pickTestLevel());                      // skips the openings
         LinearLayout.LayoutParams jl = wrap();
         jl.topMargin = dp(12);
         root.addView(jump, jl);
@@ -156,6 +160,29 @@ public class SetupActivity extends Activity {
 
         setContentView(root);
         play.requestFocus();        // the Thor's A button works without touching the screen
+    }
+
+    /** Test: lists the installed gam/*.gam files and plays the chosen one (NEG_TEST_PLAY), Level5.gam preselected. */
+    private void pickTestLevel() {
+        File data = findReadableData();
+        File[] gams = data != null ? new File(data, "gam").listFiles() : null;
+        List<String> names = new ArrayList<>();
+        if (gams != null) {
+            for (File f : gams) {
+                String n = f.getName();
+                if (f.isFile() && n.toLowerCase(Locale.ROOT).endsWith(".gam")) names.add(n);
+            }
+        }
+        Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+        if (names.isEmpty()) names.add("Level5.gam");
+        int def = 0;
+        for (int k = 0; k < names.size(); k++) if (names.get(k).equalsIgnoreCase("Level5.gam")) def = k;
+        final String[] items = names.toArray(new String[0]);
+        new AlertDialog.Builder(this)
+                .setTitle("Jump to a level (test)")
+                .setSingleChoiceItems(items, def, (d, which) -> { d.dismiss(); launch("negatron", items[which]); })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     /** Sends the last run's omt-log.txt (written by the engine next to the game folder) as text. */

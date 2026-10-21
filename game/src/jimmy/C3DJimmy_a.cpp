@@ -4,6 +4,7 @@
 #include "../C3DShadow.h"
 #include "../C3DPointCursor.h"
 #include "../C3DGrannyObj.h"
+#include "../C3DRocketShip.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
 #include "../CTaskList.h"
@@ -578,7 +579,7 @@ void C3DJimmy::v260(void)									// 0x445740
 		OMedia3DVector p = v224(0, 0, -150.0f);
 		f_d5c->v89(p.x, p.y, p.z, *(unsigned int *)&p.w);	// Goddard behind Jimmy (+0x164)
 	}
-	if (f_cc8) NEG_TODO(0x445ce5, "C3DRocketShip +0x9f4: show it (element +0xd8) when set");
+	if (f_cc8 && static_cast<C3DRocketShip *>(f_cc8)->f_9f4) f_cc8->ShowAgain();	// 0x445ce5: our rocket with a rider (element +0xd8)
 	if (g_menu) g_menu->ShowHudPicture(-1, false, 0, 0);	// +0x4f4
 }
 

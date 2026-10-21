@@ -16,6 +16,7 @@
     lower, translated here.                                                                    */
 #include "../C3DJimmy.h"
 #include "../level3c/C3DHoverCycle.h"
+#include "../C3DRocketShip.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
 #include "../C3DShadow.h"
@@ -1136,8 +1137,9 @@ void C3DJimmy::ev139(void)											// 0x449450
 			Element(r)->HideAgain();
 			r->v52(0);
 			r->v132(0);
-			NEG_TODO(0x44952a, "our C3DRocketShip (f_cc8) +0x9f4 = 0");
-			NEG_TODO(0x449536, "our C3DRocketShip (f_cc8) +0x1230 (a CGameObject part): HideAgain");
+			C3DRocketShip *ours = static_cast<C3DRocketShip *>(f_cc8);
+			ours->f_9f4 = NULL;									// 0x44952a: no rider
+			if (C3DObject *f = Element(ours->f_1230)) f->HideAgain();	// 0x449536: its flame (element +0xdc); port: the original has no NULL test
 			ev116();
 			v136(1);
 			v132(1);

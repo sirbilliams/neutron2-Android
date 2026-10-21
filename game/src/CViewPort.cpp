@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "TextureAnims.h"
 #include "Physics.h"
 #include "Sound.h"
 #include <SDL.h>
@@ -21,15 +22,18 @@ int					g_logic_updates = 0;
 }
 using namespace neg;
 
-// --------------------------------------------------------------------------- not reconstructed yet
+// --------------------------------------------------------------------------- not reconstructed yet / inlined helpers
 
-static void UpdateTextureAnims(float dt)	{ (void)dt; NEG_TODO(0x4a28c0, "texture animations (list 0x56ad7c)"); }
 static void UpdateFrameRate(float dt)		{ (void)dt; NEG_TODO(0x4b2d90, "frame rate average / debug overlay"); }
+// 0x4b974e (inlined in render_viewport): the clear layer (the sky) gets a view matrix of the
+// viewport's rotation only: OMT's world transform at (0, 0, 0) - inverse rotation (-ax, -ay, -az)
+// in z, x, y order times a zero translation, hint ommc_RotateTranslate - copied to its custom
+// view matrix (+0x7c, 17 dwords).
 static void SetClearLayerViewMatrix(void)
 {
-	// 0x4b974e: rotation-only view matrix from the viewport's angles (-ax, -ay, -az) copied to
-	// g_layer_clear's custom view matrix (+0x7c, 17 dwords).
-	NEG_TODO(0x4b974e, "clear layer view matrix");
+	OMediaMatrix_4x4 m;
+	m.set_world_transform(0.0f, 0.0f, 0.0f, g_viewport->get_anglex(), g_viewport->get_angley(), g_viewport->get_anglez());
+	g_layer_clear->set_custom_view_matrix(m);
 }
 
 // --------------------------------------------------------------------------- the per-frame passes over g_objects
