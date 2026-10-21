@@ -62,6 +62,7 @@ final class LauncherView extends View {
     private Bitmap mChrome;
     private int mChromeW, mChromeH;
     private boolean mCover;                 // the chrome is the main menu's cover background
+    private Object mCoverArt;               // ... for this picture
 
     LauncherView(Context c, LauncherModel model, boolean bottom) {
         super(c);
@@ -117,8 +118,10 @@ final class LauncherView extends View {
         float u = scale();
         LauncherModel.Page pg = mModel.page();
         boolean cover = mBottom && pg != null && pg.id.equals("main");
-        if (mChrome == null || mChromeW != w || mChromeH != h || cover != mCover) {
+        Object coverArt = cover ? coverBitmap() : null;
+        if (mChrome == null || mChromeW != w || mChromeH != h || cover != mCover || coverArt != mCoverArt) {
             mCover = cover;
+            mCoverArt = coverArt;
             buildChrome(w, h, u, offX(), offY());
         }
         c.drawBitmap(mChrome, 0, 0, null);
@@ -253,22 +256,35 @@ final class LauncherView extends View {
         info(c, mModel.selected(), l.left + 30, ty, l.width() - 60, 32);
     }
 
-    /** Bottom screen, main menu: the box art alone (aspect kept, centred on dark steel), else the
-     *  game's own menu picture, else the atom. */
+    /** Bottom screen, main menu: the box art alone (aspect kept) in a steel plate, else the game's
+     *  own menu picture, else the atom (in a CRT). The plate is in the chrome (coverRect). */
     private void drawCover(Canvas c, long t) {
-        Bitmap b = mModel.boxArt instanceof Bitmap ? (Bitmap) mModel.boxArt
-                : mModel.art instanceof Bitmap ? (Bitmap) mModel.art : null;
+        Bitmap b = coverBitmap();
         if (b == null) {
             atom(c, BW / 2, BH / 2, 300, t);
             return;
         }
-        float m = 24, sc = Math.min((BW - 2 * m) / b.getWidth(), (BH - 2 * m) / b.getHeight());
-        float w = b.getWidth() * sc, h = b.getHeight() * sc;
-        mRect.set((BW - w) / 2, (BH - h) / 2, (BW + w) / 2, (BH + h) / 2);
-        mFill.setShader(null);
-        mFill.setColor(Color.argb(140, 0, 0, 0));
-        c.drawRect(mRect.left + 6, mRect.top + 10, mRect.right + 6, mRect.bottom + 10, mFill);
+        coverRect(b, mRect);
         c.drawBitmap(b, null, mRect, mBmp);
+    }
+
+    private Bitmap coverBitmap() {
+        return mModel.boxArt instanceof Bitmap ? (Bitmap) mModel.boxArt
+                : mModel.art instanceof Bitmap ? (Bitmap) mModel.art : null;
+    }
+
+    private static final float COVER_MARGIN = 20, COVER_BEZEL = 34;
+
+    /** Where the cover picture goes (aspect kept, centred, inside its plate); the whole CRT without one. */
+    private static void coverRect(Bitmap b, RectF out) {
+        float m = COVER_MARGIN + COVER_BEZEL;
+        if (b == null) {
+            out.set(m, m, BW - m, BH - m);
+            return;
+        }
+        float sc = Math.min((BW - 2 * m) / b.getWidth(), (BH - 2 * m) / b.getHeight());
+        float w = b.getWidth() * sc, h = b.getHeight() * sc;
+        out.set((BW - w) / 2, (BH - h) / 2, (BW + w) / 2, (BH + h) / 2);
     }
 
     // ------------------------------------------------------------------ shared pieces
@@ -426,9 +442,21 @@ final class LauncherView extends View {
         c.translate(ox, oy);
         c.scale(u, u);
         if (mBottom && mCover) {
+            // the cover in a steel plate like the panel's (bevel, corner screws), on darker steel
             mFill.setShader(null);
-            mFill.setColor(Color.argb(150, 10, 12, 16));
+            mFill.setColor(Color.argb(110, 10, 12, 16));
             c.drawRect(-4000, -4000, BW + 4000, BH + 4000, mFill);   // the whole screen
+            Bitmap b = coverBitmap();
+            RectF in = new RectF();
+            coverRect(b, in);
+            plate(c, new RectF(in.left - COVER_BEZEL, in.top - COVER_BEZEL, in.right + COVER_BEZEL, in.bottom + COVER_BEZEL));
+            if (b == null) crt(c, in);
+            else {
+                mFill.setColor(Color.argb(150, 255, 255, 255));        // the recess the picture sits in
+                c.drawRect(in.left - 3, in.top - 3, in.right + 4, in.bottom + 4, mFill);
+                mFill.setColor(Color.rgb(40, 44, 50));
+                c.drawRect(in.left - 4, in.top - 4, in.right + 1, in.bottom + 1, mFill);
+            }
         } else if (mBottom) {
             plate(c, B_HEAD);
             plate(c, B_LIST);

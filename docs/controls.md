@@ -62,7 +62,7 @@ artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it 
 the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
 viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
 back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows, on the
-main menu, only the game's box art (full screen, aspect kept, on dark steel); on the other pages
+main menu, only the game's box art (as large as fits, aspect kept, in a steel plate with a bevel and corner screws); on the other pages
 the page's options and the selected item's details or save-slot preview. Once the game starts the
 bottom screen becomes the companion panel. The box art is the player's own picture: Settings ->
 "Box art: choose image..." (the Android file picker) copies it into the app's private files
