@@ -76,14 +76,18 @@ static void CameraPlayerDead(CGameObject *camera)
 
 // The player's level-music members ((g_player - 0xc0) +0x4c14 channel, +0x4c18 a value given to
 // PlayMusic, +0x4c28 the music .omt name): C3DJimmy f_4c14 / f_4c18 / f_4c28.
-struct PlayerMusicState { int &channel; int &param; char *name; };
+struct PlayerMusicState
+{
+	int &channel; int &param; char *name;
+	PlayerMusicState(int &c, int &p, char *n) : channel(c), param(p), name(n) {}	// C++98: no brace init
+};
 static PlayerMusicState PlayerMusic(void)
 {
 	C3DJimmy *j = g_player ? dynamic_cast<C3DJimmy *>(g_player) : NULL;
-	if (j) return PlayerMusicState{ j->f_4c14, j->f_4c18, j->f_4c28 };
+	if (j) return PlayerMusicState(j->f_4c14, j->f_4c18, j->f_4c28);
 	static int channel = -1, param = 0;						// port: the original reads through NULL
 	static char name[100] = "none";
-	return PlayerMusicState{ channel, param, name };
+	return PlayerMusicState(channel, param, name);
 }
 
 // C3DJimmy members and slots TouchSurface uses (on the player's element; the original reads them at
