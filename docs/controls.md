@@ -53,6 +53,23 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 - **Mapped controllers first:** the game takes the first joystick, so SDL game controllers come
   before other joystick devices.
 
+## The launcher menu (port)
+
+The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no
+artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it wipes the autosave),
+**Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: name, level, date), **Settings**
+(widescreen 16:9, dual screen, menu style, "HD image pack" for later) and **Quit**. Select or Y on
+the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
+viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
+back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows the page's
+options and the selected item's details or save-slot preview.
+
+The game starts with `NEG_START` set: `new`, `continue`, `load:<slot>`, or `menu` when Settings
+-> Menu style is ORIGINAL (the app then skips the launcher and opens the game's own title menu;
+the port menu below switches back). Continue and Load stay disabled until the game reads
+`NEG_START` (`LauncherPages.GAME_LOADS`). Desktop preview: `tools/companion/render-menu.sh
+<game folder> <out dir>` draws every page for both screens.
+
 ## Port menu and the bottom-screen panel (port)
 
 Hold the Android back button (or the back swipe from the screen edge) for 0.6 s, or give it two
@@ -73,6 +90,7 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   choice made here or in the launcher's Settings is remembered and wins. With no second screen
   the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
+- **Menu style: NEW / ORIGINAL** - the launcher or the game's own title menu, from the next start.
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
 a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads

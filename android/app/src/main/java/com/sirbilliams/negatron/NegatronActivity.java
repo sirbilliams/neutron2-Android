@@ -145,16 +145,20 @@ public class NegatronActivity extends SDLActivity {
         if (mPanel == null || isFinishing()) return;
         final boolean on = mPanel.isEnabled();
         final boolean far = mPanel.isZoomFar();
+        final android.content.SharedPreferences prefs = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
+        final boolean original = prefs.getBoolean(SetupActivity.PREF_MENU_ORIGINAL, false);
         String panel = "Bottom screen panel: " + (on ? "ON" : "OFF")
                 + (mPanel.hasSecondDisplay() ? "" : " (no second screen found)");
         String zoom = "Panel map zoom: " + (far ? "FAR" : "NEAR");
+        String style = "Menu style: " + (original ? "ORIGINAL" : "NEW") + " (from the next start)";
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
-                .setItems(new String[] { panel, zoom, "Close" }, new DialogInterface.OnClickListener() {
+                .setItems(new String[] { panel, zoom, style, "Close" }, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) mPanel.setEnabled(!on);
                         else if (which == 1) mPanel.setZoomFar(!far);
+                        else if (which == 2) prefs.edit().putBoolean(SetupActivity.PREF_MENU_ORIGINAL, !original).apply();
                     }
                 })
                 .show();
