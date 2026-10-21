@@ -221,7 +221,7 @@ void C3DJimmy::ev144(void)											// 0x448b40
 		f_d54 = 0;
 		f_4cd4 = 0;
 		if (g_power_timers[5] <= 0.0f) AddEnergy(-1.0f);
-		f_d20->HideAgain();
+		if (f_d20) f_d20->HideAgain();						// port: NULL until C3DGraplingHook exists
 		return;
 	}
 	if (f_4cd0 < 20.0f)
@@ -229,7 +229,7 @@ void C3DJimmy::ev144(void)											// 0x448b40
 		// the burp gun is not charged yet
 		PlayGameSound(-1, std::string("click shrink ray"), false);
 		f_4cd4 = 0;
-		f_d20->HideAgain();
+		if (f_d20) f_d20->HideAgain();
 		return;
 	}
 	// the burp gun: four big bubbles
@@ -244,7 +244,7 @@ void C3DJimmy::ev144(void)											// 0x448b40
 	f_d54 = 0;
 	f_4cd4 = 0;
 	if (g_power_timers[5] <= 0.0f) AddEnergy(-1.0f);
-	f_d20->HideAgain();
+	if (f_d20) f_d20->HideAgain();
 }
 
 void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, float a6, float a7, float a8)	// 0x44b090
@@ -973,7 +973,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			f_a6c.x = 0;
 			f_a6c.y = 300.0f;
 			f_a6c.z = -350.0f;
-			f_d20->ev71(0.5f);
+			if (f_d20) f_d20->ev71(0.5f);						// port: NULL until C3DGraplingHook exists
 			if (f_d28) f_d28->ShowAgain();
 			save = true;
 			break;
@@ -1046,7 +1046,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			f_a6c.x = 0;
 			f_a6c.y = 250.0f;
 			f_a6c.z = -350.0f;
-			f_d20->ev71(0.5f);
+			if (f_d20) f_d20->ev71(0.5f);
 			g_menu->ShowGadgetBar();
 			if (f_d2c) f_d2c->ShowAgain();
 			save = true;
@@ -1250,7 +1250,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d30->ev95(0);
 			}
 			f_ae8 = 0;
-			f_d20->ev71(0);
+			if (f_d20) f_d20->ev71(0);
 			ev122();
 			break;
 
@@ -1303,7 +1303,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			}
 			f_ae8 = 0;
 			ev122();
-			f_d20->ev71(0);
+			if (f_d20) f_d20->ev71(0);
 			g_menu->HideGadgetBar();
 			break;
 
