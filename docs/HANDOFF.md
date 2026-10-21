@@ -211,16 +211,23 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
    - **Bug fixes after Bill's Thor test (done, on main):** the lab's Tesla bolt sat at (0,0,0) because
      C3DTesla slot 10 (0x482a70) is a jump to CLocalGameObject::ResetObject, not empty; Jimmy jittered when
      idle because C3DPlayer::ev109 (0x461b50) reset its turn-animation timers f_b14/f_b18 to 0.1 instead of 0.
-   - **Dual screen, rough version (done, on main, untested on a real second screen):** `game/src/port/
-     Companion.*` snapshots read-only state as JSON (<= 10/s, only while the panel is on; desktop
-     `NEG_COMPANION_LOG=1` logs it); Android `Companion.java`, `CompanionPanel.java` (a Presentation on the
-     second display), `CompanionView.java`. Toggle: hold Back (or the edge back swipe) 0.6 s, or double-tap
-     it -> menu "Bottom screen panel: ON/OFF" (remembered; the game pauses while it's open); see
-     docs/controls.md. Shows level/mode, neutron energy, score, lives, Herman's health, gadget slots,
-     pickups/neutrons/checkpoints collected, the caption, story tasks, and a top-down map around Jimmy.
-     Rough: a single Back tap reaches the game 0.35 s late (tap/hold detection); gadgets show as numbers;
-     task states are raw values; boss = Herman only; map axes/heading sign and its 3000-unit range unchecked;
-     display choice (first presentation display) unchecked; no icons yet (planned: from the HD pack).
+   - **Dual screen companion panel (on agent-e; untested on a real second screen):** `game/src/port/
+     Companion.*` snapshots read-only state as JSON (<= 10/s, only while the panel is on) and draws a
+     top-down map of the level: the terrain shapes (C3DTerrain, "ik" collision-only shapes' floors left
+     out) are copied once per level and a worker thread rasterises the floors (normal.y >= 0.7, textures
+     box-filtered to 32x32 and sampled at the UVs, highest floor under Jimmy's feet + 350 winning, so
+     roofs and storeys above him drop out), ledges and wall tops outlined; 6 world units/px, a 1536 px
+     window that follows Jimmy (re-drawn near its edge or when his height changes by > 200). Axes checked
+     on Level3 with the camera projection (map x = +x, map up = +z) and his heading (local +z, v226)
+     against his walking direction. Icons are the game's own canvases read at run time: gadgets (the
+     inventory page items' pictures), collected items and map pickups (the pickups page, by PIC_NUMBER),
+     neutrons / checkpoints / objective (the objects' own sprite canvases). Exits show open/shut by
+     CLoadLevel's own task test. Android: `Companion.java` (JNI: snapshot, map, icon), `CompanionPanel.java`,
+     `CompanionView.java` (stainless-steel / green-LED theme, all drawn in code; map in a green CRT window
+     with a sweep; Back menu: panel on/off, map zoom near/far). Desktop check: `NEG_COMPANION_DUMP=<dir>`
+     writes the map, snapshot and icons; `tools/companion/render.sh <dir> <Level> out.png` draws the real
+     CompanionView through a small Java2D shim. Open: task "done" states (the stage numbers' meaning is
+     per task), the boss name is fixed to Herman, the display choice is the first presentation display.
    - **16:9 widescreen (done; on by default on Android, off on the desktop):** `NEG_WIDESCREEN=1` makes the
      window 480 lines at the panel aspect (854x480 at 16:9); the 3D shows more at the sides with the
      original vertical view; 2D stays a centred 640x480 area, with the edge HUD pieces anchored to the
