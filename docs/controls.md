@@ -59,7 +59,7 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no
 artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it wipes the autosave),
 **Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: level, score, date), **Settings**
-(widescreen 16:9, dual screen, menu style, box art, "HD image pack" for later) and **Quit**. Select or Y on
+(widescreen 16:9, dual screen, menu style, box art, menu background, "HD image pack" for later) and **Quit**. Select or Y on
 the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
 viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
 back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows, on the
@@ -67,7 +67,9 @@ main menu, only the game's box art (as large as fits, aspect kept, in a steel pl
 the page's options and the selected item's details or save-slot preview. Once the game starts the
 bottom screen becomes the companion panel. The box art is the player's own picture: Settings ->
 "Box art: choose image..." (the Android file picker) copies it into the app's private files
-(`boxart.img`), "Box art: clear" removes it; never put the cover in the repo. Without one the
+(`boxart.img`), "Box art: clear" removes it; never put the cover in the repo. "Menu background:
+choose image..." / "clear" work the same way (`background.img`): the picture fills the main
+screen behind the plates (cover-fit, dimmed); without one, brushed steel. Without one the
 game's own menu picture (below) is shown, or a drawn atom before the game has saved it.
 
 The game starts with `NEG_START` set (see "How the game starts" below): `new`, `continue`,
@@ -77,7 +79,7 @@ The slots come from the game's `save/slots.txt` (before the game first wrote it:
 The info window shows the game's own main-menu background (screens.omt, read at run time): the
 game saves it once to `launcher-art.png` in the app's files folder (`NEG_MENU_ART`), so it appears
 from the second start. Desktop preview: `tools/companion/render-menu.sh <game folder> <out dir>
-[picture] [box art stand-in]` draws every page for both screens.
+[picture] [box art stand-in] [background stand-in]` draws every page for both screens.
 
 ## Port menu and the bottom-screen panel (port)
 

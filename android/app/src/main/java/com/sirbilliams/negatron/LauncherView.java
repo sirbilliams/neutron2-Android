@@ -118,7 +118,7 @@ final class LauncherView extends View {
         float u = scale();
         LauncherModel.Page pg = mModel.page();
         boolean cover = mBottom && pg != null && pg.id.equals("main");
-        Object coverArt = cover ? coverBitmap() : null;
+        Object coverArt = cover ? coverBitmap() : mBottom ? null : mModel.background;
         if (mChrome == null || mChromeW != w || mChromeH != h || cover != mCover || coverArt != mCoverArt) {
             mCover = cover;
             mCoverArt = coverArt;
@@ -200,7 +200,10 @@ final class LauncherView extends View {
         }
         pill(c, ROW_X, y, ROW_W, ROW_H, sel);
         led(c, ROW_X + 46, y + ROW_H / 2, 13, sel ? 2 : it.enabled ? 1 : 0, LED_ON);
-        engraved(c, it.label.toUpperCase(java.util.Locale.ROOT), ROW_X + 86, y + 56, 38, false, !it.enabled);
+        String label = it.label.toUpperCase(java.util.Locale.ROOT);
+        float room = ROW_W - 86 - (it.value != null ? 250 : 40);   // long labels get smaller letters
+        float size = Math.min(38, room / (0.68f * Math.max(1, label.length())));
+        engraved(c, label, ROW_X + 86, y + 56 - (38 - size) * 0.35f, size, false, !it.enabled);
         if (it.value != null) {
             float vw = 210, vx = ROW_X + ROW_W - vw - 22;
             lcd(c, vx, y + 15, vw, ROW_H - 30);
@@ -437,7 +440,19 @@ final class LauncherView extends View {
         mChromeW = w;
         mChromeH = h;
         Canvas c = new Canvas(mChrome);
-        brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126));
+        Bitmap bg = !mBottom && mModel.background instanceof Bitmap ? (Bitmap) mModel.background : null;
+        if (bg != null) {
+            // the player's picture over the whole screen, cover-fit (cropped to the screen's
+            // shape), dimmed so the plates stay readable
+            float sc = Math.max((float) w / bg.getWidth(), (float) h / bg.getHeight());
+            float bw = bg.getWidth() * sc, bh = bg.getHeight() * sc;
+            c.drawBitmap(bg, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2), mBmp);
+            mFill.setShader(null);
+            mFill.setColor(Color.argb(110, 0, 0, 0));
+            c.drawRect(0, 0, w, h, mFill);
+        } else {
+            brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126));
+        }
         c.save();
         c.translate(ox, oy);
         c.scale(u, u);

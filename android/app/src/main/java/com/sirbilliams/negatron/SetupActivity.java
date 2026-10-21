@@ -44,6 +44,7 @@ public class SetupActivity extends Activity {
 
     private static final int PICK_ZIP = 1;
     private static final int PICK_BOXART = 2;
+    private static final int PICK_BACKGROUND = 3;
     private static final String[] GAME_DIRS = { "omt", "gam", "grn", "ase", "png", "dat", "save" };
 
     private TextView message;
@@ -115,7 +116,23 @@ public class SetupActivity extends Activity {
     /** The player's box art picture, copied into the app's private files (never shipped in the repo). */
     static final String BOX_ART = "boxart.img";
 
+    /** The player's menu background picture (the launcher's main screen), likewise. */
+    static final String BACKGROUND = "background.img";
+
     private File boxArtFile() { return new File(getFilesDir(), BOX_ART); }
+
+    private File backgroundFile() { return new File(getFilesDir(), BACKGROUND); }
+
+    private void pickPicture(int request) {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("image/*");
+        try {
+            startActivityForResult(i, request);
+        } catch (android.content.ActivityNotFoundException e) {
+            // no picker on this device
+        }
+    }
 
     /** Decodes a picture at most about 2048 pixels on its long side (null if it isn't one). */
     private static android.graphics.Bitmap decodeScaled(File f) {
@@ -135,9 +152,10 @@ public class SetupActivity extends Activity {
         }
     }
 
-    /** Settings -> Box art: copies the chosen picture into the app's files and shows it. */
-    private void setBoxArt(Uri uri) {
-        File tmp = new File(getFilesDir(), BOX_ART + ".tmp");
+    /** Settings -> Box art / Menu background: copies the chosen picture into the app's private
+     *  files (name) and shows it. */
+    private void setPicture(Uri uri, String name) {
+        File tmp = new File(getFilesDir(), name + ".tmp");
         try (InputStream in = getContentResolver().openInputStream(uri);
              OutputStream out = new FileOutputStream(tmp)) {
             if (in == null) throw new IOException("can't open the picture");
@@ -153,14 +171,15 @@ public class SetupActivity extends Activity {
             tmp.delete();
             return;
         }
-        File f = boxArtFile();
+        File f = new File(getFilesDir(), name);
         f.delete();
         if (!tmp.renameTo(f)) {
             tmp.delete();
             return;
         }
         if (mMenu != null) {
-            mMenu.boxArt = b;
+            if (name.equals(BOX_ART)) mMenu.boxArt = b;
+            else mMenu.background = b;
             if (mMenu.page() != null && mMenu.page().id.equals("settings")) mMenu.replace(settingsPage());
             else mMenu.changed();
         }
@@ -204,6 +223,7 @@ public class SetupActivity extends Activity {
         mMenu = new LauncherModel();
         mMenu.art = android.graphics.BitmapFactory.decodeFile(new File(getExternalFilesDir(null), MENU_ART).getPath());
         mMenu.boxArt = decodeScaled(boxArtFile());
+        mMenu.background = decodeScaled(backgroundFile());
         mMenu.reset(mainPage());
         mTop = new LauncherView(this, mMenu, false);
         mTop.setFocusable(true);
@@ -232,7 +252,8 @@ public class SetupActivity extends Activity {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), CompanionPanel.wanted(p, second), second,
-                p.getBoolean(PREF_MENU_ORIGINAL, false), boxArtFile().isFile());
+                p.getBoolean(PREF_MENU_ORIGINAL, false), boxArtFile().isFile(),
+                backgroundFile().isFile());
     }
 
     private android.hardware.display.DisplayManager displays() {
@@ -271,15 +292,12 @@ public class SetupActivity extends Activity {
         } else if (id.equals("style")) {
             p.edit().putBoolean(PREF_MENU_ORIGINAL, !p.getBoolean(PREF_MENU_ORIGINAL, false)).apply();
             mMenu.replace(settingsPage());
-        } else if (id.equals("boxart")) {
-            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("image/*");
-            try {
-                startActivityForResult(i, PICK_BOXART);
-            } catch (android.content.ActivityNotFoundException e) {
-                // no picker on this device
-            }
+        } else if (id.equals("boxart")) pickPicture(PICK_BOXART);
+        else if (id.equals("bg")) pickPicture(PICK_BACKGROUND);
+        else if (id.equals("bg_clear")) {
+            backgroundFile().delete();
+            mMenu.background = null;
+            mMenu.replace(settingsPage());
         } else if (id.equals("boxart_clear")) {
             boxArtFile().delete();
             mMenu.boxArt = null;
@@ -524,7 +542,11 @@ public class SetupActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_BOXART && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            setBoxArt(data.getData());
+            setPicture(data.getData(), BOX_ART);
+            return;
+        }
+        if (requestCode == PICK_BACKGROUND && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            setPicture(data.getData(), BACKGROUND);
             return;
         }
         if (requestCode == PICK_ZIP && resultCode == RESULT_OK && data != null && data.getData() != null) {

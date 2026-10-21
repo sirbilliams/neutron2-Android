@@ -53,6 +53,8 @@ final class LauncherModel {
     /** The game's box art, which the player chose (Settings), shown alone on the bottom screen
      *  while the main menu is up; or null (then the picture above, or a drawn atom). */
     Object boxArt;
+    /** The player's menu background (Settings), drawn behind the main screen's plates; or null. */
+    Object background;
 
     void listen(Listener l) { mListeners.add(l); }
 
