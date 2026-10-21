@@ -124,7 +124,7 @@ unsigned char C3DBot::v231(CGameObject *other)				// 0x422b90
 	switch (other->m_object_id)
 	{
 		case '3BOT': case '3EPR': case '3SWN':	return 1;
-		case '3JIM': case '3DOG': case '3LBW':	break;
+		case '3JIM': case '3GOD': case '3WBL':	break;
 		default:								return 0;
 	}
 	if (f_1b50 > 0) return 0;								// stunned: no collisions with these

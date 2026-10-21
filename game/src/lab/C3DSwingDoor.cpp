@@ -116,5 +116,5 @@ unsigned char C3DSwingDoor::v231(CGameObject *other)		// 0x4752a0
 {
 	if (g_camera == other) return 1;
 	const int id = other->m_object_id;
-	return id == '3GOD' || id == '3BOT' || id == '3EPR' || id == '3JIM' || id == '3LBW';
+	return id == '3GOD' || id == '3BOT' || id == '3EPR' || id == '3JIM' || id == '3WBL';
 }

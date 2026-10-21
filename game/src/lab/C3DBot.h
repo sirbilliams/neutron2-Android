@@ -35,7 +35,7 @@ class C3DBot : public C3DAI
 	virtual void InitObject(void);											// SLOT 7   0x422690 + TargOffX/Y/Z
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x422780 a water balloon: stunned
 	virtual void v222(void);												// SLOT 222 0x422860 landed: hidden while stunned
-	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x422b90 collides with the camera, '3BOT', '3EPR', '3SWN'; '3JIM', '3DOG', '3LBW' unless stunned
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x422b90 collides with the camera, '3BOT', '3EPR', '3SWN'; '3JIM', '3GOD', '3WBL' unless stunned
 	virtual void Process(float dt);											// SLOT 240 0x4228f0 stun time, the shock, hovering up
 	virtual void v260(void);												// SLOT 260 0x422700 speed by skill
 	virtual void WriteState(OMediaStreamOperators &s);						// SLOT 284 0x422c40 + f_1b50, f_bd4
