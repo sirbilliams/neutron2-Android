@@ -59,17 +59,25 @@ Hold the Android back button (or the back swipe from the screen edge) for 0.6 s,
 quick taps (within 0.35 s), to open a small menu over the game (the game pauses while it is open):
 
 - **Bottom screen panel: ON / OFF** - shows a companion panel on the Thor's second screen
-  (any second Android display; the first presentation display if there are several): neutron
-  energy, score and lives, the boss's health while it shows, the current gadget, the pickups /
-  neutrons / checkpoints collected in the level, the caption being typed, the story task states
-  and a top-down map centred on Jimmy (north up; yellow pickups, blue neutrons, green
-  checkpoints, purple friends, red other characters). The setting is remembered. With no second
-  screen the menu says so and nothing is shown.
+  (any second Android display; the first presentation display if there are several), styled as a
+  stainless-steel lab gadget with green LEDs: the level and game mode, neutron energy on a dial
+  (green / yellow / red as the game's own bar), score and lives (or the boss's health while it
+  shows), the pickups / neutrons / checkpoints collected, the gadgets Jimmy has (the current one
+  lit) and the items collected (the game's own pictures), the caption being typed, the story
+  tasks (lit = started, with their stage number), and a map of the level in a green CRT window:
+  a top-down picture of the level drawn from its own geometry, following Jimmy (white arrow,
+  north up), with the pickups, neutrons and checkpoints (their game pictures), friends (blue
+  orbits), other characters (red), doors, exits (green = open, red = still shut, with the level
+  they lead to) and the current objective (yellow pulse; objectives and exits off the screen
+  get an arrow on the edge). The setting is remembered. With no second screen the menu says so
+  and nothing is shown.
+- **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
 a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads
 the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1` logs the same
-snapshot once a second.
+snapshot once a second, and `NEG_COMPANION_DUMP=<dir>` writes the map, the snapshot and the icons
+there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel from them.
 
 ## Pointer helpers
 
