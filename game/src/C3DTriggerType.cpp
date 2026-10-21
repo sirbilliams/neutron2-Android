@@ -3,6 +3,10 @@
 #include "C3DTriggerType.h"
 #include "objects/C3DAITrigger.h"
 #include "objects/C3DCutSceneCamera.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "objects/C3DMultiCutSceneCamera.h"
+#pragma GCC diagnostic pop
 #include "levels/CLoadLevel.h"
 #include "C3DPlayer.h"
 #include "CGameType.h"
@@ -51,7 +55,8 @@ static float *ObjectRelativePoint(CGameObject *o, float *out, float a, float b, 
 // vtable of the next object); they are called once its type is known from NameContains.
 namespace neg { void TextTriggerTrigger(CGameObject *o); }
 static void TextTriggerFire(CGameObject *next)		{ neg::TextTriggerTrigger(next); }	// objects/C3DTextTrigger.cpp
-static void MusicTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x4590d0, "C3DMusicTrigger element slot 56"); }
+namespace neg { void MusicTriggerTrigger(CGameObject *o); }
+static void MusicTriggerFire(CGameObject *next)		{ neg::MusicTriggerTrigger(next); }	// objects/C3DMusicTrigger.cpp
 namespace neg { void FadeObjectTrigger(CGameObject *o); }
 static void FadeObjectFire(CGameObject *next)		{ neg::FadeObjectTrigger(next); }	// objects/C3DFadeObject.cpp
 static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char flag)
@@ -60,7 +65,7 @@ static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char 
 }
 static void MultiCutSceneFire(CGameObject *next, CGameObject *caller, unsigned char flag)
 {
-	(void)next; (void)caller; (void)flag; NEG_TODO(0x457be0, "C3DMultiCutSceneCamera element slot 57 (caller, flag)");
+	static_cast<C3DMultiCutSceneCamera *>(next)->TriggerCallback(caller, flag);	// element +0xe4 (0x457be0)
 }
 static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
 {
