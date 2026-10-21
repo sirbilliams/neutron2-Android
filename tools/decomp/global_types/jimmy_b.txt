@@ -1,0 +1,3 @@
+# C3DJimmy part b (game/src/jimmy/C3DJimmy_b.cpp)
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x54a450 val int                                # streamed as a long by C3DJimmy Read/WriteState; 0x485800 adds to it (wraps at 3, then +1 to 0x54a454)
