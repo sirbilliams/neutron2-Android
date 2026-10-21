@@ -2,6 +2,7 @@
     Constants: 0x4cb228 = 16384 / 360, 0x4cb1f8 = 360 / 16384, 0x4df740 = 1 / 45, 0x4df73c = 52,
     0x4df74c = 14.4 (mouse to steering), 0x4cb21c = 200 (arrow distance from the viewport).   */
 #include "C3DGoddard.h"
+#include "Mouse.h"
 #include "C3DShadow.h"
 #include "C3DCursor.h"
 #include "C3DGrannyObj.h"
@@ -129,11 +130,7 @@ static bool KeyDeactivateItem(void)
 	return false;
 }
 
-// 0x4a3990: cursor offset from the window centre, then the cursor is put back (as C3DPlayer's).
-static void GetMouseDelta(short *dx, short *dy)
-{
-	if (!g_56aed0) { NEG_TODO(0x4a3990, "GetMouseDelta"); (void)dx; (void)dy; }
-}
+using neg::GetMouseDelta;									// 0x4a3990 (Mouse.h)
 
 // A C3DBone that Goddard picked up: hidden, its +0x924 cleared (C3DBone is not reconstructed).
 static void BoneTaken(CGameObject *bone)
