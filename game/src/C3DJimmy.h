@@ -20,10 +20,10 @@
       f_4d00[20] / f_4d50[1] C3DMagicParticle (burp-gun / bubble sparkles, ev154..ev157),
       f_d5c C3DGoddard (his dog), f_d40 C3DRadar (the HUD panel the menu shows with R),
       f_d44 C3DASEObj (the bubble he floats in, ev146 / ev147).
-    Most of those classes are not reconstructed yet: their pointers are typed with the nearest
-    reconstructed base (C3DPlayerObject, C3DAnimated, C3DPermanentSprite) and created through the
-    factory's New_<Class> where the class has a factory ID (weak TODO stubs until it exists), else
-    through a TODO stub here; until then they stay NULL and every use is NULL-checked (port:).
+    Each helper is a class of its own (C3DRadar.h, C3DShadow.h, C3DJetPack.h, C3DTargetCursor.h,
+    C3DPointCursor.h, C3DWaterBalloon.h, C3DGraplingHook.h, C3DMagicParticle.h, C3DGoddard.h,
+    C3DASEObj.h); the rocket ship is C3DRocketShip.h. The constructor news them as the original
+    does; uses are NULL-checked only where the original checks.
 
     This class is written in two parts (jimmy/C3DJimmy_a.{inc,cpp}: everything below 0x448b40,
     jimmy/C3DJimmy_b.{inc,cpp}: 0x448b40 and above). Each part declares the slots it writes in
@@ -33,15 +33,26 @@
     offset - 0xc0).
 
     Hooks: C3DPlayer.h declares neg::JimmyJetpackOff / JimmyJetpackSound / JimmyJetpackFlame /
-    JimmyActivateMenuItem weak; C3DJimmy.cpp defines them.                                    */
+    JimmyActivateMenuItem weak, C3DRocketShip.h JimmyRocketShoot / JimmyGadgetShot (and others);
+    C3DJimmy.cpp defines them.                                                                 */
 #pragma once
 #include "C3DPlayer.h"
+#include "C3DJetPack.h"
+#include "C3DASEObj.h"
+#include "C3DMagicParticle.h"
+#include "C3DWaterBalloon.h"
+#include "C3DGraplingHook.h"
+#include "C3DGoddard.h"
 #include "OMedia3DPoint.h"
 #include "OMedia3DVector.h"
 
 class CTaskList;
 class C3DGrannyObj;
 class C3DPermanentSprite;
+class C3DRadar;
+class C3DShadow;
+class C3DTargetCursor;
+class C3DPointCursor;
 class OMediaStreamOperators;
 
 class C3DJimmy : public C3DPlayer
@@ -59,11 +70,11 @@ class C3DJimmy : public C3DPlayer
 	// 0xcb0..0xcbb never used
 	C3DObject			*f_cbc;			// 0xcbc  shrink-ray effect: hidden when the ray stops / out of energy (0; set elsewhere)
 	CGameObject			*f_cc0;			// 0xcc0  0 (ev118 calls an empty function on it)
-	C3DPermanentSprite	*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
+	C3DShadow			*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
 	C3DPlayerObject		*f_cc8;			// 0xcc8  C3DRocketShip he can fly (a C3DFlyingObject)
-	C3DPlayerObject		*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
-	C3DPermanentSprite	*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool
-	C3DAnimated			*f_d20;			// 0xd20  C3DGraplingHook (ev163)
+	C3DJetPack			*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
+	C3DWaterBalloon		*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool
+	C3DGraplingHook		*f_d20;			// 0xd20  C3DGraplingHook (ev163)
 	// 0xd24 never used
 	// props on Jimmy's bones (ev88), dropped by v260 (in the order d28 d2c d30 d38 d34)
 	C3DGrannyObj		*f_d28;			// 0xd28  water gun in the right hand ("newgunbase.grn")
@@ -72,14 +83,14 @@ class C3DJimmy : public C3DPlayer
 	C3DGrannyObj		*f_d34;			// 0xd34  the PDA ("PDA.grn"; Process hides it outside cut scenes)
 	C3DObject			*f_d38;			// 0xd38  held object (the HOLD animations; ReadState clears it)
 	int					f_d3c;			// 0xd3c  0
-	C3DPermanentSprite	*f_d40;			// 0xd40  C3DRadar: the HUD panel (the original keeps its CGameObject part)
-	C3DAnimated			*f_d44;			// 0xd44  C3DASEObj: the bubble (energybubble.ase; the original keeps its CGameObject part)
+	C3DRadar			*f_d40;			// 0xd40  C3DRadar: the HUD panel (the original keeps its CGameObject part)
+	C3DASEObj			*f_d44;			// 0xd44  C3DASEObj: the bubble (energybubble.ase; the original keeps its CGameObject part)
 	int					f_d48;			// 0xd48  0
-	C3DAnimated			*f_d4c;			// 0xd4c  C3DPointCursor (the original keeps its CGameObject part)
+	C3DPointCursor		*f_d4c;			// 0xd4c  C3DPointCursor (the original keeps its CGameObject part)
 	short				f_d50;			// 0xd50  next water balloon (0..19)
 	int					f_d54;			// 0xd54  0 after a shot
 	short				f_d58;			// 0xd58  0
-	C3DPlayerObject		*f_d5c;			// 0xd5c  C3DGoddard, Jimmy's dog (a C3DAI)
+	C3DGoddard			*f_d5c;			// 0xd5c  C3DGoddard, Jimmy's dog (a C3DAI)
 	float				f_d60;			// 0xd60  health, 0..100 (50; ev160 adds)
 	float				f_d64;			// 0xd64  0; 0.5 after leaving the jeep
 	short				f_d68;			// 0xd68  -1
@@ -101,7 +112,7 @@ class C3DJimmy : public C3DPlayer
 	int					f_4c20;			// 0x4c20 footstep sound channel (-1)
 	int					f_4c24;			// 0x4c24 sound channel (-1) "not available"
 	char				f_4c28[100];	// 0x4c28 "none"; ev165: from the start point (the level music name)
-	C3DPermanentSprite	*f_4c8c;		// 0x4c8c C3DTargetCursor
+	C3DTargetCursor		*f_4c8c;		// 0x4c8c C3DTargetCursor
 	CTaskList			*f_4c90;		// 0x4c90 the task list
 	int					f_4c94;			// 0x4c94 0
 	int					f_4c98;			// 0x4c98 0
@@ -129,8 +140,8 @@ class C3DJimmy : public C3DPlayer
 	unsigned char		f_4cfc;			// 0x4cfc 0: grappling hook gadget selected once (12 s help shown)
 	unsigned char		f_4cfd;			// 0x4cfd 0: on the scooter (jeep): no shadow
 	unsigned char		f_4cfe;			// 0x4cfe 1 (0 while the constructor builds the helpers)
-	C3DPermanentSprite	*f_4d00[20];	// 0x4d00 C3DMagicParticle pool (next: f_4d54)
-	C3DPermanentSprite	*f_4d50[1];		// 0x4d50 C3DMagicParticle (next: f_4d60)
+	C3DMagicParticle	*f_4d00[20];	// 0x4d00 C3DMagicParticle pool (next: f_4d54)
+	C3DMagicParticle	*f_4d50[1];		// 0x4d50 C3DMagicParticle (next: f_4d60)
 	int					f_4d54;			// 0x4d54 next of f_4d00 (ev154)
 	float				f_4d58;			// 0x4d58 0; ev156 adds: sparkle time of f_4d00
 	float				f_4d5c;			// 0x4d5c 0

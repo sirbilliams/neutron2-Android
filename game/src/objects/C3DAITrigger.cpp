@@ -182,7 +182,8 @@ static void JimmySetStartPoints(CGameObject *jimmy, const char *name)		// +0x9c8
 }
 static CGameObject *GoddardPointer(CGameObject *goddard)					// C3DGoddard +0x1b84 (object)
 {
-	(void)goddard; NEG_TODO(0x418fb0, "C3DGoddard +0x1b84 (pointer object)"); return NULL;
+	C3DGoddard *g = dynamic_cast<C3DGoddard *>(goddard);
+	return g ? g->f_1b84 : NULL;									// 0x418fb0 (port: the original reads +0x1b84 of whatever the object is)
 }
 static void LibbySlot(CGameObject *libby, bool digitize)					// C3DLibby +0x24c / +0x250 (slots 147/148)
 {
