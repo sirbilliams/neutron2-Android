@@ -68,10 +68,12 @@ static void HudShow(void *hud)			{ static_cast<C3DRadar *>(hud)->Show(); }	// 0x
 static void HudHide(void *hud)			{ static_cast<C3DRadar *>(hud)->Hide(); }	// 0x468aa0
 
 // C3DJimmy element-family slots, called on (g_545fd0 - 0xc0).
-static void PlayerAnimEvents(void)		{ NEG_TODO(0x44e0b0, "C3DJimmy slot 67 (anim events)"); }
-static void PlayerStopSound(void)		{ NEG_TODO(0x44b060, "C3DJimmy slot 116 (stop sound 0x4c20)"); }
-static bool PlayerAltButton(void)		{ NEG_TODO(0x4655d0, "C3DPlayerObject slot 103 (2nd button)"); return false; }
-static bool PlayerFireButton(void)		{ NEG_TODO(0x465650, "C3DPlayerObject slot 104 (fire button)"); return false; }
+// port: the original calls through (NULL - 0xc0) when there is no player; these do nothing then.
+static C3DPlayerObject *PlayerObj(void)	{ return g_545fd0 ? dynamic_cast<C3DPlayerObject *>(g_545fd0) : NULL; }
+static void PlayerAnimEvents(void)		{ if (C3DPlayerObject *p = PlayerObj()) p->ev67(); }		// slot 67 (C3DJimmy 0x44e0b0)
+static void PlayerStopSound(void)		{ if (C3DPlayer *p = dynamic_cast<C3DPlayer *>(PlayerObj())) p->ev116(); }	// slot 116 (C3DJimmy 0x44b060)
+static bool PlayerAltButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev103(); }	// slot 103 0x4655d0
+static bool PlayerFireButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev104(); }	// slot 104 0x465650
 
 // (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth.
 static void PhoneBoothTeleport(void)	{ NEG_TODO(0x4648a0, "phone booth teleport (g_56af7c slot 121)"); }

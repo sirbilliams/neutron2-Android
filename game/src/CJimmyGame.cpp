@@ -55,8 +55,6 @@ static void LoadTask(const char *name, int a)	{ neg::LoadTask(name, a != 0); }		
 // Granny (RAD): granny.dll import 0x4ca464 GrannyAdvanceTime, game/granny/granny_compat.h.
 #include "granny_compat.h"
 
-// C2DInGameMenu 0x409b20: hand out the pickup announced by 0x545e64 (ANTIHOLO, inventory...).
-static void MenuGivePendingPickup(void)			{ NEG_TODO(0x409b20, "C2DInGameMenu pending pickup (0x545e64)"); }
 
 // The player's HUD object (C3DJimmy +0xd40, minus 200 to its element; NULL if none) and its
 // hide (C3DRadar 0x468aa0).
@@ -223,7 +221,7 @@ void CJimmyGame::Process(float dt)											// 0x484260
 		g_queued_sfx_pending = 0;
 		PlayGameSound(-1, g_queued_sfx, 0);
 		g_queued_sfx = g_empty_string;										// 0x545f14 ""
-		MenuGivePendingPickup();											// 0x409b20
+		GivePendingInvention();												// 0x409b20
 	}
 	if (g_voice_channel != -1 && !IsChannelPlaying(g_voice_channel)) g_voice_channel = -1;
 	UpdateTimers(dt);														// element +0x17c
