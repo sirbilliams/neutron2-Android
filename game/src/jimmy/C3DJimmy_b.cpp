@@ -17,6 +17,7 @@
 #include "../C3DJimmy.h"
 #include "../level3c/C3DHoverCycle.h"
 #include "../level3d/C3DCraneBoom.h"
+#include "../level5/C3DLunarLander.h"
 #include "../C3DRocketShip.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
@@ -1097,7 +1098,12 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			l->v162(0, 750.0f, (r - 0.5f) * 250.0f);			// +0x288
 			l->v203(0, 0, 0);
 			PlayGameSound(-1, std::string("rocket blast"), false);
-			NEG_TODO(0x44afa3, "C3DLunarLander +0x1aa4 (cgo) = 0, +0x1aa8 = 100");
+			C3DLunarLander *ll = dynamic_cast<C3DLunarLander *>(l);	// (l - 0xc0)
+			if (ll)												// port: checked (the tag names a lander)
+			{
+				ll->m_landed = 0;								// 0x44afa3: +0x1aa4 (cgo)
+				ll->m_fuel = 100.0f;							// +0x1aa8
+			}
 			cam = l;
 			break;
 		}
