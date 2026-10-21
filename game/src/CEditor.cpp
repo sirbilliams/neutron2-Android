@@ -7,6 +7,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "TestHooks.h"
+#include "port/StartMode.h"
 #include "DatabaseCache.h"
 #include "Mouse.h"
 #include "CEditor.h"
@@ -604,19 +605,20 @@ countdown:
 				if (fscanf(f, "%s", m_level_name) < 0) {}		// (an empty file leaves the name as it was)
 				if (fclose(f) != 0) SDL_Log("The file 'startlevel.txt' was not closed\n");
 			}
+			const char *task = neg::StartModeChoose(m_level_name);	// port: NEG_START (the original: "autosave.tsk")
 			if (const char *t = TestPlayLevel()) strcpy(m_level_name, t);	// port: test-only (NEG_TEST_PLAY)
 			if (strcasecmp(m_level_name, "autosave") == 0)
 			{
-				if (!ReadTaskFile("autosave.tsk"))
+				if (!ReadTaskFile(task))
 				{
 					strcpy(m_level_name, "level1d.gam");
-					ErrorLog("ERROR: loading autosave.tsk");
+					ErrorLog("ERROR: loading %s", task);
 				}
 				else
 				{
 					Trace("MEBTEMP GFN:%s", g_game_file);
 					Trace("MEBTEMP TFN:%s", g_task_file);
-					LoadTask("autosave.tsk", false);
+					LoadTask(task, false);
 				}
 			}
 			m_load_countdown = 2;
@@ -625,6 +627,7 @@ countdown:
 			m_start_state = 3;
 	}
 	if (m_load_pending) CheckLoadLevel();
+	neg::StartModeFrame();									// port: NEG_START=menu opens the Main Menu
 }
 
 // --------------------------------------------------------------------------- 0x4a8420
@@ -675,6 +678,7 @@ void CEditor::LoadGame(char *name, int level_id)
 			"save\\autosave13.tsk", "save\\autosave14.tsk", "save\\autosave15.tsk", "save\\autosave16.tsk",
 			"save\\autosave17.tsk" };
 		for (unsigned i = 0; i < sizeof(autosaves) / sizeof(autosaves[0]); i++) DeleteFile(autosaves[i]);
+		neg::WriteSaveSlotList();							// port: save\slots.txt (StartMode.h)
 	}
 	else if (strcasecmp(m_level_name, "level1_c.gam") == 0)
 		SetLevel1cLoaded(1);
@@ -770,6 +774,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	Trace("File closed, Calling ResetLevel 2");
 	g_splash->hide(true);
 	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY)
+	neg::StartModeLevelLoaded();							// port: NEG_START
 }
 
 // --------------------------------------------------------------------------- 0x4a8100
