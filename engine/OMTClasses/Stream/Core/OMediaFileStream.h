@@ -73,6 +73,7 @@ class OMediaFileStream : public OMediaStream
 	omtshared virtual bool fileexists(void);
 
 	inline bool isopen(void) const {return isopenflag;}
+	inline bool isreadonly(void) const {return readonlyflag;}	// port
 	
 	omtshared virtual void kill(void);
 
@@ -95,6 +96,7 @@ class OMediaFileStream : public OMediaStream
 
 	
 	bool			isopenflag;
+	bool			readonlyflag;	// port: opened omcfp_Read (see ~OMediaFormattedStream)
 	OMediaFilePath	filepath;
 	int			position;
 };

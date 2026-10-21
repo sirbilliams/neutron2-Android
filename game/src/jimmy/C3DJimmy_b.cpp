@@ -16,6 +16,8 @@
     lower, translated here.                                                                    */
 #include "../C3DJimmy.h"
 #include "../level3c/C3DHoverCycle.h"
+#include "../level3d/C3DCraneBoom.h"
+#include "../level3a/C3DMiniSub.h"
 #include "../C3DRocketShip.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
@@ -995,7 +997,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			v136(0);
 			v132(0);
 			v120(1);
-			NEG_TODO(0x44a912, "C3DMiniSub +0x934 (cgo) = Jimmy (driver)");
+			if (C3DMiniSub *sub = dynamic_cast<C3DMiniSub *>(m)) sub->f_9f4 = this;	// 0x44a912: the driver
 			m->v132(1);
 			if (f_d5c)
 			{
@@ -1005,7 +1007,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				f_d5c->f_1b60 = 1;
 				f_d5c->v132(0);
 				f_d5c->ev121();									// element +0x1e4
-				NEG_TODO(0x44a9a8, "C3DMiniSub +0x938 (cgo) = Goddard");
+				if (C3DMiniSub *sub = dynamic_cast<C3DMiniSub *>(m)) sub->f_9f8 = f_d5c;	// 0x44a9a8
 			}
 			save = true;
 			cam = m;
@@ -1054,7 +1056,10 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			v136(0);
 			g_5461cc = 0;
 			PlayGameSound(-1, std::string("cranestart"), false);
-			NEG_TODO(0x44adfb, "C3DCraneBoom +0x8c8 (cgo) = Jimmy (driver)");
+			{
+				C3DCraneBoom *b = dynamic_cast<C3DCraneBoom *>(c);
+				if (b) b->m_driver = static_cast<CGameObject *>(this);	// 0x44adfb (port: checked)
+			}
 			cam = c;
 			break;
 		}
@@ -1266,7 +1271,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			v136(1);
 			v132(1);
 			v120(0);
-			NEG_TODO(0x449a82, "C3DMiniSub +0x934 (cgo) = 0");
+			if (C3DMiniSub *sub = dynamic_cast<C3DMiniSub *>(m)) sub->f_9f4 = NULL;	// 0x449a82
 			m->v132(0);
 			if (f_d5c)
 			{
@@ -1275,7 +1280,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->ev58((char *)"SIT", 1);
 				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
-				NEG_TODO(0x449b07, "C3DMiniSub +0x938 (cgo) = 0");
+				if (C3DMiniSub *sub = dynamic_cast<C3DMiniSub *>(m)) sub->f_9f8 = NULL;	// 0x449b07
 			}
 			break;
 		}
@@ -1310,7 +1315,12 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			NEG_TODO(0x449c71, "C3DCraneBoom +0x8cc (cgo, channel) stopped; +0x8c8 = 0");
+			C3DCraneBoom *b = dynamic_cast<C3DCraneBoom *>(c);	// (port: checked)
+			if (b)
+			{
+				StopGameSound(b->m_channel, false);			// 0x449c71 (0x48f0d0)
+				b->m_driver = NULL;
+			}
 			break;
 		}
 
