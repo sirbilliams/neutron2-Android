@@ -152,17 +152,22 @@ bool neg::FindDevice(int type)
 }
 
 // Port: test hook. NEG_JOY_LOG=1 logs what the game sees of the joystick whenever it changes
-// (the pressed button numbers and the X/Y axes rounded to tenths).
+// (the pressed button numbers and the X/Y axes rounded to tenths), with the keys down in g_keys
+// (Windows key codes, hex) and the mouse buttons.
 static void LogJoyChanges(void)
 {
 	static int on = -1;
 	if (on < 0) on = getenv("NEG_JOY_LOG") != NULL;
 	if (!on) return;
-	static char last[160];
-	char now[160];
+	static char last[256];
+	char now[256];
 	int n = snprintf(now, sizeof now, "x %.1f y %.1f buttons", (double)g_joy_x, (double)g_joy_y);
 	for (int b = 0; b < JOY_BUTTONS && n < (int)sizeof now - 4; b++)
 		if (JoyButtons()[b]) n += snprintf(now + n, sizeof now - n, " %d", b);
+	n += snprintf(now + n, sizeof now - n, " keys");
+	for (int k = 0; k < 256 && n < (int)sizeof now - 4; k++)
+		if (g_keys[k]) n += snprintf(now + n, sizeof now - n, " %02x", k);
+	if (n < (int)sizeof now - 16) snprintf(now + n, sizeof now - n, " mouse %d%d", g_mouse_down, g_mouse_rdown);
 	if (strcmp(now, last) == 0) return;
 	strcpy(last, now);
 	SDL_Log("joystick: %s", now);

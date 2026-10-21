@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // ---------------------------------------------------------------------------
 // Event manager
@@ -163,13 +164,27 @@ void OMediaEventManager::osevent_to_omtevent(void *localevent, OMediaEvent *ev)
 // Port: gamepad extras (not in OMT; the table is in docs/controls.md)
 //
 // The game reads the gamepad through the HID elements below, as it read DirectInput on Windows.
-// What it reads only from the mouse gets a gamepad control here:
+// What it reads only from the keyboard or the mouse gets a gamepad control here:
+//   start          Esc     (Start is also button 4, the pause menu; Esc on its own closes text
+//                           boxes, skips cut scenes and puts the item away, as on the keyboard)
+//   leftshoulder   R       (shows / hides the HUD panel)
+//   righttrigger   Y       (yes, in the confirmation boxes)
+//   lefttrigger    N       (no)
+//   a              Space   (A is also button 0, the action; Space is Key_Action in keys.txt, so in
+//                           play it does the same, and "press any key" screens - the score
+//                           screen - take A)
 //   right stick    moves the mouse pointer. The menus follow the pointer, and in play the game
 //                  turns the camera by how far the pointer moved since it re-centred it (mouse
 //                  look, 0x4a3990). Speed: up to 3/4 of the window width per second, on a square
 //                  curve past a 20% dead zone.
-// The event manager keeps every game controller open for this (the HID devices come and go with
-// the input engines the game makes).
+// The keys go through the same path as the keyboard's (pushed as SDL key events; the game's
+// event filter turns them into Windows key codes), so for the game they are key presses. A key
+// is down while the control is held on any controller (a trigger: past half way, up again below
+// a quarter). The event manager keeps every game controller open for this (the HID devices come
+// and go with the input engines the game makes).
+// The Android back button arrives as SDL_SCANCODE_AC_BACK, which the game takes as Esc (as does
+// OMT, omf_special); omf_SDLPadInit sets SDL_HINT_ANDROID_TRAP_BACK_BUTTON so that Android never
+// handles it as "close the app".
 
 static std::vector<SDL_GameController *> omg_pads;
 
@@ -208,6 +223,56 @@ static float omf_pad_stick(SDL_GameControllerAxis axis)
 		v += a * (a < 0 ? -a : a);
 	}
 	return v;
+}
+
+struct omt_PadKey
+{
+	int				button;		// SDL_GameControllerButton, or -1
+	int				trigger;	// SDL_GameControllerAxis (a trigger), or -1
+	SDL_Scancode	key;
+	bool			down;
+};
+
+static omt_PadKey omg_pad_keys[] = {
+	{ SDL_CONTROLLER_BUTTON_START,        -1, SDL_SCANCODE_ESCAPE, false },
+	{ SDL_CONTROLLER_BUTTON_LEFTSHOULDER, -1, SDL_SCANCODE_R,      false },
+	{ -1, SDL_CONTROLLER_AXIS_TRIGGERRIGHT,   SDL_SCANCODE_Y,      false },
+	{ -1, SDL_CONTROLLER_AXIS_TRIGGERLEFT,    SDL_SCANCODE_N,      false },
+	{ SDL_CONTROLLER_BUTTON_A,            -1, SDL_SCANCODE_SPACE,  false },
+};
+
+static SDL_Window *omf_game_window(OMediaWindow **ow);
+
+static void omf_pad_keys(void)
+{
+	for (size_t k = 0; k < sizeof omg_pad_keys / sizeof omg_pad_keys[0]; k++)
+	{
+		omt_PadKey &m = omg_pad_keys[k];
+		bool held = false;
+		for (size_t i = 0; i < omg_pads.size() && !held; i++)
+		{
+			if (m.button >= 0) held = SDL_GameControllerGetButton(omg_pads[i], (SDL_GameControllerButton)m.button) != 0;
+			else
+			{
+				int v = SDL_GameControllerGetAxis(omg_pads[i], (SDL_GameControllerAxis)m.trigger);
+				held = v > (m.down ? 8192 : 16384);
+			}
+		}
+		if (held == m.down) continue;
+		m.down = held;
+		OMediaWindow *ow;
+		SDL_Window *w = omf_game_window(&ow);
+		SDL_Event e;
+		SDL_zero(e);
+		e.type = held ? SDL_KEYDOWN : SDL_KEYUP;
+		e.key.timestamp = SDL_GetTicks();
+		e.key.windowID = w ? SDL_GetWindowID(w) : 0;
+		e.key.state = held ? SDL_PRESSED : SDL_RELEASED;
+		e.key.keysym.scancode = m.key;
+		e.key.keysym.sym = SDL_GetKeyFromScancode(m.key);
+		SDL_PushEvent(&e);
+		if (getenv("OMT_PAD_LOG")) SDL_Log("OMT pad: key %s %s", SDL_GetScancodeName(m.key), held ? "down" : "up");
+	}
 }
 
 void omf_SDLWindowToLogical(OMediaWindow *ow, int px, int py, int &lx, int &ly);
@@ -262,8 +327,8 @@ static void omf_pad_pointer(float dt)
 // ("OMT fake pad") and sets its controls at the given event-manager ticks (about one per frame).
 // Controls are SDL's names (a, b, x, y, back, guide, start, leftstick, rightstick, leftshoulder,
 // rightshoulder, dpup, dpdown, dpleft, dpright; leftx, lefty, rightx, righty, lefttrigger,
-// righttrigger); buttons take 0/1, sticks -32768..32767, triggers 0..32767. OMT_PAD_LOG=1 logs
-// the gamepad keys and HID devices.
+// righttrigger); buttons take 0/1, sticks -32768..32767, triggers 0..32767; lmouse / rmouse
+// (0/1) click at the pointer, acback (0/1) is the Android back key. OMT_PAD_LOG=1 logs the gamepad keys, the pointer and the devices.
 static SDL_Joystick *omg_fake_pad = NULL;
 static const char *omg_fake_script = NULL;
 
@@ -299,6 +364,35 @@ static void omf_fake_pad_step(int tick)
 		p += n;
 		if (*p == ',') p++;
 		if (t != tick) continue;
+		if (strcmp(name, "lmouse") == 0 || strcmp(name, "rmouse") == 0)		// a click at the pointer
+		{
+			OMediaWindow *ow;
+			SDL_Window *w = omf_game_window(&ow);
+			SDL_Event e;
+			SDL_zero(e);
+			e.type = v ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+			e.button.windowID = w ? SDL_GetWindowID(w) : 0;
+			e.button.button = name[0] == 'l' ? SDL_BUTTON_LEFT : SDL_BUTTON_RIGHT;
+			e.button.state = v ? SDL_PRESSED : SDL_RELEASED;
+			e.button.clicks = 1;
+			SDL_GetMouseState(&e.button.x, &e.button.y);
+			SDL_PushEvent(&e);
+			continue;
+		}
+		if (strcmp(name, "acback") == 0)		// the Android back button
+		{
+			OMediaWindow *ow;
+			SDL_Window *w = omf_game_window(&ow);
+			SDL_Event e;
+			SDL_zero(e);
+			e.type = v ? SDL_KEYDOWN : SDL_KEYUP;
+			e.key.windowID = w ? SDL_GetWindowID(w) : 0;
+			e.key.state = v ? SDL_PRESSED : SDL_RELEASED;
+			e.key.keysym.scancode = SDL_SCANCODE_AC_BACK;
+			e.key.keysym.sym = SDLK_AC_BACK;
+			SDL_PushEvent(&e);
+			continue;
+		}
 		SDL_GameControllerButton b = SDL_GameControllerGetButtonFromString(name);
 		SDL_GameControllerAxis a = SDL_GameControllerGetAxisFromString(name);
 		if (b != SDL_CONTROLLER_BUTTON_INVALID) SDL_JoystickSetVirtualButton(omg_fake_pad, b, Uint8(v != 0));
@@ -312,6 +406,7 @@ static void omf_fake_pad_step(int tick)
 // Called by omf_SDLInit (OMediaSDLVideo.cpp) once SDL is up.
 void omf_SDLPadInit(void)
 {
+	SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
 	omf_fake_pad_init();
 }
 
@@ -325,6 +420,8 @@ static void omf_pad_tick(void)
 	if (dt > 0.1f) dt = 0.1f;
 	last = now;
 	omf_fake_pad_step(++tick);
+	SDL_PumpEvents();							// the controllers' state of now, as the HID poll will read it
+	omf_pad_keys();
 	omf_pad_pointer(dt);
 }
 
