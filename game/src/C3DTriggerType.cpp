@@ -3,6 +3,10 @@
 #include "C3DTriggerType.h"
 #include "objects/C3DAITrigger.h"
 #include "objects/C3DCutSceneCamera.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "objects/C3DMultiCutSceneCamera.h"
+#pragma GCC diagnostic pop
 #include "levels/CLoadLevel.h"
 #include "C3DPlayer.h"
 #include "CGameType.h"
@@ -58,7 +62,7 @@ static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char 
 }
 static void MultiCutSceneFire(CGameObject *next, CGameObject *caller, unsigned char flag)
 {
-	(void)next; (void)caller; (void)flag; NEG_TODO(0x457be0, "C3DMultiCutSceneCamera element slot 57 (caller, flag)");
+	static_cast<C3DMultiCutSceneCamera *>(next)->TriggerCallback(caller, flag);	// element +0xe4 (0x457be0)
 }
 static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
 {

@@ -23,6 +23,10 @@
 #include "Physics.h"
 #include "Sound.h"
 #include "gen/globals.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "objects/C3DMultiCutSceneCamera.h"
+#pragma GCC diagnostic pop
 
 #include "OMediaStringField.h"
 #include "OMediaCanvasFont.h"
@@ -228,7 +232,8 @@ using neg::DatabaseName;								// 0x4a4a40
 // (the savegame functions ReadTaskFile 0x497b10, LoadTask 0x498af0, RestoreTask 0x498440: SaveGame.h)
 static void MenuDrawCountdown(int a, int b, int c)	{ NEG_TODO(0x409d50, "C2DInGameMenu 0x409d50 (level-change countdown)"); (void)a; (void)b; (void)c; }
 static void CutsceneCameraPlay(CGameObject *o)	{ NEG_TODO(0x4a64e2, "C3DCutSceneCamera element slot 59"); (void)o; }
-static void MultiCutscenePlay(CGameObject *o)	{ NEG_TODO(0x4a6520, "C3DMultiCutScene element slot 61"); (void)o; }
+// C3DMultiCutSceneCamera element slot 61 (+0xf4, 0x4588a0): start the preview.
+static void MultiCutscenePlay(CGameObject *o)	{ static_cast<C3DMultiCutSceneCamera *>(o)->StartPreview(); }
 
 // Windows cursor (0x4a38c0 / 0x4a3930 / 0x4a3990); the editor flies the camera with the mouse.
 static void ShowWinCursor(bool on)				{ NEG_TODO(0x4a38c0, "ShowCursor"); (void)on; }
