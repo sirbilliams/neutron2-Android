@@ -254,6 +254,7 @@ C2DInGameMenu::C2DInGameMenu()
 	{
 		SetupElt(g_elt_544908[i], kEltCanvas[i], 0, (short)(windowed + 340));
 		g_elt_544908[i].f_34 = 1;
+		WideAnchor(&g_elt_544908[i], WIDE_LEFT);	// port: widescreen, the help pictures (bottom left)
 	}
 	// sprite index, canvas - in the order the original creates them
 	static const short kItemSprites[14][2] = {
