@@ -1,5 +1,6 @@
 /*  C3DGrannyObj - see C3DGrannyObj.h. */
 #include "C3DGrannyObj.h"
+#include "C3DAI.h"
 #include "C3DPlayer.h"
 #include "Game.h"
 #include "Bridge.h"
@@ -428,7 +429,10 @@ void C3DGrannyObj::ev96(CGameObject *other)					// 0x43c620
 	if (strcasecmp(f_be0, "none") != 0 && other->NameContains((char *)"C3DANIMATED"))
 	{
 		if (other->NameContains((char *)"C3DAI"))
-			NEG_TODO(0x43c6a8, "C3DAI +0x96c = 7 (the toucher's AI state)");	// C3DAI not reconstructed yet
+		{
+			C3DAI *ai = dynamic_cast<C3DAI *>(other);		// port: a name with "C3DAI" that is not one is left alone
+			if (ai) ai->f_96c = 7;							// waiting (set directly, not through ev107)
+		}
 		if (f_d90) dynamic_cast<C3DSprite *>(f_d90)->HideAgain();	// sprite element (-0xc8) vtable +0xd8
 		dynamic_cast<C3DAnimated *>(other)->ev58(f_be0, 0);
 	}

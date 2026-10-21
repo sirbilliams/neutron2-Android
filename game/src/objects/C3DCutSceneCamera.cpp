@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DCutSceneCamera.h"
 #include "../CGameType.h"
+#include "../C3DAI.h"
 #include "../CJimmyGame.h"
 #include "../DatabaseCache.h"
 #include "../InterfaceElement.h"
@@ -75,8 +76,8 @@ static void TargetSetAnimation(CGameObject *target, const char *name, bool loop)
 // C3DAI element +0xc38: its own animations are off while a cut scene animates it.
 static void AISetAnimationsDisabled(CGameObject *ai, int off)
 {
-	(void)ai; (void)off;
-	NEG_TODO(0x42b3c6, "C3DAI +0xc38 (animations disabled by a cut scene)");
+	C3DAI *a = ai ? dynamic_cast<C3DAI *>(ai) : NULL;		// port: a name with "C3DAI" that is not one is left alone
+	if (a) a->f_c38 = off;
 }
 
 // C3DJimmy element slot 138 (+0x228)(this, jimmy, 0, 0): put the gadget in hand away.
