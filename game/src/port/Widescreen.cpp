@@ -4,6 +4,7 @@
 #include "OMediaSDLRetarget.h"
 #include <SDL.h>
 #include <stdlib.h>
+#include <map>
 
 namespace neg {
 
@@ -14,7 +15,14 @@ bool WidescreenOn(void)
 	{
 		const char *e = getenv("NEG_WIDESCREEN");
 		if (e && *e) on = atoi(e) != 0;
-		else on = 0;			// off by default until the HUD / letterbox / mouse parts are done
+		else
+		{
+#ifdef __ANDROID__
+			on = 1;				// Android: on (the setup screen's option sets the variable)
+#else
+			on = 0;				// desktop: off unless asked for
+#endif
+		}
 	}
 	return on != 0;
 }
@@ -34,6 +42,18 @@ float WideMargin(void)
 	// (g_screen_w stays the game's 640; the window is wider by twice the margin)
 	const int extra = OMediaSDLVideoEngine::logical_width - (int)(short)g_screen_w;
 	return extra > 0 ? extra * 0.5f : 0.0f;
+}
+
+static std::map<const void *, int> s_anchors;
+
+void WideAnchor(const void *piece, int side)	{ if (piece) s_anchors[piece] = side; }
+void WideAnchorClear(void)						{ s_anchors.clear(); }
+
+float WideShift(const void *piece)
+{
+	if (s_anchors.empty()) return 0.0f;
+	std::map<const void *, int>::const_iterator it = s_anchors.find(piece);
+	return it == s_anchors.end() ? 0.0f : it->second * WideMargin();
 }
 
 }

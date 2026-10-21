@@ -12,15 +12,13 @@
         full-screen effects (letterbox, fades) are widened to cover the whole window, and window-
         space rectangles / mouse positions are shifted between the window and the 4:3 area.
 
-    The setting: NEG_WIDESCREEN=1 / 0 in the environment; off by default (unfinished: only the
-    3D Hor+ part and the centred 4:3 2D area are done - see the TODO list below).
+    The setting: NEG_WIDESCREEN=1 / 0 in the environment; unset: on for Android (the setup screen's
+    "Widescreen (16:9)" option, stored in the app's prefs, sets it), off on the desktop.
 
-    TODO: anchor the edge HUD pieces (health/neutrons top left, gadget bar and HelpMenu bottom,
-    f_5b0 top right) by WideMargin(); widen the full-screen effects (LetterBoxTop/Bottom morphs
-    in C2DInGameMenu_b.cpp CutsceneLetterbox, the fades); shift window-space rectangles (the cut
-    scenes' picture-in-picture viewports in C3DCutSceneCamera / C3DMultiCutSceneCamera) and
-    the mouse / touch positions (window -> 4:3 area: x - WideMargin()); an Android SetupActivity
-    option that sets NEG_WIDESCREEN; check the cut scenes widened.                               */
+    Done: the edge HUD pieces (WideAnchor below: the health corner top left, the radar and pickup
+    pop-up top right, the help keys bottom right, the help icons bottom left; the gadget bar is
+    top centre and stays there), the letterbox bars and the black fade widened, the cut scenes'
+    picture-in-picture viewport moved by the margin, mouse / touch positions (Input.cpp).          */
 #pragma once
 
 namespace neg {
@@ -33,5 +31,16 @@ void WidescreenSetup(void);			// CGfx::InitDisplay: size the logical window for 
 int WindowWidth(void);
 int WindowHeight(void);
 float WideMargin(void);
+
+// HUD pieces that belong at a screen edge: registered once (the sprite or InterfaceElt pointer)
+// with the side they hug; the placing functions (C2DInGameMenu::SetupSprite / PositionSprite,
+// InterfaceElt's placement) add WideShift() to their x, so later moves keep the anchoring.
+// Register before the first placement. WideAnchorClear forgets them all (menu destructor).
+enum { WIDE_LEFT = -1, WIDE_RIGHT = 1 };
+void WideAnchor(const void *piece, int side);
+void WideAnchorClear(void);
+float WideShift(const void *piece);			// -WideMargin(), +WideMargin() or 0
+// An x in the 640x480 space moved to the window edge on `side` (DrawText positions etc.).
+inline short WideX(short x, int side) { return (short)(x + side * (int)WideMargin()); }
 
 }

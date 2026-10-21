@@ -20,6 +20,7 @@
 #include "../CEditor.h"
 #include "../C3DJimmy.h"
 #include "../C3DRadar.h"
+#include "../port/Widescreen.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -321,6 +322,11 @@ static void ResetPickupPictures(void)
 	for (int i = 0; i < 16; i++) e[i]->Reset();		// (the original resets them in another order; same result)
 }
 
+// port: widescreen - the 640-wide letterbox bars stretched over the whole window (width and x
+// in the 640x480 space; 640 and 0 with widescreen off).
+static float LbW(void) { return 640.0f + 2.0f * WideMargin(); }
+static float LbX(void) { return -WideMargin(); }
+
 // --------------------------------------------------------------------------- 0x40c0f0
 
 // A menu method (ecx = g_menu). on: a cut scene starts - out of the menu (back to Playing) if
@@ -346,8 +352,8 @@ void neg::CutsceneLetterbox(bool on)
 		g_545d98 = 1;
 		InterfaceElt *top = g_interface.Find("LetterBoxTop");			// 0x480970
 		InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-		top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, -1.0f, 0.0f, -1.0f);	// 0x480ba0
-		bottom->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+		top->QueueMorph(0, 1.0f, true, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), -1.0f, LbX(), -1.0f);	// 0x480ba0
+		bottom->QueueMorph(0, 1.0f, true, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 		return;
 	}
 	if (!g_54a468) SetGameMode(5);
@@ -356,8 +362,8 @@ void neg::CutsceneLetterbox(bool on)
 	g_545d98 = 0;
 	InterfaceElt *top = g_interface.Find("LetterBoxTop");
 	InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-	top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 64.0f, 640.0f, 0.0f, 0.0f, -1.0f, 0.0f, -1.0f);
-	bottom->QueueMorph(0, 1.0f, false, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+	top->QueueMorph(0, 1.0f, true, true, true, LbW(), 64.0f, LbW(), 0.0f, LbX(), -1.0f, LbX(), -1.0f);
+	bottom->QueueMorph(0, 1.0f, false, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 }
 
 // --------------------------------------------------------------------------- inlined blocks
@@ -650,7 +656,7 @@ static void UpdatePickupPopup(C2DInGameMenu *m, float dt)
 	if (g_5324ec)
 	{
 		int dx = HudShown(PlayerHud()) ? -0x9e : 0;
-		DrawText((short)(dx + 0x21c), 15, 'MED', "%d", g_pickup_counts[g_545d88 * 2]);
+		DrawText(WideX((short)(dx + 0x21c), WIDE_RIGHT), 15, 'MED', "%d", g_pickup_counts[g_545d88 * 2]);	// port: WideX
 	}
 	MenuPage *p2 = C2DInGameMenu::GetPage(2);
 	if (g_545d8c != -1)
@@ -669,7 +675,7 @@ static void UpdatePickupPopup(C2DInGameMenu *m, float dt)
 	{
 		OMediaCanvasElementWrapper *e = p2->items[g_545d88].active;
 		short dx = (short)(HudShown(PlayerHud()) ? -0x9e : 0);
-		m->PositionSprite(e, (float)(dx + 0x21c), 10.0f);
+		m->PositionSprite(e, (float)WideX((short)(dx + 0x21c), WIDE_RIGHT), 10.0f);	// port: WideX
 		e->force_show();
 		if (g_545d90 <= 0)
 		{
@@ -882,7 +888,7 @@ void C2DInGameMenu::Process(float dt)
 			}
 			UpdatePulse(dt);
 			UpdatePickupPopup(this, dt);
-			DrawText(40, 67, 'BIG', "%d", (int)(short)(int)g_health);
+			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
 			SetHealthBar(g_health);			// (the health bar; takes the float)
 			DrawScoreHud(dt);
 			break;
@@ -918,7 +924,7 @@ void C2DInGameMenu::Process(float dt)
 			UpdateIndicator(dt);
 			UpdatePickupPopup(this, dt);
 			if (g_545dd4) UpdateDialog(this, dt);
-			DrawText(40, 67, 'BIG', "%d", (int)(short)(int)g_health);
+			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
 			SetHealthBar(g_health);
 			DrawScoreHud(dt);
 			break;
@@ -975,8 +981,8 @@ void C2DInGameMenu::v270(int old_mode, int new_mode)
 					g_545d98 = 0;
 					InterfaceElt *top = g_interface.Find("LetterBoxTop");
 					InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
-					top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 64.0f, 640.0f, 0.0f, 0.0f, -1.0f, 0.0f, -1.0f);
-					bottom->QueueMorph(0, 1.0f, false, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+					top->QueueMorph(0, 1.0f, true, true, true, LbW(), 64.0f, LbW(), 0.0f, LbX(), -1.0f, LbX(), -1.0f);
+					bottom->QueueMorph(0, 1.0f, false, true, true, LbW(), 0.0f, LbW(), 64.0f, LbX(), 480.0f, LbX(), 416.0f);
 				}
 				g_score_box->hide(true);
 				g_score_box2->hide(true);
@@ -1142,6 +1148,7 @@ void C2DInGameMenu::PositionSprite(OMediaCanvasElementWrapper *e, float x, float
 	e->set_auto_align(omaac_Center, omaac_Center);
 	float px = sx * x - (float)((short)g_screen_w / 2);
 	float py = ((float)((short)g_screen_h / 2) - e->get_height()) - sy * y;
+	px += WideShift(e);								// port: widescreen edge HUD pieces
 	e->place(px, py, 0);
 }
 
@@ -1161,6 +1168,7 @@ void C2DInGameMenu::SetupSprite(OMediaCanvasElementWrapper *e, float x, float y,
 	e->m_c8 = canvas_id;
 	float px = x * sx - (float)((short)g_screen_w / 2);
 	float py = ((float)((short)g_screen_h / 2) - e->get_height()) - sy * y;
+	px += WideShift(e);								// port: widescreen edge HUD pieces
 	e->place(px, py, z);
 }
 

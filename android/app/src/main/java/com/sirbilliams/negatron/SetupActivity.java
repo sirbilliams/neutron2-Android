@@ -144,6 +144,8 @@ public class SetupActivity extends Activity {
         vl.topMargin = dp(12);
         root.addView(viewer, vl);
 
+        addWidescreenOption(root);
+
         Button log = new Button(this);
         log.setText("Share log");
         log.setTextSize(15);
@@ -435,6 +437,23 @@ public class SetupActivity extends Activity {
             }
         } catch (IOException | RuntimeException ignored) { }
         return false;
+    }
+
+    /** port: the 16:9 widescreen setting (on by default; NegatronActivity passes it as NEG_WIDESCREEN). */
+    static final String PREF_WIDESCREEN = "widescreen";
+
+    private void addWidescreenOption(LinearLayout root) {
+        final android.content.SharedPreferences prefs =
+                getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
+        android.widget.CheckBox wide = new android.widget.CheckBox(this);
+        wide.setText("Widescreen (16:9)");
+        wide.setTextColor(Color.rgb(220, 225, 235));
+        wide.setTextSize(16);
+        wide.setChecked(prefs.getBoolean(PREF_WIDESCREEN, true));
+        wide.setOnCheckedChangeListener((b, on) -> prefs.edit().putBoolean(PREF_WIDESCREEN, on).apply());
+        LinearLayout.LayoutParams wl = wrap();
+        wl.topMargin = dp(12);
+        root.addView(wide, wl);
     }
 
     private static void deleteTree(File f) {

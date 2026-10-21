@@ -42,6 +42,7 @@
 #include "OMediaInputEngine.h"
 #include "OMediaViewPort.h"
 #include "Mouse.h"
+#include "port/Widescreen.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,17 +330,19 @@ void neg::GetMousePos(short *x, short *y)
 {
 	*x = *y = 0;
 	if (g_input_engine) g_input_engine->get_mouse_position(*x, *y);
+	*x = (short)(*x - (int)WideMargin());		// port: widescreen, window -> the 4:3 area
 }
 
 // 0x4b1d30: the same engine's set_mouse_position (+0x24; OMT 2.5 has no such call, the SDL layer
 // provides it).
 void neg::SetMousePos(short x, short y)
 {
-	omf_SDLSetMousePosition(x, y);
+	omf_SDLSetMousePosition((short)(x + (int)WideMargin()), y);	// port: widescreen, 4:3 area -> window
 }
 
 // 0x4b1da0 / 0x4b1dc0: half the viewport's bounds (2002 +0xd4..+0xe0: left, top, right, bottom).
-short neg::MouseCentreX(void) { return (short)(g_viewport->getbwidth() / 2); }
+// port: widescreen - minus the margin, so it is in the same (4:3 area) space as GetMousePos.
+short neg::MouseCentreX(void) { return (short)(g_viewport->getbwidth() / 2 - (int)WideMargin()); }
 short neg::MouseCentreY(void) { return (short)(g_viewport->getbheight() / 2); }
 
 // 0x4b1d50

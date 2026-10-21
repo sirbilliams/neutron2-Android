@@ -37,6 +37,10 @@ public class NegatronActivity extends SDLActivity {
         try {
             if (test != null) Os.setenv("NEG_TEST_PLAY", test, true);
             else Os.unsetenv("NEG_TEST_PLAY");
+            // port: 16:9 widescreen (game/src/port/Widescreen.h), the setup screen's option
+            boolean wide = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
+                    .getBoolean(SetupActivity.PREF_WIDESCREEN, true);
+            Os.setenv("NEG_WIDESCREEN", wide ? "1" : "0", true);
         } catch (ErrnoException e) {
             // no test hook then
         }

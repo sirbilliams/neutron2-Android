@@ -15,6 +15,7 @@
 #include "../Todo.h"
 #include "../gen/globals.h"
 #pragma GCC diagnostic pop
+#include "../port/Widescreen.h"
 #include "OMediaViewPort.h"
 #include "OMediaWindow.h"
 #include "OMediaRect.h"
@@ -331,7 +332,8 @@ void C3DCutSceneCamera::TriggerCamera(unsigned char in_window)
 			vp->getbounds(&b);								// 2002 +0xe4
 			const int top = (m_letterbox && !m_in_window) ? (int)(sy * 286.0f) : (int)(sy * 350.0f);	// 0x4d7844 / 0x4d783c
 			const int dy = top - b.top;
-			const int dx = -b.left - (int)(sx * -450.0f);	// 0x4d7840
+			const int dx = -b.left - (int)(sx * -450.0f)
+						 + (int)WideMargin();	// 0x4d7840; port: + widescreen margin
 			b.left += dx; b.right += dx;
 			b.top += dy; b.bottom += dy;
 			vp->setbounds(&b);
