@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DVortex.h"
+#include "C3DMiniSub.h"
 #include "../CGameType.h"
 #include "../Globals.h"
 #include "../Todo.h"
@@ -23,12 +24,11 @@ static CGameObject *FindObjectByTag(const char *tag)
 	return NULL;
 }
 
-// The 10 objects a C3DMiniSub keeps at +0xa04..+0xa28 (game object views).
+// The 10 trail bubbles a C3DMiniSub keeps at +0xa04..+0xa28 (game object views).
 static CGameObject **SubObjects(CGameObject *sub)
 {
-	(void)sub;
-	NEG_TODO(0x47aa53, "C3DVortex: the sub's objects at +0xa04 (C3DMiniSub not written)");
-	return NULL;
+	C3DMiniSub *m = dynamic_cast<C3DMiniSub *>(sub);		// port: the original assumes it is one
+	return m ? m->f_a04 : NULL;
 }
 
 // --------------------------------------------------------------------------- construction
@@ -89,7 +89,7 @@ void C3DVortex::Process(float dt)
 	CGameObject **objs = SubObjects(m_sub);					// (m_sub re-read, as an object - 0xc0)
 	if (!objs) return;
 	for (int i = 0; i < 10; ++i)							// +0xa04..+0xa28
-		objs[i]->v161(d.x, d.y, d.z, d.w);
+		if (objs[i]) objs[i]->v161(d.x, d.y, d.z, d.w);		// port: NULL until C3DBub is written
 }
 
 namespace neg {
