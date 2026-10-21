@@ -29,5 +29,5 @@ class C3DWheel : public C3DObject
 	virtual void v247(void) {}												// SLOT 247 0x463890 (empty)
 	virtual void v248(void) {}												// SLOT 248 0x463890 (empty)
 
-	int					f_58c;			// 0x58c  0 (not used)
+	float				f_58c;			// 0x58c  0; spin, degrees (C3DVehicle ev132)
 };
