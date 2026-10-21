@@ -195,6 +195,16 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
   found). Desktop preview: `NEG_COMPANION_DUMP=<dir>` + `tools/companion/render.sh <dir> <Level> out.png`.
   Bill tried it on the Thor's bottom screen: "looks great", some polish still to do (ask him which).
   HD image pack: on hold (Bill), see "Next" 3.
+- **Bill's next requests (planned with him, not started):**
+  - Dual-screen panel ON by default when a second display is present (off otherwise); an explicit
+    choice by the player is remembered and wins.
+  - A main menu with **Continue** (autosave), **New Game** (warns: it wipes the autosave, as the
+    original does) and **Load Game** (the game's own save slots, so saves stay compatible), plus a
+    Settings page (widescreen, dual screen, later the HD pack) and the level picker under a hidden
+    "test" item. **Two menus, switchable by a toggle:** (1) the original's own title menu, restored
+    faithfully; (2) a new launcher menu in the panel's stainless-steel / green-LED style, Jimmy
+    Neutron-inspired (no show logo or copied art; the game's own art read at run time is fine). On the
+    Thor the bottom screen can show the menu options / a save-slot preview while choosing.
 - **Bill's open checks:** play the full chain on the Thor; his list of panel polish items.
 - **Method notes from this session:** the census can't see classes created at run time (projectiles,
   effects): play the level and grep the log for TODO. Android's clang enforces C++98 (no `T{...}`,
