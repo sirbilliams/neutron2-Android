@@ -95,6 +95,6 @@ not 1.
   with the game's `granny.dll`; writes textures + bind pose + every animation sampled per frame (`.gdmp`).
 - `dump_all.py` — groups all 389 files by model and dumps them (78 models, 311 animations, ~4 min).
 - `gdmp.py` — reader, preview renderer, OBJ export.
-- `grn2grc.py`, `grnfile.py`, `grnextract.c` — conversion to the replacement's `.grc` files;
-  `grntest.c`, `grntest.py`, `verify.sh`, `tests/` — comparison with the DLL
-  ([granny-replacement.md](granny-replacement.md)).
+- `grnfile.py` — Python .grn reader (exploration).
+- `grnextract.c`, `grncheck.cpp`, `grntest.c`, `grntest.py`, `verify.sh`, `tests/` — comparison of the
+  replacement with the DLL ([granny-replacement.md](granny-replacement.md)).

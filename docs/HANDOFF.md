@@ -122,9 +122,9 @@ often decompiled wrong. `OMT2.dll` (the 2002 engine) gives the 2002 layouts (`to
 - **Level objects:** C3DStartPoint, C3DCheckPoint, C3DPatrolPoint, C3DMine, C3DAITrigger,
   C3DCutSceneCamera, C3DMultiCutSceneCamera, CTrigger/C3DLight.
 - **Animated characters:** C3DAnimated, C3DPlayerObject, C3DPlayer, C3DGrannyObj.
-- **Granny without the DLL:** `tools/granny/grn2grc.py` still takes decoded textures and load-time
-  mesh data from the real `granny.dll` under Wine, which can't run on the phone. Goal: granny_compat
-  reads the `.grn` files directly, bit-identical to the DLL on all 389 files, on x86-64 and on arm64.
+- **Granny without the DLL:** done. granny_compat reads the `.grn` files directly (textures decoded by its
+  own Bink decoder, meshes and bindings built as the DLL does), bit-identical to the DLL on all 389 files on
+  x86-64 and arm64 (`tools/granny/verify.sh`); `granny.dll` is only read as a data file for its Bink tables.
 
 ## Next, for level1d
 

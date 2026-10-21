@@ -6,7 +6,8 @@
       - texture cookies are uintptr_t (the game passes an OMedia3DMaterial*),
       - the out-structures (granny_rendering_state, granny_new_texture) hold native pointers, so the
         game reads them by field name instead of by the 32-bit byte offsets (the offsets are noted).
-    Data is read from converted .grc files (tools/granny/grn2grc.py), not from .grn files.          */
+    The game's .grn files are read directly (granny_grn.cpp); the texture decoder needs the player's granny.dll
+    as a data file (it is not loaded or run).                                                           */
 #ifndef GRANNY_COMPAT_H
 #define GRANNY_COMPAT_H
 
@@ -149,8 +150,12 @@ granny_result GrannyGetBoneState(granny_uint32 s0, granny_uint32 s1, granny_uint
                                  granny_transform_state *state);
 granny_result GrannyGetLastError(void);
 
-/* not in granny.dll: where converted files are looked up (default: next to the .grn path given) */
+/* not in granny.dll: where the .grn files are looked up (default: the path given, relative to the current
+   directory; names are matched without regard to case) */
 void GrannyCompatSetDataDirectory(const char *dir);
+/* not in granny.dll: the player's granny.dll, whose Bink tables the texture decoder reads (default: next to the
+   directory of the first .grn file opened, then in it, then in the current directory).  Call before opening. */
+void GrannyCompatSetDllPath(const char *path);
 
 #ifdef __cplusplus
 }
