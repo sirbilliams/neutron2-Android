@@ -33,7 +33,7 @@
 	virtual void ev142(void);												// ESLOT 142 0x44b3a0 let go of the rope
 	virtual void ev143(OMedia3DPoint anchor, OMedia3DVector pos, int swing, float len);	// ESLOT 143 0x448e80 hang on a rope at <anchor>
 	virtual void ev144(void);												// ESLOT 144 0x448b40 fire the current gun (water / burp / shrink "click")
-	virtual void ev148(float x, float y, float z, float pitch, float speed, float a6, float a7, float a8);	// ESLOT 148 0x44b090 launch the next water balloon from v224(x, y, z)
+	virtual void ev148(float x, float y, float z, float pitch, float speed, CGameObject *target, float delay, float growth);	// ESLOT 148 0x44b090 launch the next water balloon from v224(x, y, z)
 	virtual void ev149(float spin, CGameObject *target, C3DObject *obj);	// ESLOT 149 0x44e420 put <obj> 300 in front of the camera towards <target> (`this` unused)
 	virtual void ev150(void);												// ESLOT 150 0x44c2a0 remember the level id and our position
 	virtual void ev151(void);												// ESLOT 151 0x44c2f0 the same + HUD picture 19

@@ -11,6 +11,7 @@
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
+#include "C3DRocketShip.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -24,7 +25,6 @@ using namespace neg;
 // Factory entries of the helper classes (gen/factory.cpp: weak TODO stubs until they exist).
 namespace neg {
 CGameObject *New_C3DRocketShip(void);		// 0x46a290
-CGameObject *New_C3DWaterBalloon(void);		// 0x47c780
 CGameObject *New_C3DGoddard(void);			// 0x4383d0
 }
 
@@ -149,7 +149,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	if (f_d4c) f_d4c->HideAgain();							// element +0xdc
 	for (int i = 0; i < 20; i++)
 	{
-		f_cd0[i] = As<C3DPermanentSprite>(New_C3DWaterBalloon());	// 0x678 bytes
+		f_cd0[i] = new C3DWaterBalloon;						// 0x678 bytes
 		if (f_cd0[i])
 		{
 			f_cd0[i]->HideAgain();							// element +0xd8
@@ -345,4 +345,25 @@ void neg::JimmyHurt(CGameObject *jimmy, float damage, int points, float time, un
 {
 	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
 	if (j) j->ev134(damage, points, time, a);
+}
+
+// --------------------------------------------------------------------------- hooks (C3DRocketShip.h)
+
+// Jimmy's element slot 148 (+0x250): the next water balloon (the rocket ship's shots).
+void neg::JimmyRocketShoot(CGameObject *jimmy, float x, float y, float z, float side, float speed,
+						   CGameObject *target, int a7, float a8)
+{
+	dynamic_cast<C3DJimmy *>(jimmy)->ev148(x, y, z, side, speed, target, (float)a7, a8);
+}
+
+// C3DRocketShip 0x46bf95 inline: the next water balloon of g_jimmy aims 1300 above and 550 in
+// front of its target (+0x63c..+0x644), if there is one.
+void neg::JimmyGadgetShot(CGameObject *jimmy)
+{
+	C3DJimmy *j = dynamic_cast<C3DJimmy *>(jimmy);
+	C3DWaterBalloon *b = j->f_cd0[j->f_d50];
+	if (!b) return;
+	b->f_63c = 0;
+	b->f_640 = 1300.0f;
+	b->f_644 = 550.0f;
 }

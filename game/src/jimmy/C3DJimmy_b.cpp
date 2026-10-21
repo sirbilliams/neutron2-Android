@@ -209,7 +209,7 @@ void C3DJimmy::ev144(void)											// 0x448b40
 		if (g_difficulty == 0) speed = 1800.0f;
 		else if (g_difficulty == 1) speed = 1500.0f;
 		else if (g_difficulty == 2) speed = 1400.0f;
-		ev148(30.0f, 50.0f, 50.0f, f_4cd8, speed, 0.0f, 0.0f, 0.1f);
+		ev148(30.0f, 50.0f, 50.0f, f_4cd8, speed, NULL, 0.0f, 0.1f);
 		ev58((char *)"SHOOT", 0);
 		f_d54 = 0;
 		f_4cd4 = 0;
@@ -228,10 +228,10 @@ void C3DJimmy::ev144(void)											// 0x448b40
 	// the burp gun: four big bubbles
 	g_menu->ShowGadgetBar();
 	PlayGameSound(-1, std::string("burpgun"), false);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.0f, 90.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.1f, 85.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.2f, 80.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.3f, 75.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.0f, 90.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.1f, 85.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.2f, 80.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.3f, 75.0f);
 	f_4cd0 = 0;
 	ev58((char *)"SHOOT", 0);
 	f_d54 = 0;
@@ -240,17 +240,17 @@ void C3DJimmy::ev144(void)											// 0x448b40
 	if (f_d20) f_d20->HideAgain();
 }
 
-void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, float a6, float a7, float a8)	// 0x44b090
+void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, CGameObject *target, float delay, float growth)	// 0x44b090
 {
 	CGameObject *self = this;
 	const OMedia3DVector p = self->v224(x, y, z);				// +0x380 muzzle in the world
-	C3DPermanentSprite *b = f_cd0[f_d50];
+	C3DWaterBalloon *b = f_cd0[f_d50];
 	if (!b) return;
 	b->ShowAgain();												// sprite slot 53
 	b->v136(1);
 	b->v132(1);
 	b->v196(p.x, p.y, p.z, p.w);								// +0x310
-	NEG_TODO(0x44b1a8, "C3DWaterBalloon +0x660 (start point) = muzzle");
+	b->f_660 = p;												// the muzzle
 	OMedia3DVector d = ObjectDir(self, 0.0f, pitch * 0.022222223f, 1.0f);	// +0x388; 0x4df740
 	const float k = 1.0f / d.quick_magnitude();
 	d.x = k * d.x;
@@ -259,25 +259,22 @@ void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, float 
 	b->v176(0, 0, 0);											// +0x2c0
 	b->v157(0, 0, 0);											// +0x274
 	b->v162(d.x * speed, d.y * speed, d.z * speed);				// +0x288
-	NEG_TODO(0x44b2b3, "C3DWaterBalloon +0x62c = 0, +0x634 = a6, +0x638 = speed, +0x658 = a8, +0x654 = 0, +0x65c = a7");
-	(void)a6; (void)a7;
-	if (a8 > 0.0f) b->set_size((float)b->m_sprite_size, (float)b->m_sprite_size);	// (+0x658 > 0) canvas = SpriteSize
+	b->f_62c = 0;
+	b->f_634 = target;
+	b->f_638 = speed;
+	b->f_658 = growth;
+	if (b->f_658 > 0.0f) b->set_size((float)b->m_sprite_size, (float)b->m_sprite_size);	// canvas = SpriteSize
+	b->f_654 = 0;
+	b->f_65c = delay;
 	f_d50++;
 	if (f_d50 >= 20) f_d50 = 0;
 }
 
 // The look of the 20 water balloons and of each one's trail sprite (C3DWaterBalloon +0x64c,
 // that sprite's CGameObject part).
-static C3DSprite *BalloonTrail(C3DPermanentSprite *b)
+static void SetTrail(C3DWaterBalloon *b, int index, bool v136_off)
 {
-	(void)b;
-	NEG_TODO(0x44da45, "C3DWaterBalloon +0x64c (trail sprite)");
-	return NULL;
-}
-
-static void SetTrail(C3DPermanentSprite *b, int index, bool v136_off)
-{
-	C3DSprite *t = BalloonTrail(b);
+	C3DSprite *t = b->f_64c;
 	if (!t) return;
 	t->m_sprite_index = index;									// +0x4cc of its CGameObject part
 	t->m_sprite_size = 100;
@@ -292,7 +289,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			b->m_sprite_index = 10;
 			b->m_sprite_size = 45;
@@ -308,7 +305,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			unsigned int *seed = g_random_seed;
 			*seed = *seed * 0x19660d + 0x7fff;
@@ -333,7 +330,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			b->m_sprite_index = 0x21;
 			b->m_sprite_size = 0xf;
