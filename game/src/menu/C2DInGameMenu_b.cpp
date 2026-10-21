@@ -73,8 +73,14 @@ static void PlayerStopSound(void)		{ if (C3DPlayer *p = dynamic_cast<C3DPlayer *
 static bool PlayerAltButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev103(); }	// slot 103 0x4655d0
 static bool PlayerFireButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev104(); }	// slot 104 0x465650
 
-// (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth.
-static void PhoneBoothTeleport(void)	{ NEG_TODO(0x4648a0, "phone booth teleport (g_56af7c slot 121)"); }
+// (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth
+// (C3DPlayer::ev121 0x4648a0 "PlayerLoadLevel"), coming back to the player's next level / start point.
+// port: the original calls the camera object's slot 121 unchecked; only a C3DPlayer has it.
+static void PhoneBoothTeleport(void)
+{
+	if (C3DPlayer *p = dynamic_cast<C3DPlayer *>(g_camera))
+		p->ev121((char *)"VR01.gam", (char *)"PHONEBOOTH", p->f_b89, p->f_9c8, 0x21b);
+}
 
 static void SetMousePos(int x, int y)		{ neg::SetMousePos((short)x, (short)y); }	// 0x4b1d30
 using neg::GetMousePos;						// 0x4b1d10 (Mouse.h)
