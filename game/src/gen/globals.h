@@ -907,8 +907,11 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_545f30 (*(int *)&neg::g_data[0x13f30])
 #define g_545f34 (*(char *)&neg::g_data[0x13f34])
 #define g_545f38 (*(int *)&neg::g_data[0x13f38])
-#define g_545f3c (*(char *)&neg::g_data[0x13f3c])
-#define g_545f40 (*(int *)&neg::g_data[0x13f40])
+#define g_checkpoint_num (*(int *)&neg::g_data[0x13f38])
+#define g_545f3c (*(bool *)&neg::g_data[0x13f3c])
+#define g_checkpoint_pending (*(bool *)&neg::g_data[0x13f3c])
+#define g_545f40 (*(CGameObject* *)&neg::g_ptrs[0x4fd0])
+#define g_checkpoint_toucher (*(CGameObject* *)&neg::g_ptrs[0x4fd0])
 #define g_545f44 (*(OMediaElement* *)&neg::g_ptrs[0x4fd1])
 #define g_cutscene_element (*(OMediaElement* *)&neg::g_ptrs[0x4fd1])
 #define g_545f48 (*(int *)&neg::g_data[0x13f48])
@@ -972,7 +975,6 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_5461cc (*(char *)&neg::g_data[0x141cc])
 #define g_5461cd (*(char *)&neg::g_data[0x141cd])
 #define g_5461ce (*(char *)&neg::g_data[0x141ce])
-#define g_5461d0 ((int *)&neg::g_data[0x141d0])		// array, stride 260
 #define g_5461d8 (&neg::g_data[0x141d8])		// address only
 #define g_54a3d4 (*(bool *)&neg::g_data[0x183d4])
 #define g_cutscene_skip (*(bool *)&neg::g_data[0x183d4])
