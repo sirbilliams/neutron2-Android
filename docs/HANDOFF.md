@@ -138,46 +138,53 @@ often decompiled wrong. `OMT2.dll` (the 2002 engine) gives the 2002 layouts (`to
   meshes and bindings built as the DLL does), bit-identical to the DLL on all 389 files on x86-64 and arm64
   (`tools/granny/verify.sh`); `granny.dll` is only read as a data file for its Bink tables. Not yet checked
   against Android's libm (acos/sin/sqrt/fmod).
-- **Where a run gets to now:** level1d loads, the world draws, and it stops at `new C3DJimmy` (0x443830).
+- **Characters (Oct 21):** C3DAnimated, C3DGrannyObj, C3DPlayerObject, C3DPlayer (layout notes in their
+  headers); C3DJimmy (`C3DJimmy.h/.cpp` + `jimmy/C3DJimmy_a.*`, `_b.*`, split at 0x448b40); C3DAI,
+  C3DAIGranny, C3DFish; C3DFlyingObject, C3DRocketShip, C3DPermanentSmoke, C3DFireStrato.
+- **Port fixes:** the menu clears `CEditor::m_load_pending` at its level reset (0x40ac30), so the level
+  loads once (it reloaded every frame = the flashing on the Thor); static .ase files in
+  C3DAnimated::CreateAnim; game objects are allocated zeroed (CGameObject::operator new, `port:`).
+- **Where a run gets to now:** level1d loads once, all 61 objects are created, Jimmy, the menu and the
+  task list exist, and 300 frames run to CLEAN EXIT. The screen shows the terrain and sky from a camera
+  that moves (the opening cut scene has the camera); Jimmy isn't on screen yet.
 
 ## What level1d contains
 
 Parsed with LoadGame's own logic: 61 objects. 3PAT x28, 3AIT x14, 3FIS x10, 3CAM x4, and one each of
 STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoints, mines or lights.
 (A naive byte count of the IDs doubles everything, because each object also stores its ID as a property.)
+The 10 "fish" are the intro logo letters (T, H, Q, AWE games...): level1d opens with the logo cut scene.
+LoadGame stops at the first NULL object, so every class in the file must exist or nothing after it loads.
 
-## In progress when this was written (check `git log`; merge if they landed, otherwise redo)
+## Next, for a playable level1d
 
-- **Animated character bases:** merged (C3DAnimated, C3DGrannyObj, C3DPlayerObject, C3DPlayer; layout notes in their headers).
-
-## Next, for level1d
-
-Roughly in this order. Each one goes in its own `game/src` files.
-
-Remaining raw decompile size, as a guide: C3DJimmy 6,755 lines, C3DAnimated 3,957, C3DPlayer 3,347,
-C3DAI 3,127, C3DRocketShip 1,819, C3DFlyingObject 984, C3DGrannyObj 909, C3DAIGranny 616, C3DFish 521,
-C3DPlayerObject 457.
-
-1. **C3DJimmy** (`'3JIM'`, 0x4efc bytes, 166 element slots) on C3DPlayer/C3DPlayerObject. It creates the
-   menu, the task list and the HUD. Huge; split it the way the menu was split (parts a–d).
-2. **C3DAI** (`'3DAI'`), then **C3DAIGranny** (`'3GRN'`) and **C3DFish** (`'3FIS'`).
-3. **C3DFlyingObject**, then **C3DRocketShip** (`'3ROC'`).
-4. The NEG_TODO stubs the level objects left for those classes (call sites listed in
-   `game/src/objects/*.cpp`; grep NEG_TODO).
-5. Then playable on the Thor: the loose ends below, and an APK test by Bill.
+1. **Integration:** the opening cut scene plays as in the original (cut scene cameras, the logo fish,
+   `ERROR: Invalid SoundIndex <garbage> for cam4` from C3DCutSceneCamera), then the camera passes to
+   Jimmy; Jimmy controllable and colliding (he sat partly in the floor in one test); C3DRocketShip loses
+   its level position in v260 -> InitPhysics (C3DObject::InitPhysics 0x49acb0 takes the element position,
+   still 0 at load) - check against the original.
+2. **Jimmy's helper objects** (created in his constructor, NULL until written; every use is NULL-checked):
+   C3DShadow 0x46e9f0, C3DRadar (the HUD) 0x468180, C3DJetPack 0x442f10, C3DTargetCursor 0x475b20,
+   C3DPointCursor 0x466a70, C3DASEObj 0x4207e0 (bubble), C3DMagicParticle 0x451700, C3DWaterBalloon
+   0x47c780, C3DGraplingHook 0x43cdb0, C3DGoddard 0x4383d0. Plus `player HUD hide` 0x468aa0.
+3. **Thor controls:** the joystick names JOY_01..JOY_09 aren't found by C3DPlayerObject::TextToKeys
+   (`dat\options.opt` key names); map them, and give the keyboard-only actions buttons (below).
+4. Open TODOs in a run (`grep TODO` in the log): CPhysics::AddObject 0x4b4ae0, CGameObject slots 248
+   0x4ae3a0 and 262 0x4af030, GetMouseDelta 0x4a3990, texture animations 0x4a28c0, shape material setup
+   0x4a23e0, clear layer view matrix 0x4b974e, C3DParticle::Reset 0x49b260.
+5. Weak hooks (`grep -n weak game/src`) whose real owners aren't written yet: C3DMiniSub, C3DGoddard,
+   C3DAIOmtObj, C3DDino/C3DPtero, mines - not used by level1d.
 
 Loose ends:
 
-- `CEditor::m_load_pending` is never cleared, so the level reloads every frame. Fix it once the
-  level objects exist.
 - `CJimmyGame::GetSceneStage` should use `neg::GetTaskState("SCENE")`; check that it does.
-- Keyboard-only actions need Thor buttons once something is playable: Y/N confirmations,
-  Esc (close text / skip), R (HUD), and "any key" on the score screen. That is a port-level mapping
-  in the SDL layer, not a game change.
+- Keyboard-only actions need Thor buttons: Y/N confirmations, Esc (close text / skip), R (HUD), and
+  "any key" on the score screen. That is a port-level mapping in the SDL layer, not a game change.
 - Several modules have private static copies of the same small helpers: find object by tag
-  (0x4aefb0), menu item state (0x404dd0/0x404ef0/0x404f20), mouse capture (0x4a3930) and
-  SetGameState (0x485360). Consolidate them into one shared definition each.
+  (0x4aefb0), menu item state (0x404dd0/0x404ef0/0x404f20), mouse capture (0x4a3930), health
+  (0x485730) and SetGameState (0x485360). Consolidate them into one shared definition each.
 - The MP3-in-WAV clip "bird1" is silent; the SDL mixer has no MP3 decoder.
+- Granny: not yet checked against Android's libm (acos/sin/sqrt/fmod).
 
 ## Working method that worked
 
