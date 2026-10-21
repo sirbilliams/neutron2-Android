@@ -73,13 +73,6 @@ static void ClearItemState(short page, short item)				// 0x404ef0
 		p->items[item].type = 0;
 }
 
-// 0x408f80 (2.5 KB, menu code): a pickup was collected - the gadget sets it completes, Jimmy's
-// comments ("jimmyself85/86/121"), and g_pickup_counts[2 * item]++. Not reconstructed yet.
-static void PickupCollected(int item, int value)
-{
-	(void)item; (void)value;
-	NEG_TODO(0x408f80, "pickup collected (menu gadget sets, Jimmy's comment, count)");
-}
 
 // --------------------------------------------------------------------------- construction
 
@@ -191,7 +184,7 @@ void C3DGrannyObj::AddTouching(CGameObject *other)			// 0x43c430
 		if (f_d78 != -1)
 		{
 			SetItemState(2, (short)f_d78, 1);
-			PickupCollected(f_d78, f_d74);
+			AnnouncePickup(f_d78, f_d74);			// 0x408f80
 		}
 		return;
 	}
@@ -459,7 +452,7 @@ void C3DGrannyObj::ev97(CGameObject *target)				// 0x43be90
 	if (f_d78 != -1)
 	{
 		SetItemState(2, (short)f_d78, 1);
-		PickupCollected(f_d78, f_d74);
+		AnnouncePickup(f_d78, f_d74);			// 0x408f80
 	}
 }
 

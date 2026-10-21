@@ -79,13 +79,6 @@ static void SetItemState(short page, short item, short state)
 	}
 }
 
-// 0x408f80 (not reconstructed yet): the pickup menu's announcement of pickup `pic` (as in
-// C3DPickupItem.cpp).
-static void AnnouncePickup(int pic, int index)
-{
-	(void)pic; (void)index;
-	NEG_TODO(0x408f80, "pickup announcement (menu interface elements, jimmyself121)");
-}
 
 // 0x490890 + element: the element behind a game object (the original looks it up by 4cc).
 static OMediaElement *ElementOf(CGameObject *o)	{ return o ? dynamic_cast<OMediaElement *>(o) : NULL; }
