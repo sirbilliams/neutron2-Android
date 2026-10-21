@@ -6,6 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "TestHooks.h"
 #include "DatabaseCache.h"
 #include "Mouse.h"
 #include "CEditor.h"
@@ -762,6 +763,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	if (g_task_file[0]) RestoreTask(g_task_file);			// 0x498440
 	Trace("File closed, Calling ResetLevel 2");
 	g_splash->hide(true);
+	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY, desktop)
 }
 
 // --------------------------------------------------------------------------- 0x4a8100
