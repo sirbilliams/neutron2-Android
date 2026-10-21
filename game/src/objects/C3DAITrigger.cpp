@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DAITrigger.h"
 #include "../C3DObject.h"
+#include "../C3DJimmy.h"
 #include "../C2DInGameMenu.h"
 #include "../CGameType.h"
 #include "../SaveGame.h"
@@ -123,34 +124,43 @@ static void GrannyDetach(CGameObject *holder, CGameObject *o)				// +0x188 (slot
 // C3DJimmy element slot 138 (+0x228)(caller, other, item, t): hand Jimmy gadget `item` (0: put
 // it away; 1 rocket, 2 invisibility, 3 jet pack, 4 scooter, 6 water gun, 9 sub, 11 crane,
 // 13 lunar lander), `t` = 13.
+static C3DJimmy *AsJimmy(CGameObject *o)	{ return o ? dynamic_cast<C3DJimmy *>(o) : NULL; }
 static void JimmyUseItem(CGameObject *jimmy, CGameObject *caller, CGameObject *other, int item, float t)
 {
-	(void)jimmy; (void)caller; (void)other; (void)item; (void)t;
-	NEG_TODO(0x419c7a, "C3DJimmy element slot 138 (use item)");
+	if (C3DJimmy *j = AsJimmy(jimmy)) j->ev138(caller, other, item, t);	// (the original calls through a NULL jimmy)
 }
 static void JimmySlot105(CGameObject *jimmy)								// +0x1a4: back to the checkpoint
 {
-	(void)jimmy; NEG_TODO(0x4197fd, "C3DJimmy element slot 105 (reload checkpoint)");
+	C3DPlayerObject *p = jimmy ? dynamic_cast<C3DPlayerObject *>(jimmy) : NULL;
+	if (p) p->ev105();
 }
-static void JimmySlot116(CGameObject *jimmy)								// +0x1d0
+static void JimmySlot116(CGameObject *o)									// +0x1d0 of the camera
 {
-	(void)jimmy; NEG_TODO(0x418ebf, "C3DJimmy element slot 116");
+	// (the original calls element slot 116 of whatever the camera is; only C3DPlayers have one)
+	C3DPlayer *p = o ? dynamic_cast<C3DPlayer *>(o) : NULL;
+	if (p) p->ev116();
 }
 static CGameObject *JimmyJetpack(CGameObject *jimmy)						// +0xccc (element pointer)
 {
-	(void)jimmy; NEG_TODO(0x419aa9, "C3DJimmy +0xccc (jet pack)"); return NULL;
+	C3DJimmy *j = AsJimmy(jimmy);
+	return j && j->f_ccc ? static_cast<CGameObject *>(j->f_ccc) : NULL;
 }
 static CGameObject *JimmyShownTarget(CGameObject *jimmy)					// +0x4ef0: the target Goddard points at
 {
-	(void)jimmy; NEG_TODO(0x418f95, "C3DJimmy +0x4ef0 (shown target)"); return NULL;
+	C3DJimmy *j = AsJimmy(jimmy);
+	return j ? j->f_4ef0 : NULL;
 }
 static void JimmySetShownTarget(CGameObject *jimmy, CGameObject *t)
 {
-	(void)jimmy; (void)t; NEG_TODO(0x418f73, "C3DJimmy +0x4ef0 = target");
+	if (C3DJimmy *j = AsJimmy(jimmy)) j->f_4ef0 = t;
 }
 static void JimmySetStartPoints(CGameObject *jimmy, const char *name)		// +0x9c8, +0xa18, +0xb24
 {
-	(void)jimmy; (void)name; NEG_TODO(0x41a3f5, "C3DJimmy start point strings = PHONEBOOTH");
+	C3DPlayer *p = jimmy ? dynamic_cast<C3DPlayer *>(jimmy) : NULL;
+	if (!p) return;
+	strcpy(p->f_9c8, name);
+	strcpy(p->f_a18, name);
+	strcpy(p->f_b24, name);
 }
 static CGameObject *GoddardPointer(CGameObject *goddard)					// C3DGoddard +0x1b84 (object)
 {

@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DStartPoint.h"
 #include "../C3DTriggerType.h"
+#include "../C3DPlayer.h"
 #include "../CGameType.h"
 #include "../Globals.h"
 #include "../Todo.h"
@@ -24,27 +25,26 @@ static CGameObject *FindObjectByTag(const char *tag)
 	return NULL;
 }
 
-// --------------------------------------------------------------------------- not reconstructed yet
+// --------------------------------------------------------------------------- the player
 
 // C3DPlayer (a C3DObject: element = object - 0xc0) members at their 2002 element offsets:
 // +0x9c8 the start point Jimmy is to enter the level at, +0xb88 a flag that the level was
 // entered by "RETURN" (CLoadLevel) - a start trigger is then not played again.
+// (callers check NameContains("C3DPLAYER") first; port: dynamic_cast)
+static C3DPlayer *Player(CGameObject *o)	{ return o ? dynamic_cast<C3DPlayer *>(o) : NULL; }
 static const char *PlayerStartPoint(CGameObject *player)
 {
-	(void)player;
-	NEG_TODO(0x473c68, "C3DPlayer +0x9c8 (start point name)");
-	return "";
+	C3DPlayer *p = Player(player);
+	return p ? p->f_9c8 : "";
 }
 static unsigned char PlayerReturnFlag(CGameObject *player)
 {
-	(void)player;
-	NEG_TODO(0x473c8f, "C3DPlayer +0xb88 (entered by RETURN)");
-	return 0;
+	C3DPlayer *p = Player(player);
+	return p ? p->f_b88 : 0;
 }
 static void PlayerClearReturnFlag(CGameObject *player)
 {
-	(void)player;
-	NEG_TODO(0x473ca2, "C3DPlayer +0xb88 = 0");
+	if (C3DPlayer *p = Player(player)) p->f_b88 = 0;
 }
 
 // --------------------------------------------------------------------------- construction
