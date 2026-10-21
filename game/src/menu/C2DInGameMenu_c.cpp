@@ -17,6 +17,7 @@
 #include "../Todo.h"
 #include "../Sound.h"
 #include "../CGameType.h"
+#include "../C3DPlayerObject.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaFilePath.h"
@@ -184,14 +185,12 @@ static void GetMousePos(short &x, short &y)
 }
 
 // The player's "action pressed" test: the object at 0x545fd0 (a CGameObject subobject at +0xc0)
-// called through its element vtable +0x1a0 - C3DPlayerObject 0x465650 for every player class.
-// That class is not reconstructed yet: its body is copied here.
+// called through its element vtable +0x1a0 (slot 104, C3DPlayerObject 0x465650).
 static bool PlayerActionPressed(void)
 {
-	NEG_TODO(0x465650, "C3DPlayerObject +0x1a0 (action pressed), copied");
-	if (!g_545fd0) return false;		// sic: the original calls through NULL here
-	if (g_5461ce) return false;
-	return g_56ad9c || g_keys[0x0d] || g_keys[0x11] || g_56b05c;	// mouse, VK_RETURN, VK_CONTROL, joystick
+	if (!g_545fd0) return false;		// port: the original calls through NULL here
+	C3DPlayerObject *p = dynamic_cast<C3DPlayerObject *>(g_545fd0);
+	return p && p->ev104();
 }
 
 // The two sprites of a main-menu item's info: its wire frame fades in, then its picture, then
