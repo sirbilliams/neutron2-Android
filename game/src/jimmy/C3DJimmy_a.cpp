@@ -2,6 +2,7 @@
 #include "../C3DJimmy.h"
 #include "../C3DPermanentSprite.h"
 #include "../C3DShadow.h"
+#include "../C3DPointCursor.h"
 #include "../C3DGrannyObj.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -898,7 +899,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 		{
 			if (CursorWanted(o))
 			{
-				if (f_d4c)									// port: NULL-checked
+				if (f_d4c)									// (checked in the original)
 				{
 					f_d4c->ev71((float)(1.0 - (double)d * (double)0.0010526316f));	// +0x11c: fades with distance
 					OMedia3DVector q = Position(o);
@@ -910,7 +911,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 			}
 		}
 	}
-	if (f_d4c) f_d4c->HideAgain();							// +0xdc (port: NULL-checked)
+	if (f_d4c) f_d4c->HideAgain();							// +0xdc (checked in the original)
 }
 
 void C3DJimmy::Slide(float dt)								// 0x4479b0

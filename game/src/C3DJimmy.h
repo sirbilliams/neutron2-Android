@@ -46,6 +46,7 @@ class C3DPermanentSprite;
 class C3DRadar;
 class C3DShadow;
 class C3DTargetCursor;
+class C3DPointCursor;
 class OMediaStreamOperators;
 
 class C3DJimmy : public C3DPlayer
@@ -79,7 +80,7 @@ class C3DJimmy : public C3DPlayer
 	C3DRadar			*f_d40;			// 0xd40  C3DRadar: the HUD panel (the original keeps its CGameObject part)
 	C3DAnimated			*f_d44;			// 0xd44  C3DASEObj: the bubble (energybubble.ase; the original keeps its CGameObject part)
 	int					f_d48;			// 0xd48  0
-	C3DAnimated			*f_d4c;			// 0xd4c  C3DPointCursor (the original keeps its CGameObject part)
+	C3DPointCursor		*f_d4c;			// 0xd4c  C3DPointCursor (the original keeps its CGameObject part)
 	short				f_d50;			// 0xd50  next water balloon (0..19)
 	int					f_d54;			// 0xd54  0 after a shot
 	short				f_d58;			// 0xd58  0
