@@ -195,3 +195,4 @@ Loose ends:
 - Running too many agents at once hits the session usage limit. Four or five was fine; six was not.
 - Desktop success means a "CLEAN EXIT" at the end of the headless run. The Android build only
   happens on CI, so watch the run (`gh api repos/sirbilliams/neutron2-android/actions/runs`).
+- Brief template for parallel agents: `docs/agent-brief.md`.
