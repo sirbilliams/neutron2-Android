@@ -221,15 +221,13 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
      Rough: a single Back tap reaches the game 0.35 s late (tap/hold detection); gadgets show as numbers;
      task states are raw values; boss = Herman only; map axes/heading sign and its 3000-unit range unchecked;
      display choice (first presentation display) unchecked; no icons yet (planned: from the HD pack).
-   - **16:9 widescreen (PAUSED by Bill; groundwork on main, OFF by default):** `NEG_WIDESCREEN=1` makes the
-     window 480 lines at the panel aspect (854x480 at 16:9) and the 3D shows more at the sides with the
-     original vertical view (OMT keeps the vertical angle; no projection change needed); 2D stays a centred
-     640x480 area. To do, in order (also in `game/src/port/Widescreen.h`): HUD edge pieces out to the edges
-     (health/neutrons corner, gadget bar, help icon, top-right sprite); the 640-wide letterbox bars
-     (C2DInGameMenu_b.cpp) and fades; the cut-scene cameras' picture-in-picture viewport; mouse/touch
-     margin; a SetupActivity option (then default on for Android); check the widened cut scenes.
-     Test: `NEG_WIDESCREEN=1 OMT_WINDOW_SIZE=1920x1080` with NEG_TEST_PLAY=Level5.gam, compare with
-     `NEG_WIDESCREEN=0` (the pillars stay the same height, more is visible at the sides).
+   - **16:9 widescreen (done; on by default on Android, off on the desktop):** `NEG_WIDESCREEN=1` makes the
+     window 480 lines at the panel aspect (854x480 at 16:9); the 3D shows more at the sides with the
+     original vertical view; 2D stays a centred 640x480 area, with the edge HUD pieces anchored to the
+     screen edges, the letterbox bars and fade widened, the cut-scene PiP viewport and mouse/touch shifted
+     by the margin (`game/src/port/Widescreen.h`). Android: SetupActivity "Widescreen (16:9)" checkbox
+     (prefs, default on). Unchecked visually: the PiP viewport (no PiP seen in the Level5/3 openings).
+     Test: `NEG_WIDESCREEN=1 OMT_WINDOW_SIZE=1920x1080` vs `NEG_WIDESCREEN=0`.
    - **AI-upscaled HD pack of full-screen art + HUD/icons (PAUSED by Bill):** `tools/hd/neg_hdtool.cpp`
      (desktop: `list`, `extract` to `<out>/<db>/<id>.png` + manifest.tsv, `install` (untested)) is on main.
      Inventory: 739 images: screens.omt 553 (27 full-screen 640x480; help panels, menu buttons/icons,
