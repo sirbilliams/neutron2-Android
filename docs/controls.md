@@ -69,8 +69,9 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   north up), with the pickups, neutrons and checkpoints (their game pictures), friends (blue
   orbits), other characters (red), doors, exits (green = open, red = still shut, with the level
   they lead to) and the current objective (yellow pulse; objectives and exits off the screen
-  get an arrow on the edge). The setting is remembered. With no second screen the menu says so
-  and nothing is shown.
+  get an arrow on the edge). On by default when a second screen is present (off otherwise); a
+  choice made here or in the launcher's Settings is remembered and wins. With no second screen
+  the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell

@@ -14,8 +14,9 @@ import android.view.WindowManager;
 /**
  * port: the bottom-screen companion panel (AYN Thor: its second display). Shows a
  * {@link CompanionView} in an android.app.Presentation on the first presentation display (or any
- * non-default display), polling the native snapshot 10 times a second. Off unless switched on
- * (remembered in the preferences); with no second display it simply shows nothing. The panel
+ * non-default display), polling the native snapshot 10 times a second. On by default when a second
+ * display is present (off otherwise); a choice the player makes (the port menu, the launcher's
+ * settings) is remembered and wins. With no second display it simply shows nothing. The panel
  * never takes focus or touches, so the game keeps the input.
  */
 final class CompanionPanel implements DisplayManager.DisplayListener {
@@ -29,7 +30,6 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private PanelPresentation mPresentation;
     private boolean mResumed;
-    private boolean mEnabled;
     private boolean mFar;
 
     private final Runnable mPoll = new Runnable() {
@@ -48,11 +48,15 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         mActivity = activity;
         mDisplays = (DisplayManager) activity.getSystemService(Context.DISPLAY_SERVICE);
         mPrefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        mEnabled = mPrefs.getBoolean(KEY_ON, false);
         mFar = mPrefs.getBoolean(KEY_FAR, false);
     }
 
-    boolean isEnabled() { return mEnabled; }
+    /** Whether the panel is wanted: the player's remembered choice, else on when a second display is present. */
+    boolean isEnabled() { return wanted(mPrefs, hasSecondDisplay()); }
+
+    static boolean wanted(SharedPreferences prefs, boolean secondDisplay) {
+        return prefs.contains(KEY_ON) ? prefs.getBoolean(KEY_ON, false) : secondDisplay;
+    }
 
     /** The map's zoom: near (false) or far (true), remembered. */
     boolean isZoomFar() { return mFar; }
@@ -63,10 +67,9 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         if (mPresentation != null && mPresentation.view != null) mPresentation.view.setZoomFar(far);
     }
 
-    boolean hasSecondDisplay() { return findDisplay() != null; }
+    boolean hasSecondDisplay() { return findDisplay(mDisplays) != null; }
 
     void setEnabled(boolean on) {
-        mEnabled = on;
         mPrefs.edit().putBoolean(KEY_ON, on).apply();
         update();
     }
@@ -83,18 +86,20 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         update();
     }
 
-    private Display findDisplay() {
-        if (mDisplays == null) return null;
-        Display[] shown = mDisplays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
+    /** The second screen: the first presentation display, else any non-default display, or null. */
+    static Display findDisplay(DisplayManager displays) {
+        if (displays == null) return null;
+        Display[] shown = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
         if (shown != null && shown.length > 0) return shown[0];
-        for (Display d : mDisplays.getDisplays()) {
+        for (Display d : displays.getDisplays()) {
             if (d.getDisplayId() != Display.DEFAULT_DISPLAY) return d;
         }
         return null;
     }
 
     private void update() {
-        Display d = (mEnabled && mResumed) ? findDisplay() : null;
+        Display d = mResumed ? findDisplay(mDisplays) : null;
+        if (d != null && !wanted(mPrefs, true)) d = null;
         if (mPresentation != null
                 && (d == null || mPresentation.getDisplay().getDisplayId() != d.getDisplayId())) {
             hide();
