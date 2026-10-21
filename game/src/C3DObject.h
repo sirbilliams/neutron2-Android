@@ -21,10 +21,10 @@ class C3DObject : public OMedia3DMorphAnim, public CLocalGameObject
 
 	// ---- element-family game slots
 	virtual void SetObjectID(int id);										// ESLOT 49 0x49ab00
-	virtual void FitToShape(void);											// ESLOT 50 0x49ab50 (TODO body)
-	virtual void ev51(void);												// ESLOT 51 0x49afd0 (TODO body)
-	virtual void ev52(void);												// ESLOT 52 0x49b030 (TODO body)
-	virtual void ev53(void);												// ESLOT 53 0x49b090 (TODO body)
+	virtual void FitToShape(void);											// ESLOT 50 0x49ab50
+	virtual void ev51(void);												// ESLOT 51 0x49afd0 texture filtering on
+	virtual void ev52(void);												// ESLOT 52 0x49b030 texture filtering off
+	virtual void ev53(void);												// ESLOT 53 0x49b090 v64(|shape min y| / radius)
 	virtual void ShowAgain(void);											// ESLOT 54 0x49b100
 	virtual void HideAgain(void);											// ESLOT 55 0x49b120
 
@@ -33,11 +33,11 @@ class C3DObject : public OMedia3DMorphAnim, public CLocalGameObject
 	virtual void UnInitObject(void);										// SLOT 8  0x49ac70
 	virtual void InitPhysics(void);											// SLOT 11 0x49acb0
 	virtual void UnInitPhysics(void);										// SLOT 12 0x49ad60
-	virtual void Process(float dt);											// SLOT 240 0x49ae00 (TODO body)
-	virtual void v243(float a);												// SLOT 243 0x49af30 (TODO body)
+	virtual void Process(float dt);											// SLOT 240 0x49ae00 floor surface + tilt
+	virtual void v243(float dt);											// SLOT 243 0x49af30 viewport behind the object (camera)
 	virtual void v247(void);												// SLOT 247 0x49ad90 SyncElementPosition
 	void SyncElementPosition(void) { v247(); }
-	virtual void v248(void);												// SLOT 248 0x49add0 (TODO body)
+	virtual void v248(void);												// SLOT 248 0x49add0 (= CGameObject's)
 	virtual void v249(short x, short y, short z);							// SLOT 249 0x49ade0 SetElementAngles
 	void SetElementAngles(short x, short y, short z) { v249(x, y, z); }
 
