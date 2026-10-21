@@ -7,6 +7,7 @@
 #include "../C3DGrannyObj.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
+#include "../friends/C3DLibby.h"
 #include "../C2DInGameMenu.h"
 #include "../CGameType.h"
 #include "../SaveGame.h"
@@ -187,7 +188,10 @@ static CGameObject *GoddardPointer(CGameObject *goddard)					// C3DGoddard +0x1b
 }
 static void LibbySlot(CGameObject *libby, bool digitize)					// C3DLibby +0x24c / +0x250 (slots 147/148)
 {
-	(void)libby; (void)digitize; NEG_TODO(0x41a039, "C3DLibby element slot 147/148 (digitize)");
+	C3DLibby *l = dynamic_cast<C3DLibby *>(libby);					// port: the original calls the slot of whatever is tagged C3DLIBBY
+	if (!l) return;
+	if (digitize) l->ev147();										// wireframe texture
+	else l->ev148();												// her own texture
 }
 static void MinisubReset(CGameObject *sub)									// C3DMiniSub +0x5a0, +0x934, +0x938 = 0
 {
