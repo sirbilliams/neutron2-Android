@@ -621,7 +621,11 @@ void C3DJimmy::v277(void)									// 0x447660
 	if (f_4c1c != -1) StopGameSound(f_4c1c, false);
 	if (f_4c20 != -1) StopGameSound(f_4c20, false);
 	if (f_4c14 != -1) StopGameSound(f_4c14, false);
-	if (f_cc8) NEG_TODO(0x447736, "C3DRocketShip sounds +0x123c / +0x1240 stop");
+	if (C3DRocketShip *rs = static_cast<C3DRocketShip *>(f_cc8))	// 0x447736: its sounds (the channels are kept)
+	{
+		if (rs->f_123c != -1) StopGameSound(rs->f_123c, false);
+		if (rs->f_1240 != -1) StopGameSound(rs->f_1240, false);
+	}
 }
 
 void C3DJimmy::v278(void)									// 0x447780
