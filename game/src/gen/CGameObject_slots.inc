@@ -194,7 +194,6 @@
 	virtual void v222();	// slot 222 0x463890 gen
 	virtual unsigned int v223(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6);	// slot 223 0x4ad950 TODO
 	virtual unsigned int v225(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6);	// slot 225 0x4ada90 TODO
-	virtual void v226(float a2, float a3, float a4, unsigned int a5);	// slot 226 0x4ad990 TODO
 	virtual void v227(float a2, unsigned int a3);	// slot 227 0x4adad0 TODO
 	virtual unsigned int v228(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8, unsigned int a9, unsigned int a10);	// slot 228 0x4addb0 TODO
 	virtual unsigned int v229(unsigned int a2, unsigned int *a3, unsigned int a4, unsigned int a5, unsigned int a6, unsigned int a7, unsigned int a8, unsigned int a9);	// slot 229 0x4add60 TODO

@@ -73,6 +73,7 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	virtual void v219(float nx, float ny, float nz, float nw, OMedia3DPolygon *poly);	// SLOT 219 0x4ad520 ceiling
 	virtual void v220(float a, float b, float c, float d, OMedia3DPolygon *poly);	// SLOT 220 0x48ef40 wall/floor
 	virtual OMedia3DVector v224(float x, float y, float z);				// SLOT 224 0x4ad800 local point -> world (rotation v201, position)
+	virtual OMedia3DVector v226(float x, float y, float z);				// SLOT 226 0x4ad990 local direction -> world (rotation v201 only, w 0)
 	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x410490 may collide with other (1)
 	// floor polygon/shape found by PhysicsSnapToGround (initial value f_10c/f_114, current f_234/f_23c)
 	virtual OMedia3DPolygon *v95(void);										// SLOT 95  0x4ac620
