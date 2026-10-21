@@ -22,6 +22,7 @@ const char *neg::TestPlayLevel(void)
 {
 	const char *want = getenv("NEG_TEST_PLAY");
 	if (!want || !*want || strlen(want) >= 64) return NULL;	// (m_level_name holds 80)
+	if (const char *st = getenv("NEG_TEST_START")) if (C3DJimmy *j = Jimmy()) j->ev125((char *)st);	// TEMP (agent C)
 	return want;
 }
 
@@ -31,6 +32,15 @@ void neg::TestPlayHook(const char *level)
 	if (!want || strcasecmp(want, level) != 0) return;
 	C3DJimmy *jim = Jimmy();
 	if (!jim || !g_gametype) return;
+	if (const char *st = getenv("NEG_TEST_START"))	// TEMP (agent C, uncommitted): fire that start point's trigger
+	{
+		g_gametype->SetCamera(jim);
+		SetGameMode(5);
+		for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)
+			if (C3DStartPoint *s = dynamic_cast<C3DStartPoint *>(*i))
+				if (strcasecmp(s->m_tag, st) == 0) { s->m_trigger_armed = 1; g_gametype->SetCamera(NULL); SDL_Log("TEMP: armed %s -> %s", st, s->m_start_trigger); }
+		return;
+	}
 	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)
 		if (C3DStartPoint *s = dynamic_cast<C3DStartPoint *>(*i)) s->m_trigger_armed = 0;
 	g_gametype->SetCamera(jim);

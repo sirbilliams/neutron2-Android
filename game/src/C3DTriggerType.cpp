@@ -25,6 +25,8 @@
 #include "OMediaTrigo.h"
 #include <math.h>
 #include <string.h>
+#include <SDL.h>
+#include <stdlib.h>
 #include <strings.h>
 
 using namespace neg;
@@ -209,6 +211,7 @@ void C3DTriggerType::v242(float t)
 // an object tag whose class decides what firing means.
 void C3DTriggerType::CallNextTrigger(const char *name, unsigned char flag)
 {
+	if (getenv("NEG_TRIG_LOG")) SDL_Log("TRIG %s -> %s", m_tag, name);	// TEMP (agent C)
 	if (strcasecmp(name, "none") == 0)
 	{
 		// (debug log "NextTrigger is none for %s", m_tag)

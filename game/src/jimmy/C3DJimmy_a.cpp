@@ -30,6 +30,9 @@
 #include <string.h>
 #include <strings.h>
 
+#include <SDL.h>
+#include <stdlib.h>
+#include <stdio.h>
 using namespace neg;
 
 // --------------------------------------------------------------------------- helpers
@@ -1066,8 +1069,32 @@ void C3DJimmy::AddTouching(CGameObject *other)				// 0x444fc0
 	}
 }
 
+// TEMP (agent C, uncommitted): NEG_TP="<frame>:<tag>[:<dy>],..." puts Jimmy at that object.
+static void TempTeleport(C3DJimmy *j)
+{
+	static int frame = 0;
+	const char *e = getenv("NEG_TP");
+	frame++;
+	if (!e) return;
+	char buf[512]; strncpy(buf, e, 511); buf[511] = 0;
+	for (char *t = strtok(buf, ","); t; t = strtok(NULL, ","))
+	{
+		int f = 0; char tag[100] = ""; float dy = 0;
+		if (sscanf(t, "%d:%99[^:]:%f", &f, tag, &dy) < 2 || f != frame) continue;
+		for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)
+			if (*i && strcasecmp((*i)->m_tag, tag) == 0)
+			{
+				float p[4]; (*i)->v195(p);
+				j->place(p[0], p[1] + dy, p[2]);
+				SDL_Log("TEMP TP %s (%.0f %.0f %.0f) at %d", tag, p[0], p[1] + dy, p[2], frame);
+				break;
+			}
+	}
+}
+
 void C3DJimmy::Process(float dt)							// 0x446260
 {
+	TempTeleport(this);
 	if (g_gametype->IsPaused()) return;						// +0x114
 	if (f_d34 && g_game_state != 3)
 	{
