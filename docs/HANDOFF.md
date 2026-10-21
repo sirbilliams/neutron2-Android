@@ -193,8 +193,9 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
   menu: panel on/off, map zoom near/far): stainless steel / green LED theme, real top-down level map
   from the level geometry, the game's own icons read at run time, tasks lit when active (no "done" state
   found). Desktop preview: `NEG_COMPANION_DUMP=<dir>` + `tools/companion/render.sh <dir> <Level> out.png`.
-  Untested on a real second screen. HD image pack: on hold (Bill), see "Next" 3.
-- **Bill's open checks:** play the full chain on the Thor; the dual-screen panel on the real bottom screen.
+  Bill tried it on the Thor's bottom screen: "looks great", some polish still to do (ask him which).
+  HD image pack: on hold (Bill), see "Next" 3.
+- **Bill's open checks:** play the full chain on the Thor; his list of panel polish items.
 - **Method notes from this session:** the census can't see classes created at run time (projectiles,
   effects): play the level and grep the log for TODO. Android's clang enforces C++98 (no `T{...}`,
   `auto`, `nullptr`); check CI on each backup branch. Agents often wrote the same shared helpers in
