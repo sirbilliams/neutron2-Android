@@ -44,3 +44,8 @@ class C3DObject : public OMedia3DMorphAnim, public CLocalGameObject
 #include "gen/C3DObject_slots.inc"
 #include "gen/C3DObject_fields.inc"
 };
+
+namespace neg {
+// 0x4b1fc0: the angles (degrees) that tilt an object onto a floor of normal n (C3DObject.cpp).
+void FloorNormalToAngles(const OMedia3DVector &n, float *ax, float *ay, float *az);
+}

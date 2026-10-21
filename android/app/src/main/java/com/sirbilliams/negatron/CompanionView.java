@@ -1,240 +1,1045 @@
 package com.sirbilliams.negatron;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Shader;
+import android.graphics.Typeface;
+import android.os.SystemClock;
 import android.view.View;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
+import java.util.Random;
+
 /**
- * port: draws the companion snapshot (see game/src/port/Companion.h for the fields) with plain
- * shapes and text: status and bars on the left, the task list below them, a top-down map on
- * the right (north up, centred on Jimmy). Laid out for the Thor's 1240 x 1080 bottom screen and
- * scaled to whatever size it gets. Dark, large text.
+ * port: draws the companion snapshot (see game/src/port/Companion.h for the fields) as a retro
+ * lab gadget: brushed stainless-steel plates with screws, green LED indicators and segment
+ * readouts, push buttons that light up, and the level map in a recessed green CRT window with a
+ * radar sweep. All drawn here in code (no artwork in the repo); the pictures of the level, the
+ * gadgets, pickups and neutrons come from the player's own game files at run time (the map is
+ * rasterised by the native side, the icons are the game's own canvases).
+ *
+ * Laid out for the Thor's 1240 x 1080 bottom screen (scaled to whatever size it gets). The
+ * static chrome is drawn once per size into a bitmap; a snapshot is parsed once (setSnapshot)
+ * and drawing then allocates nothing. Fonts: the system's sans-serif / monospace.
  */
 final class CompanionView extends View {
-    private static final int BG = Color.rgb(12, 14, 20);
-    private static final int PANEL = Color.rgb(28, 32, 44);
-    private static final int TEXT = Color.rgb(230, 232, 240);
-    private static final int DIM = Color.rgb(140, 146, 160);
-    private static final int ENERGY = Color.rgb(80, 200, 255);
-    private static final int BOSS = Color.rgb(240, 90, 80);
-    private static final int ACCENT = Color.rgb(255, 210, 70);
-    private static final float MAP_RANGE = 3000f;   // world units from Jimmy to the map's edge
+    /** Where the map picture and icons come from (the JNI on Android, PNG files on the desktop). */
+    interface Source {
+        /** [gen, w, h, ARGB...] or null. */
+        int[] map();
+        /** [w, h, ARGB...] or null. */
+        int[] icon(int id);
+    }
+
+    // palette: steel, LEDs, CRT phosphor; red / yellow only as small accents
+    private static final int STEEL_HI = Color.rgb(222, 226, 230);
+    private static final int STEEL_MID = Color.rgb(176, 182, 189);
+    private static final int STEEL_LO = Color.rgb(128, 134, 142);
+    private static final int ENGRAVE = Color.rgb(70, 74, 80);
+    private static final int LCD_BG = Color.rgb(8, 22, 12);
+    private static final int LED_ON = Color.rgb(96, 255, 110);
+    private static final int LED_DIM = Color.rgb(28, 88, 36);
+    private static final int LED_GHOST = Color.rgb(18, 44, 22);
+    private static final int CRT_BG = Color.rgb(4, 16, 8);
+    private static final int PHOSPHOR = Color.rgb(110, 255, 140);
+    private static final int WARN_RED = Color.rgb(255, 70, 60);
+    private static final int WARN_YEL = Color.rgb(255, 214, 60);
+
+    // map zoom: world units per layout pixel
+    private static final float ZOOM_NEAR = 5f, ZOOM_FAR = 12f;
+
+    // layout (Thor pixels)
+    private static final float LW = 1240, LH = 1080;
+    private static final RectF R_HEAD = new RectF(20, 20, 484, 112);
+    private static final RectF R_GAUGE = new RectF(20, 124, 484, 360);
+    private static final RectF R_COUNT = new RectF(20, 372, 484, 470);
+    private static final RectF R_KIT = new RectF(20, 482, 484, 692);
+    private static final RectF R_TASK = new RectF(20, 704, 484, 1060);
+    private static final RectF R_MAP = new RectF(500, 20, 1220, 1060);
+    private static final float BEZEL = 22;
+    private static final float DIAL_X = 20 + 124, DIAL_Y = 124 + 108, DIAL_R = 86;
 
     private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mText = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mBmp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Path mPath = new Path();
     private final RectF mRect = new RectF();
-    private JSONObject mData;
+    private final RectF mRect2 = new RectF();
+    private final Typeface mBold = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+    private final Typeface mMono = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
+
+    private Source mSource;
+    private Bitmap mChrome;                 // the static plates, drawn once per size
+    private int mChromeW, mChromeH;
+    private Bitmap mMap;                    // the level map, green-tinted
+    private int mMapGen;
+    private final HashMap<Integer, Bitmap> mIcons = new HashMap<>();
+    private boolean mFar;
     private String mLast;
+
+    // --- the parsed snapshot (setSnapshot), read by onDraw
+    private boolean mHave;
+    private String mLevel = "", mMode = "", mScore = "0", mLives = "0", mEnergyText = "0";
+    private boolean mCut, mPlaying;
+    private float mEnergy = -1;
+    private boolean mBoss;
+    private float mBossHp;
+    private String mBossName = "";
+    private final int[] mCounts = new int[6];   // pickups, neutrons, checkpoints: got, all
+    private final String[] mCountText = { "", "", "" };
+    private int mNeutronIcon = -1, mEnergyIcon = -1;
+    private int mGadget;
+    private int[] mGadgets = new int[0];        // item, state, icon triples
+    private int[] mItems = new int[0];          // pickup, count, icon triples
+    private String[] mItemCount = new String[0];
+    private String[] mTaskName = new String[0];
+    private int[] mTaskState = new int[0];
+    private String[] mTaskStage = new String[0];
+    private String[] mCaption = new String[0];
+    private int mMapW, mMapH;
+    private float mMapS = 1;
+    private boolean mJimmy;
+    private float mJx, mJy, mHx, mHy;
+    private char[] mPtKind = new char[0];
+    private float[] mPtX = new float[0], mPtY = new float[0];
+    private int[] mPtIcon = new int[0];
+    private String[] mPtLabel = new String[0];
 
     CompanionView(Context c) {
         super(c);
-        setBackgroundColor(BG);
+        setBackgroundColor(STEEL_MID);
     }
 
-    /** New snapshot (JSON) from the poll; redraws only when it changed. */
+    void setSource(Source s) { mSource = s; }
+
+    void setZoomFar(boolean far) {
+        mFar = far;
+        invalidate();
+    }
+
+    /** Called with every poll (10 a second): the sweep moves even when nothing else does. */
+    void tick() { invalidate(); }
+
+    /** New snapshot (JSON) from the poll; parsed only when it changed. */
     void setSnapshot(String json) {
         if (json == null || json.isEmpty() || json.equals(mLast)) return;
         mLast = json;
         try {
-            mData = new JSONObject(json);
+            parse(new JSONObject(json));
         } catch (Exception e) {
             return;
         }
         invalidate();
     }
 
+    // ------------------------------------------------------------------ parsing
+
+    private void parse(JSONObject d) {
+        mHave = true;
+        String level = d.optString("level", "");
+        int dot = level.lastIndexOf('.');
+        mLevel = (dot > 0 ? level.substring(0, dot) : level).toUpperCase();
+        int mode = d.optInt("mode", -1);
+        mMode = modeName(mode);
+        mCut = d.optInt("cut", 0) == 1;
+        mPlaying = mode == 5;
+        mEnergy = (float) (d.optDouble("energy", -1) / d.optDouble("energy_max", 100));
+        mEnergyText = String.valueOf(Math.round(d.optDouble("energy", 0)));
+        mEnergyIcon = d.optInt("energy_icon", -1);
+        mScore = String.valueOf(d.optInt("score", 0));
+        mLives = String.valueOf(d.optInt("lives", 0));
+
+        JSONObject boss = d.optJSONObject("boss");
+        mBoss = boss != null && (boss.optInt("bar", 0) == 1 || boss.optDouble("hp", 1) < 1);
+        if (boss != null) {
+            mBossHp = (float) boss.optDouble("hp", 0);
+            mBossName = boss.optString("name", "Boss").toUpperCase();
+        }
+
+        String[] keys = { "pickups", "neutrons", "checkpoints" };
+        for (int i = 0; i < 3; i++) {
+            JSONArray a = d.optJSONArray(keys[i]);
+            mCounts[i * 2] = a != null ? a.optInt(0, 0) : 0;
+            mCounts[i * 2 + 1] = a != null ? a.optInt(1, 0) : 0;
+            mCountText[i] = mCounts[i * 2] + "/" + mCounts[i * 2 + 1];
+            if (i == 1) mNeutronIcon = a != null ? a.optInt(2, -1) : -1;
+        }
+
+        mGadget = d.optInt("gadget", 0);
+        JSONArray g = d.optJSONArray("gadgets");
+        int n = 0;
+        for (int i = 0; g != null && i < g.length(); i++) {
+            JSONArray e = g.optJSONArray(i);
+            if (e != null && e.optInt(1, 0) != 0) n++;
+        }
+        mGadgets = new int[n * 3];
+        n = 0;
+        for (int i = 0; g != null && i < g.length(); i++) {
+            JSONArray e = g.optJSONArray(i);
+            if (e == null || e.optInt(1, 0) == 0) continue;
+            mGadgets[n++] = e.optInt(0, 0);
+            mGadgets[n++] = e.optInt(1, 0);
+            mGadgets[n++] = e.optInt(2, -1);
+        }
+        JSONArray it = d.optJSONArray("items");
+        n = it != null ? it.length() : 0;
+        mItems = new int[n * 3];
+        mItemCount = new String[n];
+        for (int i = 0; i < n; i++) {
+            JSONArray e = it.optJSONArray(i);
+            if (e == null) continue;
+            mItems[i * 3] = e.optInt(0, 0);
+            mItems[i * 3 + 1] = e.optInt(1, 0);
+            mItems[i * 3 + 2] = e.optInt(2, -1);
+            mItemCount[i] = "x" + e.optInt(1, 0);
+        }
+
+        JSONArray t = d.optJSONArray("tasks");
+        n = t != null ? t.length() : 0;
+        mTaskName = new String[n];
+        mTaskState = new int[n];
+        mTaskStage = new String[n];
+        // active tasks first, then the ones not started, each in the game's order
+        int k = 0;
+        for (int pass = 0; pass < 2; pass++) {
+            for (int i = 0; i < n; i++) {
+                JSONArray e = t.optJSONArray(i);
+                if (e == null) continue;
+                int st = e.optInt(1, 0);
+                if ((pass == 0) != (st != 0)) continue;
+                mTaskName[k] = e.optString(0, "?");
+                mTaskState[k] = st;
+                mTaskStage[k] = st != 0 ? String.valueOf(st) : "";
+                k++;
+            }
+        }
+        if (k < n) {
+            mTaskName = java.util.Arrays.copyOf(mTaskName, k);
+            mTaskState = java.util.Arrays.copyOf(mTaskState, k);
+            mTaskStage = java.util.Arrays.copyOf(mTaskStage, k);
+        }
+
+        String cap = d.optString("caption", "");
+        mCaption = cap.isEmpty() ? new String[0] : cap.split("\n");
+
+        JSONObject map = d.optJSONObject("map");
+        int gen = map != null ? map.optInt("gen", 0) : 0;
+        mMapW = map != null ? map.optInt("w", 0) : 0;
+        mMapH = map != null ? map.optInt("h", 0) : 0;
+        mMapS = map != null ? (float) map.optDouble("s", 1) : 1;
+        if (gen != mMapGen) fetchMap(gen);
+
+        JSONArray j = d.optJSONArray("jimmy");
+        mJimmy = j != null && j.length() >= 4;
+        if (mJimmy) {
+            mJx = (float) j.optDouble(0, 0);
+            mJy = (float) j.optDouble(1, 0);
+            mHx = (float) j.optDouble(2, 0);
+            mHy = (float) j.optDouble(3, -1);
+        }
+
+        JSONArray p = d.optJSONArray("pts");
+        n = p != null ? p.length() : 0;
+        mPtKind = new char[n];
+        mPtX = new float[n];
+        mPtY = new float[n];
+        mPtIcon = new int[n];
+        mPtLabel = new String[n];
+        for (int i = 0; i < n; i++) {
+            JSONArray e = p.optJSONArray(i);
+            if (e == null) continue;
+            String kind = e.optString(0, "?");
+            mPtKind[i] = kind.isEmpty() ? '?' : kind.charAt(0);
+            mPtX[i] = (float) e.optDouble(1, 0);
+            mPtY[i] = (float) e.optDouble(2, 0);
+            Object extra = e.opt(3);
+            mPtIcon[i] = extra instanceof Number ? ((Number) extra).intValue() : -1;
+            if (extra instanceof String) {
+                String s = (String) extra;
+                int dt = s.lastIndexOf('.');
+                mPtLabel[i] = (dt > 0 ? s.substring(0, dt) : s).toUpperCase();
+            }
+            if (mPtIcon[i] >= 0) fetchIcon(mPtIcon[i]);
+        }
+        for (int i = 2; i < mGadgets.length; i += 3) fetchIcon(mGadgets[i]);
+        for (int i = 2; i < mItems.length; i += 3) fetchIcon(mItems[i]);
+        if (mNeutronIcon >= 0) fetchIcon(mNeutronIcon);
+        if (mEnergyIcon >= 0) fetchIcon(mEnergyIcon);
+    }
+
+    private void fetchMap(int gen) {
+        if (mSource == null) return;
+        int[] a = gen > 0 ? mSource.map() : null;
+        if (a == null || a.length < 3 || a[0] != gen) {
+            if (gen == 0) { mMap = null; mMapGen = 0; }
+            return;                                         // (asked again with the next snapshot)
+        }
+        int w = a[1], h = a[2];
+        if (w <= 0 || h <= 0 || a.length < 3 + w * h) return;
+        int[] px = new int[w * h];
+        // green phosphor: brightness to green, a little of the colour kept
+        for (int i = 0; i < px.length; i++) {
+            int c = a[3 + i];
+            int al = c >>> 24;
+            if (al == 0) { px[i] = 0; continue; }
+            int r = (c >> 16) & 0xff, gg = (c >> 8) & 0xff, b = c & 0xff;
+            int l = (r * 30 + gg * 59 + b * 11) / 100;
+            int pr = (l * 22 + r * 18) / 100, pg = Math.min(255, (l * 80 + gg * 14) / 100), pb = (l * 30 + b * 14) / 100;
+            px[i] = (al << 24) | (pr << 16) | (pg << 8) | pb;
+        }
+        if (mMap != null) mMap.recycle();
+        mMap = Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888);
+        mMapGen = gen;
+    }
+
+    private void fetchIcon(int id) {
+        if (mSource == null || mIcons.containsKey(id)) return;
+        int[] a = mSource.icon(id);
+        if (a == null || a.length < 2 || a.length < 2 + a[0] * a[1]) return;
+        int[] px = new int[a[0] * a[1]];
+        System.arraycopy(a, 2, px, 0, px.length);
+        mIcons.put(id, Bitmap.createBitmap(px, a[0], a[1], Bitmap.Config.ARGB_8888));
+    }
+
+    // ------------------------------------------------------------------ drawing
+
     @Override
     protected void onDraw(Canvas c) {
-        float w = getWidth(), h = getHeight();
-        float u = Math.min(w / 1240f, h / 1080f);         // layout unit: 1 px on the Thor's screen
-        float pad = 24 * u;
-        JSONObject d = mData;
-        if (d == null) {
-            text(c, "Waiting for the game...", pad, pad + 48 * u, 40 * u, DIM);
-            return;
+        int w = getWidth(), h = getHeight();
+        if (w <= 0 || h <= 0) return;
+        float u = Math.min(w / LW, h / LH);
+        float ox = (w - LW * u) / 2, oy = (h - LH * u) / 2;
+        if (mChrome == null || mChromeW != w || mChromeH != h) buildChrome(w, h, u, ox, oy);
+        c.drawBitmap(mChrome, 0, 0, null);
+        c.save();
+        c.translate(ox, oy);
+        c.scale(u, u);
+        if (!mHave) {
+            lcdText(c, "WAITING FOR THE GAME", R_HEAD.left + 30, R_HEAD.top + 58, 28, LED_ON);
+        } else {
+            drawHeader(c);
+            drawGauges(c);
+            drawCounters(c);
+            drawKit(c);
+            drawTasks(c);
         }
-        float colW = w * 0.5f - pad * 1.5f;
-        float x = pad, y = pad;
-
-        // header: level and mode
-        String level = d.optString("level", "");
-        String mode = modeName(d.optInt("mode", -1));
-        text(c, level, x, y + 44 * u, 44 * u, TEXT);
-        text(c, d.optString("id", "") + "   " + mode, x, y + 88 * u, 30 * u, d.optInt("cut", 0) == 1 ? ACCENT : DIM);
-        y += 112 * u;
-
-        // energy bar
-        double energy = d.optDouble("energy", Double.NaN);
-        double emax = d.optDouble("energy_max", 100);
-        if (!Double.isNaN(energy)) {
-            bar(c, x, y, colW, 44 * u, (float) (energy / emax), ENERGY, "Energy " + Math.round(energy), u);
-            y += 60 * u;
-        }
-        text(c, "Score " + d.optInt("score", 0) + "     Lives " + d.optInt("lives", 0), x, y + 34 * u, 32 * u, TEXT);
-        y += 52 * u;
-
-        // boss
-        JSONObject boss = d.optJSONObject("boss");
-        if (boss != null && (boss.optInt("bar", 0) == 1 || boss.optDouble("hp", 1) < 1)) {
-            bar(c, x, y, colW, 36 * u, (float) boss.optDouble("hp", 0), BOSS, boss.optString("name", "Boss"), u);
-            y += 52 * u;
-        }
-
-        // gadget
-        int gadget = d.optInt("gadget", 0);
-        StringBuilder owned = new StringBuilder();
-        JSONArray gadgets = d.optJSONArray("gadgets");
-        for (int i = 0; gadgets != null && i < gadgets.length(); i++) {
-            JSONArray g = gadgets.optJSONArray(i);
-            if (g == null || g.optInt(1, 0) == 0) continue;
-            int n = g.optInt(0, -1);
-            owned.append(n == gadget ? " [" + n + "]" : " " + n);
-        }
-        text(c, "Gadget: " + (gadget == 0 ? "none" : "#" + gadget) + "    Have:" + (owned.length() == 0 ? " -" : owned.toString()),
-                x, y + 32 * u, 30 * u, TEXT);
-        y += 48 * u;
-
-        // collected counts
-        String counts = count(d, "pickups", "Pickups") + "   " + count(d, "neutrons", "Neutrons")
-                + "   " + count(d, "checkpoints", "Checkpoints");
-        text(c, counts, x, y + 28 * u, 26 * u, DIM);
-        y += 48 * u;
-
-        // caption
-        String caption = d.optString("caption", "");
-        if (!caption.isEmpty()) {
-            float ch = 30 * u;
-            String[] lines = caption.split("\n");
-            float boxH = lines.length * ch * 1.25f + 20 * u;
-            mFill.setColor(PANEL);
-            mRect.set(x, y, x + colW, y + boxH);
-            c.drawRoundRect(mRect, 12 * u, 12 * u, mFill);
-            float ty = y + 10 * u + ch;
-            for (String line : lines) {
-                text(c, line, x + 14 * u, ty, ch, ACCENT);
-                ty += ch * 1.25f;
-            }
-            y += boxH + 16 * u;
-        }
-
-        // tasks
-        JSONArray tasks = d.optJSONArray("tasks");
-        if (tasks != null && y < h - 60 * u) {
-            text(c, "Tasks", x, y + 30 * u, 30 * u, DIM);
-            y += 44 * u;
-            float th = 26 * u;
-            float tx = x;
-            float top = y;
-            for (int i = 0; i < tasks.length(); i++) {
-                JSONArray t = tasks.optJSONArray(i);
-                if (t == null) continue;
-                int state = t.optInt(1, 0);
-                if (y + th > h - pad) {                 // second column
-                    if (tx > x) break;
-                    tx = x + colW / 2;
-                    y = top;
-                }
-                text(c, t.optString(0, "?") + "  " + state, tx, y + th, th, state != 0 ? TEXT : DIM);
-                y += th * 1.3f;
-            }
-        }
-
-        // map
-        float mx = w * 0.5f + pad * 0.5f, my = pad, ms = Math.min(w - mx - pad, h - 2 * pad);
-        drawMap(c, d, mx, my, ms, u);
+        drawMap(c);
+        c.restore();
     }
 
-    private void drawMap(Canvas c, JSONObject d, float mx, float my, float ms, float u) {
-        mFill.setColor(PANEL);
-        mRect.set(mx, my, mx + ms, my + ms);
-        c.drawRoundRect(mRect, 16 * u, 16 * u, mFill);
-        JSONArray jim = d.optJSONArray("jimmy");
-        if (jim == null) {
-            text(c, "No map", mx + 20 * u, my + 50 * u, 30 * u, DIM);
-            return;
+    private void drawHeader(Canvas c) {
+        lcdText(c, mLevel, R_HEAD.left + 34, R_HEAD.top + 58, 32, LED_ON);
+        float lx = R_HEAD.right - 190;
+        led(c, lx, R_HEAD.top + 46, 10, mCut ? 2 : 1, mCut ? WARN_YEL : LED_ON);
+        lcdText(c, mMode, lx + 18, R_HEAD.top + 55, 22, mCut ? WARN_YEL : LED_ON);
+    }
+
+    private void drawGauges(Canvas c) {
+        // energy dial: 240 degrees, zones as the game's own bar (green from 70, yellow from 30)
+        float cx = DIAL_X, cy = DIAL_Y, r = DIAL_R;
+        dial(c, cx, cy, r, mEnergy);
+        segText(c, mEnergyText, cx - 32, cy + 28, 26, 3, energyColour(mEnergy * 100));
+        engraved(c, "ENERGY", cx, R_GAUGE.bottom - 14, 20, true);
+        Bitmap hud = mEnergyIcon >= 0 ? mIcons.get(mEnergyIcon) : null;
+        if (hud != null) drawIcon(c, hud, cx, cy - 38, 40);
+
+        float x = R_GAUGE.left + 252, y = R_GAUGE.top + 30;
+        engraved(c, "SCORE", x + 4, y + 2, 18, false);
+        lcd(c, x, y + 10, 196, 60);
+        segText(c, mScore, x + 12, y + 20, 40, 6, LED_ON);
+        y += 92;
+        if (mBoss) {
+            engraved(c, mBossName, x + 4, y + 2, 18, false);
+            lcd(c, x, y + 10, 196, 44);
+            float f = Math.max(0, Math.min(1, mBossHp));
+            mFill.setShader(null);
+            mFill.setColor(WARN_RED);
+            mRect.set(x + 10, y + 20, x + 10 + 176 * f, y + 44);
+            c.drawRoundRect(mRect, 6, 6, mFill);
+            for (int i = 1; i < 10; i++) {                         // bar graph cells
+                mFill.setColor(LCD_BG);
+                c.drawRect(x + 10 + 17.6f * i - 1.5f, y + 20, x + 10 + 17.6f * i + 1.5f, y + 44, mFill);
+            }
+        } else {
+            engraved(c, "LIVES", x + 4, y + 2, 18, false);
+            lcd(c, x, y + 10, 96, 60);
+            segText(c, mLives, x + 14, y + 20, 40, 2, LED_ON);
         }
-        float jx = (float) jim.optDouble(0, 0), jz = (float) jim.optDouble(1, 0);
-        float cx = mx + ms / 2, cy = my + ms / 2, k = (ms / 2) / MAP_RANGE;
-        c.save();
-        c.clipRect(mRect);
-        JSONArray pts = d.optJSONArray("pts");
-        if (pts != null) {
-            for (int i = 0; i < pts.length(); i++) {
-                JSONArray p = pts.optJSONArray(i);
-                if (p == null) continue;
-                float px = cx + ((float) p.optDouble(1, 0) - jx) * k;
-                float py = cy - ((float) p.optDouble(2, 0) - jz) * k;
-                String kind = p.optString(0, "");
-                int col;
-                float r = 9 * u;
-                switch (kind) {
-                    case "p": col = ACCENT; break;
-                    case "n": col = ENERGY; r = 6 * u; break;
-                    case "c": col = Color.rgb(120, 230, 120); break;
-                    case "f": col = Color.rgb(200, 150, 255); break;
-                    case "e": col = BOSS; break;
-                    default: col = DIM;
-                }
-                mFill.setColor(col);
-                c.drawCircle(px, py, r, mFill);
+    }
+
+    private void drawCounters(Canvas c) {
+        float x = R_COUNT.left + 22, y = R_COUNT.top + 16;
+        float cw = 144;
+        for (int i = 0; i < 3; i++) {
+            float bx = x + i * cw;
+            lcd(c, bx, y, cw - 12, 50);
+            float ix = bx + 28, iy = y + 25;
+            // neutrons: the HUD's own neutron picture, else the neutron sprite
+            Bitmap icon = null;
+            if (i == 1 && mEnergyIcon >= 0) icon = mIcons.get(mEnergyIcon);
+            if (i == 1 && icon == null && mNeutronIcon >= 0) icon = mIcons.get(mNeutronIcon);
+            if (icon != null) {
+                drawIcon(c, icon, ix, iy, 44);
+            } else if (i == 1) {
+                atom(c, ix, iy, 16, LED_ON);
+            } else if (i == 0) {
+                star(c, ix, iy, 16, LED_ON);
+            } else {
+                flag(c, ix, iy, 16, LED_ON);
+            }
+            boolean all = mCounts[i * 2 + 1] > 0 && mCounts[i * 2] >= mCounts[i * 2 + 1];
+            segText(c, mCountText[i], bx + 54, y + 11, 28, 0, all ? WARN_YEL : LED_ON);
+        }
+        engraved(c, "PICKUPS", x + 66, R_COUNT.bottom - 13, 15, true);
+        engraved(c, "NEUTRONS", x + cw + 66, R_COUNT.bottom - 13, 15, true);
+        engraved(c, "CHECKPOINTS", x + 2 * cw + 66, R_COUNT.bottom - 13, 15, true);
+    }
+
+    private void drawKit(Canvas c) {
+        float x = R_KIT.left + 26, y = R_KIT.top + 40;
+        engraved(c, "GADGETS", R_KIT.left + 26, R_KIT.top + 30, 18, false);
+        if (mGadgets.length == 0) {
+            lcdText(c, "NONE", x + 6, y + 44, 22, LED_DIM);
+        }
+        for (int i = 0, k = 0; i + 2 < mGadgets.length && k < 6; i += 3, k++) {
+            float bx = x + k * 70 + 32, by = y + 34;
+            boolean cur = mGadgets[i] == mGadget;
+            button(c, bx, by, 30, cur ? 2 : 1);
+            Bitmap icon = mIcons.get(mGadgets[i + 2]);
+            if (icon != null) drawIcon(c, icon, bx, by, 44);
+        }
+        y += 86;
+        engraved(c, "ITEMS", R_KIT.left + 26, y + 6, 18, false);
+        for (int i = 0, k = 0; i + 2 < mItems.length && k < 6; i += 3, k++) {
+            float bx = x + k * 70 + 32, by = y + 46;
+            Bitmap icon = mIcons.get(mItems[i + 2]);
+            if (icon != null) drawIcon(c, icon, bx, by, 60);
+            else button(c, bx, by, 24, 1);
+            if (mItems[i + 1] > 1) lcdText(c, mItemCount[i / 3], bx + 8, by + 30, 18, LED_ON);
+        }
+    }
+
+    private void drawTasks(Canvas c) {
+        float x = R_TASK.left + 24, y = R_TASK.top + 22;
+        float colW = (R_TASK.width() - 48) / 2;
+        if (mCaption.length > 0) {
+            int lines = Math.min(3, mCaption.length);
+            float bh = 18 + lines * 28;
+            lcd(c, x, y, R_TASK.width() - 48, bh);
+            for (int i = 0; i < lines; i++) {
+                String s = mCaption[mCaption.length - lines + i];
+                lcdText(c, s, x + 12, y + 34 + i * 28, 22, PHOSPHOR);
+            }
+            y += bh + 14;
+        }
+        engraved(c, "TASKS", x + 2, y + 18, 18, false);
+        y += 30;
+        float rowH = 42;
+        int rows = (int) ((R_TASK.bottom - 16 - y) / rowH);
+        int shown = Math.min(mTaskName.length, rows * 2);
+        for (int i = 0; i < shown; i++) {
+            float bx = x + (i / rows) * (colW + 0), by = y + (i % rows) * rowH;
+            boolean active = mTaskState[i] != 0;
+            pill(c, bx, by, colW - 10, rowH - 8, active);
+            led(c, bx + 20, by + (rowH - 8) / 2, 8, active ? 2 : 1, LED_ON);
+            mText.setTypeface(mBold);
+            mText.setTextAlign(Paint.Align.LEFT);
+            mText.setTextSize(19);
+            mText.setColor(active ? Color.rgb(30, 34, 38) : ENGRAVE);
+            c.drawText(mTaskName[i], bx + 36, by + 24, mText);
+            if (active) {
+                mText.setTextAlign(Paint.Align.RIGHT);
+                mText.setTypeface(mMono);
+                mText.setColor(Color.rgb(20, 110, 40));
+                c.drawText(mTaskStage[i], bx + colW - 22, by + 24, mText);
+                mText.setTextAlign(Paint.Align.LEFT);
             }
         }
-        // Jimmy: an arrow along his heading (yaw in degrees; the sign convention is a guess)
-        double yaw = Math.toRadians(jim.optDouble(2, 0));
-        float s = 22 * u;
-        float fx = (float) Math.sin(yaw), fy = (float) -Math.cos(yaw);
+    }
+
+    // --- the map window
+
+    private void drawMap(Canvas c) {
+        RectF crt = mRect2;
+        crt.set(R_MAP.left + BEZEL, R_MAP.top + BEZEL, R_MAP.right - BEZEL, R_MAP.bottom - BEZEL);
+        float cx = crt.centerX(), cy = crt.centerY();
+        c.save();
+        c.clipRect(crt);
+        if (mMap == null || !mJimmy) {
+            lcdText(c, mHave ? "NO SIGNAL" : "", cx - 70, cy, 30, LED_DIM);
+        } else {
+            float k = mMapS / (mFar ? ZOOM_FAR : ZOOM_NEAR);     // layout px per map px
+            float left = cx - mJx * k, top = cy - mJy * k;
+            if (mMapW == mMap.getWidth() && mMapH == mMap.getHeight()) {
+                mRect.set(left, top, left + mMapW * k, top + mMapH * k);
+                c.drawBitmap(mMap, null, mRect, mBmp);
+            }
+            float iconScale = mFar ? 0.7f : 1f;
+            // points, then Jimmy on top
+            for (int i = 0; i < mPtKind.length; i++) {
+                float px = left + mPtX[i] * k, py = top + mPtY[i] * k;
+                char kind = mPtKind[i];
+                float margin = (kind == 'o' || kind == 'x' || kind == 'X') ? -12 : 40;   // marked on the edge when out
+                boolean in = px > crt.left - margin && px < crt.right + margin && py > crt.top - margin && py < crt.bottom + margin;
+                if (!in) {
+                    if (kind == 'o' || kind == 'x' || kind == 'X') edgeMarker(c, crt, cx, cy, px, py, kind, mPtLabel[i]);
+                    continue;
+                }
+                drawPoint(c, kind, px, py, mPtIcon[i], mPtLabel[i], iconScale);
+            }
+            jimmy(c, cx, cy);
+        }
+        // scanlines and the sweep
+        mStroke.setShader(null);
+        mStroke.setStrokeWidth(1.2f);
+        mStroke.setColor(Color.argb(28, 0, 0, 0));
+        for (float y = crt.top; y < crt.bottom; y += 4) c.drawLine(crt.left, y, crt.right, y, mStroke);
+        float a = (SystemClock.uptimeMillis() % 6000L) / 6000f * 360f;
+        float rr = (float) Math.hypot(crt.width(), crt.height()) / 2;
+        mRect.set(cx - rr, cy - rr, cx + rr, cy + rr);
+        mFill.setShader(null);
+        for (int i = 0; i < 10; i++) {                                 // fading trail
+            mFill.setColor(Color.argb(22 - i * 2, 110, 255, 140));
+            c.drawArc(mRect, a - 90 - (i + 1) * 4, 4, true, mFill);
+        }
+        mStroke.setColor(Color.argb(150, 140, 255, 160));
+        mStroke.setStrokeWidth(2.5f);
+        double ar = Math.toRadians(a - 90);
+        c.drawLine(cx, cy, cx + (float) Math.cos(ar) * rr, cy + (float) Math.sin(ar) * rr, mStroke);
+        c.restore();
+
+        // compass, zoom and scale bar on the glass
+        lcdText(c, "N", cx - 9, crt.top + 34, 26, PHOSPHOR);
+        mFill.setColor(PHOSPHOR);
         mPath.reset();
-        mPath.moveTo(cx + fx * s, cy + fy * s);
-        mPath.lineTo(cx - fx * s * 0.6f - fy * s * 0.6f, cy - fy * s * 0.6f + fx * s * 0.6f);
-        mPath.lineTo(cx - fx * s * 0.6f + fy * s * 0.6f, cy - fy * s * 0.6f - fx * s * 0.6f);
+        mPath.moveTo(cx, crt.top + 6);
+        mPath.lineTo(cx - 8, crt.top + 14);
+        mPath.lineTo(cx + 8, crt.top + 14);
         mPath.close();
+        c.drawPath(mPath, mFill);
+        lcdText(c, mFar ? "ZOOM FAR" : "ZOOM NEAR", crt.left + 18, crt.bottom - 18, 20, PHOSPHOR);
+        float bar = 1000f / (mFar ? ZOOM_FAR : ZOOM_NEAR);             // 1000 world units
+        mStroke.setColor(PHOSPHOR);
+        mStroke.setStrokeWidth(3);
+        float bx = crt.right - 24 - bar, by = crt.bottom - 26;
+        c.drawLine(bx, by, bx + bar, by, mStroke);
+        c.drawLine(bx, by - 8, bx, by + 8, mStroke);
+        c.drawLine(bx + bar, by - 8, bx + bar, by + 8, mStroke);
+        lcdText(c, "1000", bx + bar / 2 - 24, by - 12, 18, PHOSPHOR);
+    }
+
+    private void drawPoint(Canvas c, char kind, float px, float py, int iconId, String label, float sc) {
+        Bitmap icon = iconId >= 0 ? mIcons.get(iconId) : null;
+        switch (kind) {
+            case 'p':
+                if (icon != null) {
+                    mFill.setShader(null);
+                    mFill.setColor(Color.argb(170, 0, 0, 0));
+                    c.drawCircle(px, py, 26 * sc, mFill);
+                    drawIcon(c, icon, px, py, 46 * sc);
+                } else star(c, px, py, 12 * sc, WARN_YEL);
+                break;
+            case 'n':
+                if (icon != null) {
+                    mFill.setShader(null);
+                    mFill.setColor(Color.argb(150, 0, 0, 0));
+                    c.drawCircle(px, py, 15 * sc, mFill);
+                    drawIcon(c, icon, px, py, 38 * sc);
+                }
+                else atom(c, px, py, 10 * sc, PHOSPHOR);
+                break;
+            case 'c':
+                if (icon != null) {
+                    mFill.setShader(null);
+                    mFill.setColor(Color.argb(150, 0, 0, 0));
+                    c.drawCircle(px, py, 20 * sc, mFill);
+                    drawIcon(c, icon, px, py, 40 * sc);
+                }
+                else flag(c, px, py, 12 * sc, LED_ON);
+                break;
+            case 'o': {
+                float pulse = (SystemClock.uptimeMillis() % 1200L) / 1200f;
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(4);
+                mStroke.setColor(Color.argb((int) (255 * (1 - pulse)), 255, 214, 60));
+                c.drawCircle(px, py, 14 + 26 * pulse, mStroke);
+                star(c, px, py, 14, WARN_YEL);
+                break;
+            }
+            case 'x':
+            case 'X': {
+                boolean open = kind == 'x';
+                int col = open ? LED_ON : WARN_RED;
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(4);
+                mStroke.setColor(col);
+                mRect.set(px - 12, py - 18, px + 12, py + 18);
+                c.drawRoundRect(mRect, 10, 10, mStroke);
+                mFill.setShader(null);
+                mFill.setColor(col);
+                c.drawCircle(px + 5, py + 2, 3, mFill);
+                if (label != null) lcdText(c, label, px + 20, py + 8, 20, col);
+                break;
+            }
+            case 'd':
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(6);
+                mStroke.setColor(Color.rgb(190, 196, 204));
+                c.drawLine(px - 10, py, px + 10, py, mStroke);
+                break;
+            case 'f':
+                atom(c, px, py, 11 * sc, Color.rgb(120, 230, 255));
+                break;
+            case 'e':
+                mFill.setShader(null);
+                mFill.setColor(WARN_RED);
+                mPath.reset();
+                mPath.moveTo(px, py - 10);
+                mPath.lineTo(px + 9, py);
+                mPath.lineTo(px, py + 10);
+                mPath.lineTo(px - 9, py);
+                mPath.close();
+                c.drawPath(mPath, mFill);
+                break;
+            default:
+                break;
+        }
+    }
+
+    /** An objective or exit off the screen: a chevron on the CRT's edge pointing at it. */
+    private void edgeMarker(Canvas c, RectF crt, float cx, float cy, float px, float py, char kind, String label) {
+        float dx = px - cx, dy = py - cy;
+        float hw = crt.width() / 2 - 30, hh = crt.height() / 2 - 30;
+        float t = Math.min(Math.abs(dx) > 0 ? hw / Math.abs(dx) : 1e9f, Math.abs(dy) > 0 ? hh / Math.abs(dy) : 1e9f);
+        float ex = cx + dx * t, ey = cy + dy * t;
+        float len = (float) Math.hypot(dx, dy);
+        float ux = dx / len, uy = dy / len;
+        int col = kind == 'o' ? WARN_YEL : kind == 'x' ? LED_ON : WARN_RED;
+        mFill.setShader(null);
+        mFill.setColor(col);
+        mPath.reset();
+        mPath.moveTo(ex + ux * 16, ey + uy * 16);
+        mPath.lineTo(ex - ux * 10 - uy * 12, ey - uy * 10 + ux * 12);
+        mPath.lineTo(ex - ux * 10 + uy * 12, ey - uy * 10 - ux * 12);
+        mPath.close();
+        c.drawPath(mPath, mFill);
+        if (label != null) {
+            mText.setTextAlign(ux > 0.3f ? Paint.Align.RIGHT : Paint.Align.LEFT);
+            float lx = ex - ux * 24, ly = ey - uy * 24 + 7;
+            mText.setTypeface(mMono);
+            mText.setTextSize(18);
+            mText.setColor(col);
+            c.drawText(label, lx, ly, mText);
+            mText.setTextAlign(Paint.Align.LEFT);
+        }
+    }
+
+    /** Jimmy: a white arrow along his heading over a small electron-orbit ring. */
+    private void jimmy(Canvas c, float x, float y) {
+        mFill.setShader(null);
+        mFill.setColor(Color.argb(80, 110, 255, 140));
+        c.drawCircle(x, y, 36, mFill);
+        mStroke.setShader(null);
+        mStroke.setStrokeWidth(2);
+        mStroke.setColor(Color.argb(200, 200, 255, 210));
+        mRect.set(x - 36, y - 12, x + 36, y + 12);
+        c.save();
+        for (int i = 0; i < 3; i++) {
+            c.drawOval(mRect, mStroke);
+            c.rotate(60, x, y);
+        }
+        c.restore();
+        float s = 30;
+        mPath.reset();
+        mPath.moveTo(x + mHx * s, y + mHy * s);
+        mPath.lineTo(x - mHx * s * 0.7f - mHy * s * 0.6f, y - mHy * s * 0.7f + mHx * s * 0.6f);
+        mPath.lineTo(x - mHx * s * 0.35f, y - mHy * s * 0.35f);
+        mPath.lineTo(x - mHx * s * 0.7f + mHy * s * 0.6f, y - mHy * s * 0.7f - mHx * s * 0.6f);
+        mPath.close();
+        mStroke.setColor(Color.rgb(10, 40, 18));
+        mStroke.setStrokeWidth(6);
+        c.drawPath(mPath, mStroke);
         mFill.setColor(Color.WHITE);
         c.drawPath(mPath, mFill);
+    }
+
+    // ------------------------------------------------------------------ the static chrome
+
+    private void buildChrome(int w, int h, float u, float ox, float oy) {
+        if (mChrome != null) mChrome.recycle();
+        mChrome = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        mChromeW = w;
+        mChromeH = h;
+        Canvas c = new Canvas(mChrome);
+        // the case: darker brushed steel
+        brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126), 1);
+        c.save();
+        c.translate(ox, oy);
+        c.scale(u, u);
+        RectF[] plates = { R_HEAD, R_GAUGE, R_COUNT, R_KIT, R_TASK, R_MAP };
+        for (RectF r : plates) plate(c, r);
+        lcd(c, R_HEAD.left + 18, R_HEAD.top + 18, R_HEAD.width() - 36, R_HEAD.height() - 36);
+        // the dial face and the CRT recess
+        dialFace(c, DIAL_X, DIAL_Y, DIAL_R);
+        RectF crt = new RectF(R_MAP.left + BEZEL, R_MAP.top + BEZEL, R_MAP.right - BEZEL, R_MAP.bottom - BEZEL);
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setColor(Color.rgb(40, 44, 48));
+        RectF o = new RectF(crt.left - 6, crt.top - 6, crt.right + 6, crt.bottom + 6);
+        c.drawRoundRect(o, 26, 26, p);
+        p.setShader(new RadialGradient(crt.centerX(), crt.centerY(), crt.height() * 0.7f,
+                new int[] { Color.rgb(10, 34, 16), CRT_BG }, null, Shader.TileMode.CLAMP));
+        c.drawRoundRect(crt, 20, 20, p);
+        p.setShader(null);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(3);
+        p.setColor(Color.argb(120, 255, 255, 255));
+        c.drawLine(o.left + 20, o.bottom + 1, o.right - 20, o.bottom + 1, p);
+        // range rings on the glass (faint)
+        p.setStrokeWidth(1.5f);
+        p.setColor(Color.argb(40, 110, 255, 140));
+        for (int i = 1; i <= 3; i++) c.drawCircle(crt.centerX(), crt.centerY(), crt.width() * 0.16f * i, p);
+        c.drawLine(crt.left, crt.centerY(), crt.right, crt.centerY(), p);
+        c.drawLine(crt.centerX(), crt.top, crt.centerX(), crt.bottom, p);
         c.restore();
-        text(c, "N", mx + ms / 2 - 8 * u, my + 30 * u, 24 * u, DIM);
     }
 
-    private void bar(Canvas c, float x, float y, float w, float h, float frac, int color, String label, float u) {
-        if (Float.isNaN(frac)) frac = 0;
-        frac = Math.max(0, Math.min(1, frac));
-        mFill.setColor(PANEL);
+    /** Brushed steel: a vertical gradient with fine horizontal streaks (same seed every time). */
+    private void brushed(Canvas c, float l, float t, float r, float b, int top, int bottom, float u) {
+        Paint p = new Paint();
+        p.setShader(new LinearGradient(l, t, r * 0.3f + l * 0.7f, b, top, bottom, Shader.TileMode.CLAMP));
+        c.drawRect(l, t, r, b, p);
+        p.setShader(null);
+        p.setStrokeWidth(1);
+        Random rnd = new Random(1234);
+        for (float y = t; y < b; y += 1.5f) {
+            int a = rnd.nextInt(26);
+            p.setColor(rnd.nextBoolean() ? Color.argb(a, 255, 255, 255) : Color.argb(a, 0, 0, 0));
+            float x0 = l + rnd.nextFloat() * (r - l) * 0.3f;
+            c.drawLine(x0, y, x0 + (r - l) * (0.4f + rnd.nextFloat() * 0.6f), y, p);
+        }
+    }
+
+    private void plate(Canvas c, RectF r) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        // drop shadow, body, brushing, bevel
+        p.setColor(Color.argb(90, 0, 0, 0));
+        mRect.set(r.left + 3, r.top + 5, r.right + 3, r.bottom + 5);
+        c.drawRoundRect(mRect, 22, 22, p);
+        p.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom, STEEL_HI, STEEL_LO, Shader.TileMode.CLAMP));
+        c.drawRoundRect(r, 22, 22, p);
+        p.setShader(null);
+        p.setStrokeWidth(1);
+        Random rnd = new Random((long) (r.left * 31 + r.top));
+        for (float y = r.top + 8; y < r.bottom - 8; y += 1.5f) {
+            int a = rnd.nextInt(30);
+            p.setColor(rnd.nextBoolean() ? Color.argb(a, 255, 255, 255) : Color.argb(a, 60, 60, 60));
+            float x0 = r.left + 10 + rnd.nextFloat() * r.width() * 0.25f;
+            c.drawLine(x0, y, Math.min(r.right - 10, x0 + r.width() * (0.3f + rnd.nextFloat() * 0.7f)), y, p);
+        }
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(3);
+        p.setColor(Color.argb(170, 255, 255, 255));
+        mRect.set(r.left + 1.5f, r.top + 1.5f, r.right - 1.5f, r.bottom - 1.5f);
+        c.drawRoundRect(mRect, 21, 21, p);
+        p.setColor(Color.argb(140, 40, 44, 50));
+        p.setStrokeWidth(2);
+        mRect.set(r.left + 3, r.top + 4, r.right - 0.5f, r.bottom - 0.5f);
+        c.drawRoundRect(mRect, 21, 21, p);
+        p.setStyle(Paint.Style.FILL);
+        // screws in the corners
+        float s = 13;
+        screw(c, r.left + s, r.top + s, p);
+        screw(c, r.right - s, r.top + s, p);
+        screw(c, r.left + s, r.bottom - s, p);
+        screw(c, r.right - s, r.bottom - s, p);
+    }
+
+    private void screw(Canvas c, float x, float y, Paint p) {
+        p.setShader(new RadialGradient(x - 2, y - 2, 7, new int[] { Color.rgb(245, 247, 250), Color.rgb(120, 126, 134) },
+                null, Shader.TileMode.CLAMP));
+        c.drawCircle(x, y, 6, p);
+        p.setShader(null);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.6f);
+        p.setColor(Color.rgb(70, 74, 80));
+        c.drawLine(x - 4, y + 2.5f, x + 4, y - 2.5f, p);
+        p.setStrokeWidth(1);
+        p.setColor(Color.argb(120, 0, 0, 0));
+        c.drawCircle(x, y, 6, p);
+        p.setStyle(Paint.Style.FILL);
+    }
+
+    private void dialFace(Canvas c, float cx, float cy, float r) {
+        Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        p.setShader(new RadialGradient(cx, cy - r * 0.3f, r * 1.2f, new int[] { Color.rgb(18, 40, 24), Color.rgb(4, 12, 6) },
+                null, Shader.TileMode.CLAMP));
+        c.drawCircle(cx, cy, r, p);
+        p.setShader(null);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(6);
+        p.setShader(new LinearGradient(cx - r, cy - r, cx + r, cy + r, STEEL_HI, STEEL_LO, Shader.TileMode.CLAMP));
+        c.drawCircle(cx, cy, r + 3, p);
+        p.setShader(null);
+        // zones: red below 30, yellow below 70, green above (as the game's energy bar)
+        RectF a = new RectF(cx - r + 12, cy - r + 12, cx + r - 12, cy + r - 12);
+        p.setStrokeWidth(8);
+        p.setColor(Color.argb(200, 255, 70, 60));
+        c.drawArc(a, 150, 240 * 0.3f, false, p);
+        p.setColor(Color.argb(200, 255, 214, 60));
+        c.drawArc(a, 150 + 240 * 0.3f, 240 * 0.4f, false, p);
+        p.setColor(Color.argb(200, 96, 255, 110));
+        c.drawArc(a, 150 + 240 * 0.7f, 240 * 0.3f, false, p);
+        p.setStrokeWidth(2);
+        p.setColor(Color.argb(160, 110, 255, 140));
+        for (int i = 0; i <= 10; i++) {
+            double ang = Math.toRadians(150 + 24 * i);
+            float r0 = r - 24, r1 = r - (i % 5 == 0 ? 36 : 30);
+            c.drawLine(cx + (float) Math.cos(ang) * r0, cy + (float) Math.sin(ang) * r0,
+                    cx + (float) Math.cos(ang) * r1, cy + (float) Math.sin(ang) * r1, p);
+        }
+    }
+
+    // ------------------------------------------------------------------ widgets
+
+    private void dial(Canvas c, float cx, float cy, float r, float f) {
+        if (f < 0) return;
+        f = Math.max(0, Math.min(1, f));
+        double ang = Math.toRadians(150 + 240 * f);
+        float nx = (float) Math.cos(ang), ny = (float) Math.sin(ang);
+        mStroke.setShader(null);
+        mStroke.setStrokeCap(Paint.Cap.ROUND);
+        mStroke.setStrokeWidth(6);
+        mStroke.setColor(energyColour(f * 100));
+        c.drawLine(cx - nx * 10, cy - ny * 10, cx + nx * (r - 20), cy + ny * (r - 20), mStroke);
+        mStroke.setStrokeCap(Paint.Cap.BUTT);
+        mFill.setShader(null);
+        mFill.setColor(STEEL_MID);
+        c.drawCircle(cx, cy, 11, mFill);
+        mFill.setColor(STEEL_HI);
+        c.drawCircle(cx - 2, cy - 2, 6, mFill);
+    }
+
+    private static int energyColour(float e) {
+        return e >= 70 ? LED_ON : e >= 30 ? WARN_YEL : WARN_RED;
+    }
+
+    /** A dark LCD window let into the steel. */
+    private void lcd(Canvas c, float x, float y, float w, float h) {
+        mFill.setShader(null);
+        mFill.setColor(Color.argb(150, 255, 255, 255));
+        mRect.set(x - 1, y - 1, x + w + 2, y + h + 2);
+        c.drawRoundRect(mRect, 10, 10, mFill);
+        mFill.setColor(Color.rgb(50, 54, 60));
+        mRect.set(x - 2, y - 2, x + w, y + h);
+        c.drawRoundRect(mRect, 10, 10, mFill);
+        mFill.setColor(LCD_BG);
         mRect.set(x, y, x + w, y + h);
-        c.drawRoundRect(mRect, h / 3, h / 3, mFill);
-        mFill.setColor(color);
-        mRect.set(x, y, x + w * frac, y + h);
-        c.drawRoundRect(mRect, h / 3, h / 3, mFill);
-        text(c, label, x + 12 * u, y + h * 0.72f, h * 0.62f, Color.BLACK);
+        c.drawRoundRect(mRect, 9, 9, mFill);
     }
 
-    private void text(Canvas c, String s, float x, float y, float size, int color) {
-        mText.setColor(color);
+    /** An LED: state 0 off (steel), 1 dim, 2 lit with a glow. */
+    private void led(Canvas c, float x, float y, float r, int state, int colour) {
+        mFill.setShader(null);
+        if (state == 2) {
+            mFill.setColor(Color.argb(70, Color.red(colour), Color.green(colour), Color.blue(colour)));
+            c.drawCircle(x, y, r * 2.1f, mFill);
+        }
+        mFill.setColor(Color.rgb(60, 64, 70));
+        c.drawCircle(x, y, r + 2.5f, mFill);
+        int col = state == 2 ? colour : state == 1 ? dim(colour) : STEEL_LO;
+        mFill.setColor(col);
+        c.drawCircle(x, y, r, mFill);
+        mFill.setColor(Color.argb(state == 2 ? 200 : 90, 255, 255, 255));
+        c.drawCircle(x - r * 0.35f, y - r * 0.35f, r * 0.32f, mFill);
+    }
+
+    private static int dim(int colour) {
+        return Color.rgb(Color.red(colour) * 3 / 10, Color.green(colour) * 3 / 10, Color.blue(colour) * 3 / 10);
+    }
+
+    /** A round push button with an LED ring: 1 lit dim, 2 lit bright. */
+    private void button(Canvas c, float x, float y, float r, int state) {
+        mFill.setShader(null);
+        if (state == 2) {
+            mFill.setColor(Color.argb(90, 96, 255, 110));
+            c.drawCircle(x, y, r + 14, mFill);
+        }
+        mFill.setColor(Color.rgb(60, 64, 70));
+        c.drawCircle(x, y, r + 6, mFill);
+        mFill.setColor(state == 2 ? LED_ON : state == 1 ? LED_DIM : STEEL_LO);
+        c.drawCircle(x, y, r + 4, mFill);
+        mFill.setColor(Color.rgb(196, 200, 206));
+        c.drawCircle(x, y, r, mFill);
+        mFill.setColor(Color.rgb(226, 230, 234));
+        c.drawCircle(x - 2, y - 2, r - 4, mFill);
+    }
+
+    /** A pill-shaped push button (the tasks): steel, slightly raised when active. */
+    private void pill(Canvas c, float x, float y, float w, float h, boolean active) {
+        mFill.setShader(null);
+        mFill.setColor(Color.rgb(70, 74, 80));
+        mRect.set(x, y + 2, x + w, y + h + 2);
+        c.drawRoundRect(mRect, h / 2, h / 2, mFill);
+        mFill.setColor(active ? Color.rgb(214, 220, 216) : Color.rgb(170, 175, 181));
+        mRect.set(x, y, x + w, y + h);
+        c.drawRoundRect(mRect, h / 2, h / 2, mFill);
+        if (active) {
+            mStroke.setShader(null);
+            mStroke.setStrokeWidth(2);
+            mStroke.setColor(Color.argb(160, 96, 255, 110));
+            c.drawRoundRect(mRect, h / 2, h / 2, mStroke);
+        }
+    }
+
+    private void drawIcon(Canvas c, Bitmap b, float x, float y, float size) {
+        float sc = size / Math.max(b.getWidth(), b.getHeight());
+        float w = b.getWidth() * sc, h = b.getHeight() * sc;
+        mRect.set(x - w / 2, y - h / 2, x + w / 2, y + h / 2);
+        c.drawBitmap(b, null, mRect, mBmp);
+    }
+
+    /** Text in the LCD font (monospace, green). */
+    private void lcdText(Canvas c, String s, float x, float y, float size, int colour) {
+        mText.setTypeface(mMono);
+        mText.setTextAlign(Paint.Align.LEFT);
         mText.setTextSize(size);
+        mText.setColor(colour);
         c.drawText(s, x, y, mText);
     }
 
-    private static String count(JSONObject d, String key, String label) {
-        JSONArray a = d.optJSONArray(key);
-        if (a == null) return label + " ?";
-        return label + " " + a.optInt(0, 0) + "/" + a.optInt(1, 0);
+    /** Engraved label: dark letters with a light edge below. */
+    private void engraved(Canvas c, String s, float x, float y, float size, boolean centre) {
+        mText.setTypeface(mBold);
+        mText.setTextAlign(centre ? Paint.Align.CENTER : Paint.Align.LEFT);
+        mText.setTextSize(size);
+        mText.setColor(Color.argb(160, 255, 255, 255));
+        c.drawText(s, x, y + 1.5f, mText);
+        mText.setColor(ENGRAVE);
+        c.drawText(s, x, y, mText);
+        mText.setTextAlign(Paint.Align.LEFT);
+    }
+
+    // seven-segment readout: segments a..g as bits 0..6
+    private static final int[] SEGS = {
+        0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f
+    };
+
+    /** Digits (and '/', '-') as seven-segment LEDs with the unlit segments ghosted; `pad` digits
+     *  are always drawn (unlit leading ones), 0 = as many as the text has. Top-left at (x, y). */
+    private void segText(Canvas c, String s, float x, float y, float h, int pad, int colour) {
+        float w = h * 0.55f, gap = h * 0.18f;
+        int lead = Math.max(0, pad - s.length());
+        float cx = x;
+        for (int i = 0; i < lead; i++) {
+            seg(c, cx, y, w, h, 0, colour);
+            cx += w + gap;
+        }
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (ch >= '0' && ch <= '9') seg(c, cx, y, w, h, SEGS[ch - '0'], colour);
+            else if (ch == '-') seg(c, cx, y, w, h, 0x40, colour);
+            else if (ch == '/') {
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(h * 0.1f);
+                mStroke.setColor(colour);
+                c.drawLine(cx + w * 0.7f, y + h * 0.1f, cx + w * 0.1f, y + h * 0.9f, mStroke);
+                cx += w * 0.8f + gap;
+                continue;
+            }
+            cx += w + gap;
+        }
+    }
+
+    private void seg(Canvas c, float x, float y, float w, float h, int bits, int colour) {
+        float t = h * 0.12f, hh = h / 2;
+        for (int sgm = 0; sgm < 7; sgm++) {
+            boolean on = (bits & (1 << sgm)) != 0;
+            mFill.setShader(null);
+            mFill.setColor(on ? colour : LED_GHOST);
+            float x0, y0, x1, y1;
+            switch (sgm) {
+                case 0: x0 = x + t; y0 = y; x1 = x + w - t; y1 = y + t; break;                      // a
+                case 1: x0 = x + w - t; y0 = y + t * 0.7f; x1 = x + w; y1 = y + hh - t * 0.3f; break;  // b
+                case 2: x0 = x + w - t; y0 = y + hh + t * 0.3f; x1 = x + w; y1 = y + h - t * 0.7f; break; // c
+                case 3: x0 = x + t; y0 = y + h - t; x1 = x + w - t; y1 = y + h; break;              // d
+                case 4: x0 = x; y0 = y + hh + t * 0.3f; x1 = x + t; y1 = y + h - t * 0.7f; break;      // e
+                case 5: x0 = x; y0 = y + t * 0.7f; x1 = x + t; y1 = y + hh - t * 0.3f; break;          // f
+                default: x0 = x + t; y0 = y + hh - t / 2; x1 = x + w - t; y1 = y + hh + t / 2; break; // g
+            }
+            mRect.set(x0, y0, x1, y1);
+            c.drawRoundRect(mRect, t / 2, t / 2, mFill);
+        }
+    }
+
+    /** Electron orbits: three ellipses round a nucleus. */
+    private void atom(Canvas c, float x, float y, float r, int colour) {
+        mStroke.setShader(null);
+        mStroke.setStrokeWidth(Math.max(1.5f, r * 0.14f));
+        mStroke.setColor(colour);
+        mRect.set(x - r, y - r * 0.38f, x + r, y + r * 0.38f);
+        c.save();
+        for (int i = 0; i < 3; i++) {
+            c.drawOval(mRect, mStroke);
+            c.rotate(60, x, y);
+        }
+        c.restore();
+        mFill.setShader(null);
+        mFill.setColor(colour);
+        c.drawCircle(x, y, r * 0.22f, mFill);
+    }
+
+    /** A four-point starburst. */
+    private void star(Canvas c, float x, float y, float r, int colour) {
+        mFill.setShader(null);
+        mFill.setColor(colour);
+        mPath.reset();
+        for (int i = 0; i < 8; i++) {
+            double a = Math.PI / 4 * i - Math.PI / 2;
+            float rr = (i % 2 == 0) ? r : r * 0.32f;
+            float px = x + (float) Math.cos(a) * rr, py = y + (float) Math.sin(a) * rr;
+            if (i == 0) mPath.moveTo(px, py);
+            else mPath.lineTo(px, py);
+        }
+        mPath.close();
+        c.drawPath(mPath, mFill);
+    }
+
+    /** A little pennant on a pole (checkpoints when the game's sprite is not there). */
+    private void flag(Canvas c, float x, float y, float r, int colour) {
+        mStroke.setShader(null);
+        mStroke.setStrokeWidth(Math.max(2, r * 0.18f));
+        mStroke.setColor(colour);
+        c.drawLine(x - r * 0.5f, y + r, x - r * 0.5f, y - r, mStroke);
+        mFill.setShader(null);
+        mFill.setColor(colour);
+        mPath.reset();
+        mPath.moveTo(x - r * 0.5f, y - r);
+        mPath.lineTo(x + r, y - r * 0.5f);
+        mPath.lineTo(x - r * 0.5f, y);
+        mPath.close();
+        c.drawPath(mPath, mFill);
     }
 
     private static String modeName(int m) {
         switch (m) {
-            case 0: return "starting";
-            case 1: return "loading";
-            case 2: return "saving";
-            case 3: return "cut scene";
-            case 4: return "menu";
-            case 5: return "playing";
-            case 6: return "paused";
+            case 0: return "START";
+            case 1: return "LOADING";
+            case 2: return "SAVING";
+            case 3: return "CUT SCENE";
+            case 4: return "MENU";
+            case 5: return "PLAYING";
+            case 6: return "PAUSED";
             default: return "";
         }
     }

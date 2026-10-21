@@ -23,6 +23,7 @@
 #include "OMediaViewPort.h"
 #include "OMediaStringField.h"
 #include "OMediaTrigo.h"
+#include "level1/C3DJeep.h"
 #include <math.h>
 #include <string.h>
 #include <strings.h>
@@ -128,8 +129,12 @@ static void LoadLevelHandOver(CGameObject *loadlevel, CGameObject *jim)
 	}
 }
 
-// C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera.
-static int JeepField9c4(CGameObject *jeep)			{ (void)jeep; NEG_TODO(0x4791dd, "C3DJeep +0x9c4"); return 0; }
+// C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera when it has a driver.
+static int JeepField9c4(CGameObject *jeep)
+{
+	C3DJeep *j = jeep ? dynamic_cast<C3DJeep *>(jeep) : NULL;
+	return j && j->f_a84;										// the driver (object 0xa84)
+}
 
 // CJimmyGame element slot 102 (+0x198): PlayLevelMusic(jim element + 0x4c28, *(jim element + 0x4c18)).
 // (The original reads those even when there is no JIM1: a crash.)
