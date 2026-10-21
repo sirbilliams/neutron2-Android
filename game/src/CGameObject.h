@@ -14,6 +14,8 @@
     known; runs of adjacent fields keep their original order (the property loader copies 4 bytes
     into 1-byte fields, exactly as the original did).                                         */
 #pragma once
+#include <cstdlib>
+#include <new>
 #include <list>
 #include "OMediaClassStreamer.h"
 #include "Globals.h"
@@ -41,6 +43,13 @@ class CGameObject : public virtual OMediaClassStreamer		// virtual, as in the or
 	public:
 	CGameObject();															// 0x4aa960
 	virtual ~CGameObject();													// SLOT 0  0x4aaee0 / 0x4aaf60
+
+	// port: game objects start zeroed. The original allocates them with the CRT's operator new
+	// (through omt_dll_allocate), which doesn't clear memory, and several constructors leave
+	// members unset (e.g. the initial velocity CGameObject +0x7c.. that ResetObject copies).
+	// On Windows a fresh heap block was in practice zero; here it is not, so clear it.
+	static void *operator new(size_t size)	{ void *p = calloc(1, size); if (!p) throw std::bad_alloc(); return p; }
+	static void operator delete(void *p)	{ free(p); }
 
 	// ---- properties and identity (hand-written)
 	virtual void ReadProperties(OMediaStreamOperators &s);					// SLOT 1  0x4aea70
