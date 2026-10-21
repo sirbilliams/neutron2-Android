@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DCutSceneCamera.h"
 #include "../CGameType.h"
+#include "../C3DJimmy.h"
 #include "../C3DAI.h"
 #include "../CJimmyGame.h"
 #include "../DatabaseCache.h"
@@ -83,8 +84,8 @@ static void AISetAnimationsDisabled(CGameObject *ai, int off)
 // C3DJimmy element slot 138 (+0x228)(this, jimmy, 0, 0): put the gadget in hand away.
 static void JimmyDeactivateInventory(CGameObject *jimmy, CGameObject *caller)
 {
-	(void)jimmy; (void)caller;
-	NEG_TODO(0x42aca8, "C3DJimmy element slot 138 (deactivate inventory)");
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->ev138(caller, jimmy, 0, 0.0f);
 }
 
 // --------------------------------------------------------------------------- construction

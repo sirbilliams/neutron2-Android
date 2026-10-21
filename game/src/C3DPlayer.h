@@ -126,7 +126,7 @@ class C3DPlayer : public C3DPlayerObject
 	OMedia3DVector		f_af0;			// 0xaf0  (1.4, 1, 1.4) (ev122); its w (0xafc) is the camera axis w
 	unsigned char		f_b00;			// 0xb00  Back does not reverse
 	float				f_b04;			// 0xb04  climb animation time (1.55 fence, 2 ladder)
-	int					f_b08;			// 0xb08  0
+	float				f_b08;			// 0xb08  0; C3DJimmy ev136: distance from Jimmy to his shadow
 	float				f_b0c;			// 0xb0c  side slip of ev108 (-250 left, 250 right, 0)
 	float				f_b10;			// 0xb10  0 (jetpack start)
 	float				f_b14;			// 0xb14  LEFT turn animation time left
