@@ -896,7 +896,7 @@ void CJimmyGame::PlayLevelMusic(const char *name, int a)
 	}
 	if (strcasecmp(name, "none") != 0)
 	{
-		strcpy(pm.name, name);
+		if (pm.name != name) strcpy(pm.name, name);						// (name may be Jimmy's own +0x4c28)
 		g_level_music = LoadMusic(name);									// 0x4a4180
 		if (g_level_music && pm.channel == -1 && a != -1)
 		{

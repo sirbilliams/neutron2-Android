@@ -4,6 +4,7 @@
 #include "../C3DShadow.h"
 #include "../C3DPointCursor.h"
 #include "../C3DGrannyObj.h"
+#include "../pickups/C3DPickupItem.h"
 #include "../C3DRocketShip.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -196,11 +197,17 @@ static void ParticleBurst(C3DMagicParticle *p, OMedia3DVector pos)	// +0x610 = 1
 	p->f_610 = 1.0f;										// (set before the camera point in the original)
 	p->Burst(pos);
 }
-static bool CursorWanted(CGameObject *pickup)			// C3DGrannyObj +0xdb4 / C3DPickupItem +0x914 (element offsets)
+// 0x4489ac: the pickup's "ShowArrow" - C3DGrannyObj +0xdb4, anything else read as a
+// C3DPickupItem (+0x914). port: other classes have none (the original reads +0x84c of them).
+static bool CursorWanted(CGameObject *pickup)
 {
-	(void)pickup;
-	NEG_TODO(0x4489ac, "pickup +0xdb4 / +0x914: show the point cursor over it");
-	return false;
+	if (pickup->NameContains((char *)"C3DGRANNY"))			// +0x18
+	{
+		C3DGrannyObj *g = dynamic_cast<C3DGrannyObj *>(pickup);
+		return g && g->f_db4 != 0;
+	}
+	C3DPickupItem *p = dynamic_cast<C3DPickupItem *>(pickup);
+	return p && p->m_show_arrow != 0;
 }
 static C3DObject *GoddardPointer(C3DGoddard *goddard)		// C3DGoddard +0x1b84 (its CGameObject part)
 {
