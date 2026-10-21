@@ -117,13 +117,8 @@ void C3DSprite::InitSpriteID(OMediaDataBase *db, int id, float size)	// 0x49cc50
 {
 	Log("InitSprite(%d,%f)", id, (double)size);
 	set_canvas(LoadCanvasID(db, id));
-	// QUIRK: the original passes the raw bits of `id`, not `size`, to InitSpriteProperties
-	// (it pushes the second argument again), so sprites set up through here get a tiny
-	// (denormal) world size.
-	float bits;
-	memcpy(&bits, &id, sizeof bits);
-	InitSpriteProperties(bits);
-	(void)size;
+	InitSpriteProperties(size);								// [esp+0x18] after the log/LoadCanvasID cleanup
+	// (then a call to the empty 0x463890)
 }
 
 void C3DSprite::InitSpriteFile(std::string file, float size)	// 0x49cac0
