@@ -8,6 +8,7 @@
 #include "../Sound.h"
 #include "../Globals.h"
 #include "../Todo.h"
+#include "../C3DPlayer.h"
 #include "../gen/globals.h"
 #pragma GCC diagnostic pop
 #include <string.h>
@@ -15,41 +16,50 @@
 
 using namespace neg;
 
-// --------------------------------------------------------------------------- not reconstructed yet
+// --------------------------------------------------------------------------- Jimmy's side
 
-// C3DJimmy (a C3DObject: element = object - 0xc0) - its members the level exits use, at their
-// 2002 element offsets: +0xb89 the level file Jimmy is in and +0x9c8 his start point there,
-// +0xc25 / +0xb24 the level and start point to return to, +0xc18 the promotion, +0xb88 and
-// +0xbd9 two flags RETURN sets.
+// C3DJimmy (a C3DPlayer; its members are named at their 2002 element offsets): +0xb89 the level
+// file Jimmy is in and +0x9c8 his start point there, +0xc25 / +0xb24 the level and start point
+// to return to, +0xc18 the promotion, +0xb88 and +0xbd9 two flags RETURN sets. The original
+// writes them straight into the JIM1 object; the port goes through a cast.
+static C3DPlayer *PlayerOf(CGameObject *jim)	{ return jim ? dynamic_cast<C3DPlayer *>(jim) : NULL; }
+
 static const char *JimmyString(CGameObject *jim, int off)
 {
-	(void)jim; (void)off;
-	NEG_TODO(0x48e809, "C3DJimmy level / start point strings (+0x9c8, +0xb24, +0xb89, +0xc25)");
-	return "";
+	C3DPlayer *p = PlayerOf(jim);
+	if (!p) return "";										// port: a JIM1 that is no player (the original has no check)
+	switch (off)
+	{
+		case 0x9c8: return p->f_9c8;
+		case 0xb24: return p->f_b24;
+		case 0xb89: return p->f_b89;
+		default:    return p->f_c25;						// 0xc25
+	}
 }
 static void JimmySetFlag(CGameObject *jim, int off)
 {
-	(void)jim; (void)off;
-	NEG_TODO(0x48e907, "C3DJimmy +0xb88 / +0xbd9 = 1");
+	if (C3DPlayer *p = PlayerOf(jim)) { if (off == 0xb88) p->f_b88 = 1; else p->f_bd9 = 1; }
 }
 static void JimmySetPromotion(CGameObject *jim, int promotion)
 {
-	(void)jim; (void)promotion;
-	NEG_TODO(0x48e9e4, "C3DJimmy +0xc18 = Promotion");
+	if (C3DPlayer *p = PlayerOf(jim)) p->f_c18 = promotion;	// 0x48e9e4 / 0x48ead6
 }
-// C3DJimmy element slot 121 (+0x1e4): go to `level` at start point `start`, remembering
-// `ret_level` / `ret_start` to come back to, with loading screen `screen`.
+// C3DJimmy element slot 121 (+0x1e4, "PlayerLoadLevel"): go to `level` at start point `start`,
+// remembering `ret_level` / `ret_start` to come back to, with loading screen `screen`. (Through
+// copies: `level` may be one of Jimmy's own strings, which PlayerLoadLevel overwrites.)
 static void JimmyLoadLevel(CGameObject *jim, const char *level, const char *start,
 						   const char *ret_level, const char *ret_start, int screen)
 {
-	(void)jim; (void)level; (void)start; (void)ret_level; (void)ret_start; (void)screen;
-	NEG_TODO(0x48ea0f, "C3DJimmy element slot 121 (load level)");
+	C3DPlayer *p = PlayerOf(jim);
+	if (!p) return;
+	char l[100], s[100], rl[100], rs[100];
+	strcpy(l, level); strcpy(s, start); strcpy(rl, ret_level); strcpy(rs, ret_start);
+	p->ev121(l, s, rl, rs, screen);
 }
-// C3DJimmy element slot 79 (+0x13c)(1), when the exit has a FadeType.
+// C3DJimmy element slot 79 (+0x13c)(1), when the exit has a FadeType: pause the morph animation.
 static void JimmySlot79(CGameObject *jim, int a)
 {
-	(void)jim; (void)a;
-	NEG_TODO(0x48eb7f, "C3DJimmy element slot 79");
+	if (C3DPlayer *p = PlayerOf(jim)) p->ev79((unsigned char)a);
 }
 
 // --------------------------------------------------------------------------- small helpers
