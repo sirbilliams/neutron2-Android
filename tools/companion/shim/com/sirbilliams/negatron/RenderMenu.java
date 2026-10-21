@@ -27,7 +27,8 @@ public final class RenderMenu {
         m.push(LauncherPages.newGame());
         draw(m, out, "new");
         m.pop();
-        m.push(LauncherPages.settings(true, true, true, false, false));
+        if (a.length > 4) m.background = Bitmap.wrap(ImageIO.read(new File(a[4])));   // a stand-in
+        m.push(LauncherPages.settings(true, true, true, false, false, a.length > 4));
         draw(m, out, "settings");
         m.pop();
         m.push(LauncherPages.load(LauncherPages.slots(save)));
