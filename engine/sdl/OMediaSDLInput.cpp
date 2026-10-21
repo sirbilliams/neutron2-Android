@@ -170,6 +170,12 @@ void OMediaEventManager::spend_time(void)
 		}
 		OMediaEvent ev;
 		osevent_to_omtevent(&se, &ev);
+		// OMT 2002's window procedure (OMediaWinEventManager.cpp, omt_WinMessageHandler) also sent
+		// every translated event to the main supervisor as omsg_Event; games read the mouse buttons
+		// there. Port: only the mouse buttons are sent, the window events are handled above.
+		if ((ev.type == omtet_LMouseDown || ev.type == omtet_LMouseUp ||
+		     ev.type == omtet_RMouseDown || ev.type == omtet_RMouseUp) && OMediaSupervisor::get_main_supervisor())
+			OMediaSupervisor::get_main_supervisor()->listen_to_message(omsg_Event, &ev);
 	}
 }
 
@@ -457,6 +463,8 @@ static void omf_add_joystick(OMediaSDLHID *pad, SDL_Joystick *js)
 		pad->elements.push_back(new OMediaSDLPadElement(pad, NULL, js, omsdlpe_JoyButton, b, b));
 }
 
+static bool omg_logged_pads = false;
+
 class OMediaSDLInputEngine : public OMediaInputEngine
 {
 	public:
@@ -478,10 +486,15 @@ class OMediaSDLInputEngine : public OMediaInputEngine
 		ms->elements.push_back(new OMediaSDLMouseElement(ms, 3, "Button 2"));
 		hdi_list.push_back(ms);
 
-		// Game controllers and joysticks, in SDL's device order (see the element table above).
+		// Game controllers, then the other joysticks, each in SDL's device order (see the element
+		// table above). Port: DirectInput listed devices in its own order; games such as Neutron2
+		// take the first joystick, so a mapped gamepad (the Thor's built-in one) goes first, ahead
+		// of any other input device Android reports as a joystick.
 		if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
+		for (int pass = 0; pass < 2; pass++)
 		for (int j = 0; j < SDL_NumJoysticks(); j++)
 		{
+			if ((SDL_IsGameController(j) != SDL_FALSE) != (pass == 0)) continue;
 			OMediaSDLHID *pad = new OMediaSDLHID(this);
 			const char *n = NULL;
 			if (SDL_IsGameController(j) && (pad->gc = SDL_GameControllerOpen(j)) != NULL)
@@ -505,7 +518,11 @@ class OMediaSDLInputEngine : public OMediaInputEngine
 			// never empty: OMT 2002 games may pick a device by comparing names
 			pad->product_name = pad->instance_name = (n && n[0]) ? n : (pad->gc ? "Controller" : "Joystick");
 			hdi_list.push_back(pad);
+			if (!omg_logged_pads)
+				SDL_Log("OMT input: %s \"%s\", %d elements", pad->gc ? "game controller" : "joystick",
+				        pad->product_name.c_str(), (int)pad->elements.size());
 		}
+		omg_logged_pads = true;		// (games make a new input engine each time they look for devices)
 	}
 
 	virtual bool mouse_down(void) { return (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0; }

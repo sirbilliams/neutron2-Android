@@ -68,7 +68,11 @@ static void DeleteSprite(OMediaCanvasElementWrapper *s)
 
 // 0x4660d0 "C3DPlayerObject::TextToKeys": key name -> Windows virtual-key code (500/501 for
 // the mouse buttons), 0 for KEY_NONE. The JOY_xx names of keys.txt are not in the table: they
-// log the error and give 0.
+// log the error and give 0. That is the shipped game's behaviour (checked against the exe: it has
+// no JOY_ key names, and ErrorLog is active in release), so on Windows keys.txt's JOY_01..JOY_09
+// were dead too and the 0 ends that binding list early. The joystick reaches the game only through
+// the poll's globals (g_joy_buttons[DirectInput button number], g_joy_x / g_joy_y), which the key
+// tests read next to these lists - see Input.cpp and docs/controls.md.
 static int TextToKey(const char *name)
 {
 	static const struct { const char *name; int code; } kKeys[] = {

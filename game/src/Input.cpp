@@ -14,6 +14,11 @@
       button 4  0x407240 pause menu               button 8  0x4657c0 turn around
       button 9  0x406ee0 help
     Nothing reads Z, rX, rY, rZ, the POV angle, g_joy_prev_buttons or g_joy_any_button.
+    (That list is every read of 0x56b020..0x56b071 in the exe outside this module; buttons 5..7 and
+    10..19 are polled but never read.) The JOY_01..JOY_09 names in dat\keys.txt play no part: the
+    exe's TextToKeys (0x4660d0) has no JOY_ names, so they log "not found" and count as KEY_NONE,
+    on Windows as here. Which physical button carries which number is up to the HID layer
+    (engine/sdl/OMediaSDLInput.cpp; the Thor layout is in docs/controls.md).
 
     0x4b3260 CInput::CInput      0x4b3370 CInput::~CInput     0x4b33f0 CreateInputEngine
     0x4b3410 CInput::Release     0x4b3460 FindDevice          0x4b35d0 UpdateInput (the poll)
