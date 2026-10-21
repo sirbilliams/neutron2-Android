@@ -20,6 +20,7 @@
 #include "../CEditor.h"
 #include "../C3DJimmy.h"
 #include "../C3DRadar.h"
+#include "../port/Widescreen.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -650,7 +651,7 @@ static void UpdatePickupPopup(C2DInGameMenu *m, float dt)
 	if (g_5324ec)
 	{
 		int dx = HudShown(PlayerHud()) ? -0x9e : 0;
-		DrawText((short)(dx + 0x21c), 15, 'MED', "%d", g_pickup_counts[g_545d88 * 2]);
+		DrawText(WideX((short)(dx + 0x21c), WIDE_RIGHT), 15, 'MED', "%d", g_pickup_counts[g_545d88 * 2]);	// port: WideX
 	}
 	MenuPage *p2 = C2DInGameMenu::GetPage(2);
 	if (g_545d8c != -1)
@@ -669,7 +670,7 @@ static void UpdatePickupPopup(C2DInGameMenu *m, float dt)
 	{
 		OMediaCanvasElementWrapper *e = p2->items[g_545d88].active;
 		short dx = (short)(HudShown(PlayerHud()) ? -0x9e : 0);
-		m->PositionSprite(e, (float)(dx + 0x21c), 10.0f);
+		m->PositionSprite(e, (float)WideX((short)(dx + 0x21c), WIDE_RIGHT), 10.0f);	// port: WideX
 		e->force_show();
 		if (g_545d90 <= 0)
 		{
@@ -882,7 +883,7 @@ void C2DInGameMenu::Process(float dt)
 			}
 			UpdatePulse(dt);
 			UpdatePickupPopup(this, dt);
-			DrawText(40, 67, 'BIG', "%d", (int)(short)(int)g_health);
+			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
 			SetHealthBar(g_health);			// (the health bar; takes the float)
 			DrawScoreHud(dt);
 			break;
@@ -918,7 +919,7 @@ void C2DInGameMenu::Process(float dt)
 			UpdateIndicator(dt);
 			UpdatePickupPopup(this, dt);
 			if (g_545dd4) UpdateDialog(this, dt);
-			DrawText(40, 67, 'BIG', "%d", (int)(short)(int)g_health);
+			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
 			SetHealthBar(g_health);
 			DrawScoreHud(dt);
 			break;
@@ -1142,6 +1143,7 @@ void C2DInGameMenu::PositionSprite(OMediaCanvasElementWrapper *e, float x, float
 	e->set_auto_align(omaac_Center, omaac_Center);
 	float px = sx * x - (float)((short)g_screen_w / 2);
 	float py = ((float)((short)g_screen_h / 2) - e->get_height()) - sy * y;
+	px += WideShift(e);								// port: widescreen edge HUD pieces
 	e->place(px, py, 0);
 }
 
@@ -1161,6 +1163,7 @@ void C2DInGameMenu::SetupSprite(OMediaCanvasElementWrapper *e, float x, float y,
 	e->m_c8 = canvas_id;
 	float px = x * sx - (float)((short)g_screen_w / 2);
 	float py = ((float)((short)g_screen_h / 2) - e->get_height()) - sy * y;
+	px += WideShift(e);								// port: widescreen edge HUD pieces
 	e->place(px, py, z);
 }
 

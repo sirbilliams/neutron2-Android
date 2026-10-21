@@ -12,6 +12,7 @@
 #include "CGameObject.h"				// neg::ErrorLog
 #include "Game.h"						// neg::LoadCanvasID, layers, screen size
 #include "gen/globals.h"
+#include "port/Widescreen.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <string.h>
@@ -49,11 +50,11 @@ static inline float screen_sy(void) { return (float)(short)g_screen_h * (1.0f / 
 
 // Inlined in Show and the MOVE / MORPH effects: centred canvas element at (fx, fy) in 640x480
 // space (y down) on a centre-origin, y-up 2D layer.
-static void place_on_screen(OMediaCanvasElement *ce, float fx, float fy)
+static void place_on_screen(OMediaCanvasElement *ce, float fx, float fy, float shift)
 {
 	ce->set_canvas_flags(omcanef_FreeWorldSize);			// +0xc4 = 1
 	ce->set_auto_align(omaac_Center, omaac_Center);			// +0xbc, +0xc0 = 3
-	ce->place(screen_sx() * fx - (float)((short)g_screen_w / 2),
+	ce->place(screen_sx() * fx - (float)((short)g_screen_w / 2) + shift,	// port: + widescreen shift
 			  ((float)((short)g_screen_h / 2) - ce->get_height()) - screen_sy() * fy, 0);
 }
 
@@ -377,7 +378,7 @@ void InterfaceElt::Update(float dt)
 				if ((ce = canvas_elt) != NULL)
 				{
 					SetCanvas(ce, canvas_id, true);
-					place_on_screen(ce, (float)cur_x, (float)cur_y);
+					place_on_screen(ce, (float)cur_x, (float)cur_y, WideShift(this));
 				}
 			}
 			else
@@ -391,7 +392,7 @@ void InterfaceElt::Update(float dt)
 					if ((ce = canvas_elt) != NULL)
 					{
 						SetCanvas(ce, canvas_id, true);
-						place_on_screen(ce, (float)cur_x, (float)cur_y);
+						place_on_screen(ce, (float)cur_x, (float)cur_y, WideShift(this));
 					}
 					effect.active = false;
 					effect.f_1e = true;			// (cleared again just below)
@@ -431,7 +432,7 @@ void InterfaceElt::Update(float dt)
 				scale_canvas(canvas_elt, dw * a + effect.morph_w0, dh * a + effect.morph_h0);
 				cur_x = (short)(int)((effect.morph_x1 - effect.morph_x0) * a + effect.morph_x0);
 				cur_y = (short)(int)((effect.morph_y1 - effect.morph_y0) * a + effect.morph_y0);
-				if ((ce = canvas_elt) != NULL) place_on_screen(ce, (float)cur_x, (float)cur_y);
+				if ((ce = canvas_elt) != NULL) place_on_screen(ce, (float)cur_x, (float)cur_y, WideShift(this));
 			}
 			else
 			{
@@ -443,7 +444,7 @@ void InterfaceElt::Update(float dt)
 								 (effect.morph_h1 - effect.morph_h0) + effect.morph_h0);
 					cur_x = (short)(int)effect.morph_x1;
 					cur_y = (short)(int)effect.morph_y1;
-					if ((ce = canvas_elt) != NULL) place_on_screen(ce, (float)cur_x, (float)cur_y);
+					if ((ce = canvas_elt) != NULL) place_on_screen(ce, (float)cur_x, (float)cur_y, WideShift(this));
 					if (effect.type == IEFX_MORPH_FLASH && canvas_elt) canvas_elt->hide(true);
 				}
 				effect.Clear();
@@ -510,7 +511,7 @@ void InterfaceElt::SetPos(float px, float py)
 	y = (short)(int)(((float)((short)g_screen_h / 2) - ce->get_height()) - sy * py);
 	cur_y = y;
 	cur_x = x;
-	ce->place((float)x, (float)y, 0);
+	ce->place((float)x + WideShift(this), (float)y, 0);	// port: + widescreen shift
 }
 
 // --------------------------------------------------------------------------- 0x482520
@@ -527,7 +528,7 @@ void InterfaceElt::Show(void)
 	if (!canvas_elt) return;
 	canvas_elt->link_layer(g_layer_hud2d);
 	SetCanvas(canvas_elt, canvas_id, true);
-	place_on_screen(canvas_elt, (float)x, (float)y);
+	place_on_screen(canvas_elt, (float)x, (float)y, WideShift(this));
 	canvas_elt->force_show();
 	canvas_elt->set_blend(src_blend, dest_blend);
 	base_w = (int)canvas_elt->get_width();

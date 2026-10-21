@@ -12,6 +12,8 @@
 #include "../CanvasWrapper.h"
 #include "../Game.h"
 #include "../Todo.h"
+#include "../C3DRadar.h"
+#include "../port/Widescreen.h"
 #include "OMediaFileStream.h"
 #include "OMediaError.h"
 #include <stdint.h>
@@ -197,11 +199,13 @@ C2DInGameMenu::C2DInGameMenu()
 	OMediaCanvasElementWrapper *s;
 	g_545854 = NULL;
 	s = g_545854 = NewSprite(g_layer_hud2d);
+	WideAnchor(s, WIDE_LEFT);					// port: widescreen, top left corner
 	s->set_blend(omblendfc_Src_Alpha, omblendfc_Inv_Src_Alpha);
 	s->set_canvas(NULL);
 	PlaceSprite(this, s, 32, 0, 0x17);
 
 	s = g_5448e4 = NewSprite(g_layer_hud2d);
+	WideAnchor(s, WIDE_LEFT);					// port: widescreen, top left corner
 	s->set_blend(omblendfc_Src_Alpha, frame_dest);
 	s->set_canvas(NULL);
 	PlaceSprite(this, s, 8, 4, 0x16);
@@ -210,6 +214,7 @@ C2DInGameMenu::C2DInGameMenu()
 	const float sy = (float)(short)g_screen_h * (1.0f / 480.0f);
 
 	s = g_545968 = NewSprite(g_layer_hud2d);
+	WideAnchor(s, WIDE_LEFT);					// port: widescreen, top left corner
 	s->set_blend(omblendfc_Src_Alpha, frame_dest);
 	s->set_canvas(NULL);
 	PlaceSprite(this, s, 3, 7, 0x15);
@@ -224,6 +229,7 @@ C2DInGameMenu::C2DInGameMenu()
 
 	f_5b0 = NULL;
 	s = f_5b0 = NewSprite(g_layer_hud2d);
+	WideAnchor(s, WIDE_RIGHT);					// port: widescreen, the radar disc (top right)
 	s->set_blend(omblendfc_Src_Alpha, omblendfc_Inv_Src_Alpha);
 	s->set_canvas(NULL);
 	PlaceSprite(this, s, 490, 10, 0x223);
@@ -257,6 +263,7 @@ C2DInGameMenu::C2DInGameMenu()
 	for (int i = 0; i < 14; i++)
 	{
 		s = g_menu_item_sprites[kItemSprites[i][0]] = new OMediaCanvasElementWrapper;
+		WideAnchor(s, WIDE_LEFT);				// port: widescreen, the help icons (bottom left)
 		s->link_layer(g_layer_hud2d);
 		PlaceSprite(this, s, 0, item_y, kItemSprites[i][1]);
 		s->hide(true);
@@ -266,6 +273,9 @@ C2DInGameMenu::C2DInGameMenu()
 
 	g_interface.Create("HelpMenu", g_screens_db, 0x75, 513, 340, omblendfc_Src_Alpha, omblendfc_Inv_Src_Alpha, 1);
 	g_help_menu_elt = g_interface.Find("HelpMenu");
+	// port: widescreen - the help keys panel (bottom right) and the radar blips go to the right edge
+	WideAnchor(g_help_menu_elt, WIDE_RIGHT);
+	for (int i = 0; i < 65; i++) WideAnchor(&g_radar_blips[i], WIDE_RIGHT);
 
 	SetupElt(g_elt_5444d8, 0, 0, -1);
 	f_504 = 0;
@@ -491,6 +501,7 @@ C2DInGameMenu::C2DInGameMenu()
 
 C2DInGameMenu::~C2DInGameMenu()
 {
+	WideAnchorClear();							// port: widescreen anchors (Widescreen.h)
 	g_interface.DestroyAll();
 
 	// Deleted, not cleared (sic: the globals keep dangling pointers). f_5b0 and the canvas

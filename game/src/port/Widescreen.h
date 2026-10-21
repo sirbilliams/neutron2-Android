@@ -34,4 +34,15 @@ int WindowWidth(void);
 int WindowHeight(void);
 float WideMargin(void);
 
+// HUD pieces that belong at a screen edge: registered once (the sprite or InterfaceElt pointer)
+// with the side they hug; the placing functions (C2DInGameMenu::SetupSprite / PositionSprite,
+// InterfaceElt's placement) add WideShift() to their x, so later moves keep the anchoring.
+// Register before the first placement. WideAnchorClear forgets them all (menu destructor).
+enum { WIDE_LEFT = -1, WIDE_RIGHT = 1 };
+void WideAnchor(const void *piece, int side);
+void WideAnchorClear(void);
+float WideShift(const void *piece);			// -WideMargin(), +WideMargin() or 0
+// An x in the 640x480 space moved to the window edge on `side` (DrawText positions etc.).
+inline short WideX(short x, int side) { return (short)(x + side * (int)WideMargin()); }
+
 }

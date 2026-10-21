@@ -10,6 +10,7 @@
 #include "InterfaceElement.h"
 #include "Game.h"
 #include "gen/globals.h"
+#include "port/Widescreen.h"
 #include "OMediaViewPort.h"
 #include "OMediaTrigo.h"
 #include "OMedia3DVector.h"
@@ -232,7 +233,10 @@ void C3DRadar::Place(void)									// 0x468790
 	else f_618 = 1.0f;
 
 	float pos[4];
-	CameraPoint(pos, (float)f_62c, (float)f_630, (float)f_634);	// 0x4b1de0
+	// port: widescreen - the radar's camera-space x scaled so it moves out to the right edge with
+	// its disc (f_5b0) and blips (centred at x 550 of the 640 space: 230 right of the centre).
+	const float wide_k = (230.0f + WideMargin()) / 230.0f;
+	CameraPoint(pos, (float)f_62c * wide_k, (float)f_630, (float)f_634);	// 0x4b1de0
 	v197(pos[0], pos[1], pos[2]);							// +0x314
 	const short ax = g_viewport->get_anglex(), ay = g_viewport->get_angley();	// 2002 +0x50 / +0x52
 	float r[4];
