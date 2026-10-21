@@ -29,8 +29,9 @@ against our port of the OMT 2.5 engine (LGPL), which we moved from Windows/Direc
   `CRACK` exes on the disc).
 - **Faithful.** Same logic, same order, same quirks, with comments where the original is odd. Any
   deviation is marked `port:` and explained.
-- He wants it **playable on the Thor**. The current goal is **the first level the game loads:
-  `level1d.gam` (CLevel01DGame)**.
+- He wants it **playable on the Thor**. Reached on desktop (Oct 21, session 2): the game runs from the
+  logo intro through the museum (Level5) and Negatron's lab cut scenes (Level3) to player control of
+  Jimmy. Next goals are below ("Next").
 - He doesn't want running commentary. Give him short status notes, and send a new APK when there
   is something to see.
 
@@ -80,6 +81,15 @@ against our port of the OMT 2.5 engine (LGPL), which we moved from Windows/Direc
    - Starting a new game deletes the autosaves in that folder, so give every agent its own install.
    - The shipped saves are "DUMMY" placeholders. The game starts a new game from `level1d.gam`.
 5. Android: `bash build-android.sh` (podman), or just push and let CI build.
+6. Fresh cloud machine (Ubuntu 24.04), what was needed in session 2: `apt-get install libsdl2-dev
+   zlib1g-dev xvfb x11-utils imagemagick meson ninja-build pkg-config`; Wine needs
+   `dpkg --add-architecture i386` then `apt-get install wine wine32:i386`; `pip install --break-system-packages
+   pefile capstone unicorn r2pipe`. radare2 6.2.4 and r2ghidra c1287cc are not packaged: build both from
+   GitHub with `--prefix=/opt/r2`, and run r2ghidra's `./configure` with
+   `PKG_CONFIG_PATH=/opt/r2/lib/pkgconfig PATH=/opt/r2/bin:$PATH LD_LIBRARY_PATH=/opt/r2/lib` (without it
+   it can't find r_core). `/opt/r2/bin/r2` is a symlink: put a wrapper script at `/usr/local/bin/r2` that
+   sets `LD_LIBRARY_PATH=/opt/r2/lib`, never write through the symlink. `neg_import` needs `fetch-deps.sh`
+   first (unshield).
 
 ## Regenerating the decompilation inputs (not in the repo; they are derived from the exe)
 
@@ -144,9 +154,7 @@ often decompiled wrong. `OMT2.dll` (the 2002 engine) gives the 2002 layouts (`to
 - **Port fixes:** the menu clears `CEditor::m_load_pending` at its level reset (0x40ac30), so the level
   loads once (it reloaded every frame = the flashing on the Thor); static .ase files in
   C3DAnimated::CreateAnim; game objects are allocated zeroed (CGameObject::operator new, `port:`).
-- **Where a run gets to now:** level1d loads once, all 61 objects are created, Jimmy, the menu and the
-  task list exist, and 300 frames run to CLEAN EXIT. The screen shows the terrain and sky from a camera
-  that moves (the opening cut scene has the camera); Jimmy isn't on screen yet.
+- **Where a run gets to now:** see "Status" below: through Level5 and Level3's cut scenes to player control.
 
 ## What level1d contains
 
@@ -156,23 +164,61 @@ STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoint
 The 10 "fish" are the intro logo letters (T, H, Q, AWE games...): level1d opens with the logo cut scene.
 LoadGame stops at the first NULL object, so every class in the file must exist or nothing after it loads.
 
-## Status at the end of the Oct 21 session (read this first)
+## Status at the end of the Oct 21 session 2 (read this first)
 
-- **On the Thor today:** Play runs the logo intro (THQ, AWE, Nick) with sound, then loads Level5.gam and
-  freezes there (its first class, 3FOW, is missing; LoadGame stops at the first NULL object). The start
-  screen's **Jump to Jimmy (test)** button sets `NEG_TEST_PLAY=Level5.gam`: Jimmy runs around the museum
-  with the HUD, under the Thor gamepad (`docs/controls.md`). **Share log** sends `omt-log.txt`.
-- **The goal is Level3.gam (Negatron's lab)**, where the original first gives the player Jimmy:
-  level1d.gam (logo intro) -> LOAD `startgame` -> Level5.gam (museum cut scene) -> exit `tolab` ->
-  Level3.gam (lab, several minutes of cut scenes, then play). Checked against the original under Wine
-  (`tools/wine/run_original.sh <game dir> <out dir> <seconds>`; delete `save/autosave.tsk` afterwards).
-- **Remaining: 29 classes** (C3DSphere '3SPH' is done). A four-agent wave was started and stopped for
-  budget after the research below; no code was written for these yet. Their scratch scripts (vtable diffs,
-  disassembly notes) are backed up in Bill's private repo `negatron-gamefiles/notes/wave3-research.tar.gz`.
+- **Reached:** a normal Play (no test hooks) runs level1d.gam (THQ/AWE logos) -> LOAD `startgame` ->
+  Level5.gam (museum cut scene) -> Level3.gam (the underwater fly-in `labflyin1`, then several minutes of
+  lab cut scenes) -> **player control of Jimmy in the lab** at about 375-380 s from launch, as in the
+  original under Wine (about 380 s). Checked frame by frame against the original's screenshots (every
+  5-10 s) and with the virtual pad: holding the stick forward from launch (`OMT_FAKE_PAD="5:lefty=-32767"`)
+  does nothing in the cut scenes and walks Jimmy once control starts. Both levels load all objects
+  (`tools/decomp/gamcensus.py` reports nothing missing). Smoke test: CLEAN EXIT. main = Android CI green.
+- **Not yet checked on the Thor itself** (Bill has the APK from main 378528e): voice timing and the
+  gl4es rendering of the new objects. The Granny code is still unchecked against Android's libm.
+- **All 29 classes are written** (one commit each, faithful, `port:` where they deviate):
+  - friends (`game/src/friends/`): C3DFriends (base), C3DFowl, C3DSheen, C3DLibby, C3DCindy, C3DBenny,
+    C3DNumey, C3DCarl, C3DNick (+ C3DSkateBoard, no factory ID), C3DAIJimmy;
+  - cameras etc. (`game/src/objects/`): C3DMultiCutSceneCamera (the story cut scenes; its 18 camera types'
+    constants are read from the player's exe at run time), C3DFlyingCamera, C3DTree, C3DFogTrigger;
+  - pickups and triggers (`objects/`, `pickups/`): CPickupType + C3DPickupItem, C3DCheckPoint, C3DNeutron,
+    C3DTransportEffect (+ C3DCorona '3COR'), C3DHelpSound, C3DTextTrigger, C3DMusicTrigger, C3DFadeObject,
+    C3DArrow;
+  - lab (`game/src/lab/`): C3DSwingDoor, C3DHerman, C3DBot (+ C3DShock '3SHO'), C3DTesla, C3DButton,
+    C3DLabScreen;
+  - shared slots: CLocalGameObject slot 281 (0x48f900, project a point to the screen: Carl's hunger bar,
+    Herman's health bar), CGameObject slot 226 (0x4ad990, declared by hand with its real signature).
+  - Stubs replaced: LibbySlot 0x41a039, C3DJimmy bot contact 0x44512a, CEditor 0x4a6520, C3DTriggerType
+    0x457be0 / 0x433f50 and the text/music/fade hooks, C2DInGameMenu_d 0x406cd4 / 0x406cb0. C3DPlayerObject
+    now owns the 40-byte buffer at 0x938 (C3DJimmy's `f_938` is gone).
+- **Testing tools added:** `tools/decomp/gamcensus.py` (which classes a .gam holds, in load order, and which
+  are missing) and `tools/test/run_port.sh` (screenshots the port every N seconds of real time, the
+  counterpart of `tools/wine/run_original.sh`: headless runs draw thousands of frames a second while voice
+  clips play in real time, so frame-numbered `OMT_SHOTS` don't line up with cut scenes).
+- Reference timeline of the original (from Wine, launch = 0 s): logos 5-15 s, museum 20-65 s, Level3
+  fly-in 70-100 s, lab cut scenes 105-370 s, player control from about 380 s.
 
-## Next: the Level5 and Level3 classes (suggested split, one agent each)
+## Next
 
-Bases and sizes from factory.json/classes.json. Test each with `NEG_TEST_PLAY=Level5.gam` / `Level3.gam`.
+1. **Bill's checks on the Thor** of the build on main; fix what he reports (**Share log** sends `omt-log.txt`).
+2. **Open TODOs in the new classes:** the pickup menu announcement 0x408f80 (a menu pickup ticks but shows
+   nothing), the OXYGEN pickup's C3DWaterPlane 0x45f2eb (class not written), Jimmy's point cursor over
+   pickups 0x4489ac (reads C3DPickupItem `m_show_arrow` +0x914, which now exists). The C3DAI subclasses'
+   slot 126 overrides (called when a cut scene releases a character; `C3DAI::ev126` is empty inline in
+   `C3DAI.h`) were not checked for the friends/lab classes.
+3. **Port features Bill asked about** (after the above, each optional and marked `port:`):
+   - **Dual screen:** a companion panel on the Thor's bottom screen (1240x1080), shown/hidden from a
+     back-button / edge-swipe menu: health, neutrons, current and owned gadgets, task list (CTaskList), cut
+     scene captions, boss health, per-level pickups/checkpoints, a simple top-down map (C3DRadar has the
+     data). Read-only game state over JNI; icons read from the player's own game files at run time.
+   - **16:9:** render the 3D at the Thor's 1920x1080 width with the same vertical view (more world at the
+     sides, nothing stretched); move the HUD pieces hard-wired to 640 (gadget bar, health/neutrons corner)
+     to the screen edges; keep 4:3 full-screen art pillarboxed; a setting (4:3 original / 16:9). Risk: cut
+     scenes framed for 4:3 may show unfinished edges, so cut scenes may need to stay 4:3.
+4. Then the rest of the game: the next .gam files after Level3, the same way (census -> classes -> compare).
+
+## Reference: the research for the Level5 and Level3 classes (all done now)
+
+Bases and sizes from factory.json/classes.json.
 
 1. **The friends** (base **C3DFriends**, C3DAI; no factory ID, ctor 0x436a50): C3DFowl '3FOW' 0x436540,
    C3DSheen '3SHE' 0x46ecd0, C3DLibby '3LIB' 0x44f720, C3DCarl '3CAR' 0x425840 (largest), C3DCindy '3CIN'
@@ -205,7 +251,7 @@ Bases and sizes from factory.json/classes.json. Test each with `NEG_TEST_PLAY=Le
    C3DSwingDoor '3SWN' 0x474da0, C3DLabScreen '3SCR' 0x44ec70 (mostly worked out: InitObject, a texture
    cycle in Process, empty dtor, timer at 0x924), C3DButton '3BUT' 0x4238e0. Jimmy's C3DBot TODO 0x44512a.
 5. **Then integration:** play Level5's opening to its exit `tolab`, then Level3's cut scenes to player
-   control, comparing with the original under Wine. Give Bill an APK.
+   control, comparing with the original under Wine. Give Bill an APK. (Done, see the status above.)
 
 Other open TODOs seen in runs: texture animations 0x4a28c0 / 0x4a2270 / 0x490300 and shape material setup
 0x4a23e0 (likely why the sun billboard behind the Nick logo isn't drawn), C3DRocketShip +0x9f4 show
