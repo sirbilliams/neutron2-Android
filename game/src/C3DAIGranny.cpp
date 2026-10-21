@@ -110,7 +110,7 @@ unsigned char C3DAIGranny::v231(CGameObject *other)			// 0x417f40
 {
 	if (g_camera == other) return 1;
 	const int id = other->m_object_id;
-	return id == '3DOG' || id == '3JIM' || id == '3LBW';
+	return id == '3GOD' || id == '3JIM' || id == '3WBL';	// 0x33474f44, 0x334a494d, 0x3357424c
 }
 
 void C3DAIGranny::Process(float dt)							// 0x416510

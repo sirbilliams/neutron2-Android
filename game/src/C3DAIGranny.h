@@ -31,7 +31,7 @@ class C3DAIGranny : public C3DAI
 	virtual void InitObject(void);											// SLOT 7   0x4162c0 properties
 	virtual void UnInitObject(void);										// SLOT 8   0x4162b0 (C3DAnimated's)
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x416590 the camera: TouchSound, TouchAnimA
-	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x417f40 collides with the camera, '3DOG', '3JIM', '3LBW' only
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x417f40 collides with the camera, '3GOD', '3JIM', '3WBL' only
 	virtual void Process(float dt);											// SLOT 240 0x416510 ResetToStop countdown
 	virtual void v260(void);												// SLOT 260 0x416480 properties loaded
 

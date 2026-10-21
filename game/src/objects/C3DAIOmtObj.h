@@ -24,6 +24,7 @@ class C3DAIOmtObj : public C3DAI
 
 	// ---- CGameObject-family overrides
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x417960 by special case
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x417f40 collides with the camera, '3GOD', '3JIM', '3WBL' only
 	virtual void Process(float dt);											// SLOT 240 0x417420 by special case
 	virtual void RotateToDest(float dt);									// SLOT 246 0x417f80 (C3DAI's)
 	virtual void v260(void);												// SLOT 260 0x417ca0 shape from the database, special case setup
