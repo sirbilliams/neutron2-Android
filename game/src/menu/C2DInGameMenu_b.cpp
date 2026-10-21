@@ -52,12 +52,10 @@ static void GameTypePauseGame(bool pause)
 	g_gametype->PauseGame(pause);
 }
 
-// g_gametype->f_490 == id (the running level's 4cc, e.g. 'LV5F').
+// g_gametype +0x490 == id: the running level's ObjectID (its 4cc, e.g. 'LV5F'; as C3DJimmy's LevelID).
 static bool GameTypeLevelIs(int id)
 {
-	(void)id;
-	NEG_TODO(0x40be3a, "g_gametype->f_490 (level id)");
-	return false;
+	return g_gametype && static_cast<CGameObject *>(g_gametype)->m_object_id == id;	// port: NULL test
 }
 
 // The player's HUD object (a C3DRadar): C3DJimmy (g_545fd0 - 0xc0)->f_d40 - 200, NULL when f_d40 is 0.
