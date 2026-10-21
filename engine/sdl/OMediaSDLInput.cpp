@@ -236,6 +236,7 @@ struct omt_PadKey
 static omt_PadKey omg_pad_keys[] = {
 	{ SDL_CONTROLLER_BUTTON_START,        -1, SDL_SCANCODE_ESCAPE, false },
 	{ SDL_CONTROLLER_BUTTON_LEFTSHOULDER, -1, SDL_SCANCODE_R,      false },
+	{ SDL_CONTROLLER_BUTTON_LEFTSTICK,    -1, SDL_SCANCODE_L,      false },	// port: L3 = key L (the mini sub's headlight, keyboard only in the original)
 	{ -1, SDL_CONTROLLER_AXIS_TRIGGERRIGHT,   SDL_SCANCODE_Y,      false },
 	{ -1, SDL_CONTROLLER_AXIS_TRIGGERLEFT,    SDL_SCANCODE_N,      false },
 	{ SDL_CONTROLLER_BUTTON_A,            -1, SDL_SCANCODE_SPACE,  false },

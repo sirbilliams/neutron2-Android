@@ -3,6 +3,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DMiniSub.h"
+#include "C3DBub.h"
 #include "C3DLight.h"
 #include "C3DSpotLight.h"
 #include "C3DSubBubble.h"
@@ -34,18 +35,6 @@
 #include <string>
 
 using namespace neg;
-
-// --------------------------------------------------------------------------- hooks (weak)
-
-__attribute__((weak)) void neg::MiniSubBubSet670(CGameObject *bub, float v)
-{
-	(void)bub; (void)v;
-	NEG_TODO(0x453856, "C3DBub element +0x670 = 0.2 (C3DBub not written)");
-}
-
-namespace neg {
-CGameObject *New_C3DBub(void);								// the factory's (gen/factory.cpp; weak until C3DBub lands)
-}
 
 // --------------------------------------------------------------------------- small helpers
 
@@ -253,8 +242,7 @@ C3DMiniSub::C3DMiniSub()									// 0x4523e0
 	f_a58 = new C3DSubBubble;								// 0x4747f0 (0x944 bytes)
 	f_a5c = 0;
 	for (int i = 0; i < 10; ++i)
-		f_a04[i] = New_C3DBub();							// 0x422cf0 (0x67c bytes; game object at +0xc8). port: through
-															// the factory, NULL until C3DBub is written
+		f_a04[i] = new C3DBub;								// 0x422cf0 (0x67c bytes; game object at +0xc8)
 	f_a64 = new C3DSpotLight;								// 0x4721f0 (0x934 bytes)
 	f_a64->f_928 = 1;										// on
 
@@ -547,12 +535,9 @@ void C3DMiniSub::v243(float dt)								// 0x4537b0
 		f_a5c = (float)(f_a5c - 0.25);
 		CGameObject *b = ev112();							// element +0x1c0
 		OMedia3DVector p = v224(0, 90.0f, -80.0f);
-		if (b)												// port: NULL until C3DBub is written
-		{
-			b->v196(p.x, p.y, p.z, p.w);
-			MiniSubBubSet670(b, 0.2f);						// (element +0x670)
-			b->v176(0, 0, 0);								// +0x2c0
-		}
+		b->v196(p.x, p.y, p.z, p.w);
+		dynamic_cast<C3DBub *>(b)->f_670 = 0.2f;			// (element +0x670)
+		b->v176(0, 0, 0);									// +0x2c0
 	}
 
 	// above or under the water

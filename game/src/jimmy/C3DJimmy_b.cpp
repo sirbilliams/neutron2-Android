@@ -926,7 +926,9 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 		{
 			CGameObject *t = FindObjectByTag("C3DVRTANK");
 			if (!t) break;
-			NEG_TODO(0x44a3d8, "C3DVRTank +0x9c4 (cgo) = Jimmy (driver)");
+			// 0x44a3d8: +0x9c4 (cgo) = Jimmy, the C3DJeep's driver member. port: not done - in a
+			// C3DVRTank that is bytes 16..19 of the C3DAI animation name f_a74 (past its "none"),
+			// which nothing reads, and a 64-bit pointer does not fit there.
 			t->v132(1);
 			v261();
 			ev58((char *)"DRIVE", 1);
@@ -1239,7 +1241,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 		{
 			CGameObject *t = FindObjectByTag("C3DVRTANK");
 			if (!t) break;
-			NEG_TODO(0x4498b9, "C3DVRTank +0x9c4 (cgo) = 0");
+			// 0x4498b9: +0x9c4 (cgo) = 0 (as on getting in: not done for the tank, see there).
 			t->v132(0);
 			v261();
 			ev58((char *)"STOP", 1);
@@ -1252,7 +1254,15 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->ev107(1);								// element +0x1ac
 				f_d5c->ev58((char *)"SIT", 1);
 			}
-			NEG_TODO(0x44995c, "C3DVRTank +0x9b8 (cgo, channel): StopChannel if != -1");
+			{
+				// 0x44995c: the C3DJeep's engine channel (+0x9b8 cgo) stopped if not -1. In the tank
+				// those are bytes 4..7 of its C3DAI animation name f_a74 ("none": the NUL and zeros),
+				// so the original stops channel 0. Read the same bytes.
+				C3DAI *ai = dynamic_cast<C3DAI *>(t);
+				int ch = -1;
+				if (ai) memcpy(&ch, ai->f_a74 + 4, 4);
+				if (ch != -1) StopChannel(ch, false);			// 0x4b88e0
+			}
 			break;
 		}
 
