@@ -34,4 +34,5 @@ class C2DInGameMenu : public CLocalGameObject
 namespace neg {
 void SetGameMode(int mode);			// 0x485360 (C2DInGameMenu_b.cpp): 0 Starting 1 Loading 2 Saving 3 CutScene 4 Menu 5 Playing 6 Paused 9 None
 void SetLevelItems(int which);		// 0x40a860 (C2DInGameMenu_b.cpp): the level items page for a level-progress value
+void CutsceneLetterbox(bool on);	// 0x40c0f0 (C2DInGameMenu_b.cpp, a menu method): cut scene starts (mode 3, bars in) / ends (mode 5, bars out)
 }

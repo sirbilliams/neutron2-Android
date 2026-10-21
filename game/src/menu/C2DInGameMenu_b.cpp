@@ -83,8 +83,6 @@ static void CenterMouse(void)				{ NEG_TODO(0x4b1d50, "centre the mouse in the v
 // CJimmyGame (ecx = g_gametype): score and "+N" pop-up text.
 static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame score / pop-up text"); }
 // (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
-// Menu helper 0x40c0f0 (letterbox in/out around cut scenes), used by SetGameMode.
-static void CutsceneLetterbox(bool on)	{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
 
 // --------------------------------------------------------------------------- input / system helpers
 
@@ -322,6 +320,45 @@ static void ResetPickupPictures(void)
 	InterfaceElt *e[16];
 	for (int i = 0; i < 16; i++) e[i] = g_interface.Find(names[i]);
 	for (int i = 0; i < 16; i++) e[i]->Reset();		// (the original resets them in another order; same result)
+}
+
+// --------------------------------------------------------------------------- 0x40c0f0
+
+// A menu method (ecx = g_menu). on: a cut scene starts - out of the menu (back to Playing) if
+// it was open (g_545f10 remembers that), mode 3 (In CutScene), the pickup pictures stopped and
+// the cinema bars slide in. off: back to Playing unless a level is loading (g_54a468), and the
+// bars slide out.
+void neg::CutsceneLetterbox(bool on)
+{
+	if (on)
+	{
+		if (g_game_mode == 4)
+		{
+			g_545f10 = 1;
+			g_menu->DeactivateActiveMenu();					// +0x498
+			SetGameMode(5);
+			GameTypePauseGame(false);						// g_gametype +0x110
+		}
+		else
+			g_545f10 = 0;
+		SetGameMode(3);
+		ResetPickupPictures();								// 0x405260
+		if (g_545d98) return;
+		g_545d98 = 1;
+		InterfaceElt *top = g_interface.Find("LetterBoxTop");			// 0x480970
+		InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
+		top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, -1.0f, 0.0f, -1.0f);	// 0x480ba0
+		bottom->QueueMorph(0, 1.0f, true, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
+		return;
+	}
+	if (!g_54a468) SetGameMode(5);
+	g_545e5b = 0;
+	if (g_545d98 != 1) return;
+	g_545d98 = 0;
+	InterfaceElt *top = g_interface.Find("LetterBoxTop");
+	InterfaceElt *bottom = g_interface.Find("LetterBoxBottom");
+	top->QueueMorph(0, 1.0f, true, true, true, 640.0f, 64.0f, 640.0f, 0.0f, 0.0f, -1.0f, 0.0f, -1.0f);
+	bottom->QueueMorph(0, 1.0f, false, true, true, 640.0f, 0.0f, 640.0f, 64.0f, 0.0f, 480.0f, 0.0f, 416.0f);
 }
 
 // --------------------------------------------------------------------------- inlined blocks

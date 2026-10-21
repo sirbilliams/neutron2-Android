@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DCutSceneCamera.h"
 #include "../CGameType.h"
+#include "../C2DInGameMenu.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
 #include "../C3DAnimated.h"
@@ -65,7 +66,7 @@ static bool CutsceneBypass(void)
 // --------------------------------------------------------------------------- not reconstructed yet
 
 // C2DInGameMenu 0x40c0f0 (on g_menu): cut-scene letterbox in/out.
-static void CutsceneLetterbox(bool on)				{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
+using neg::CutsceneLetterbox;
 
 // C3DAnimated element slot 58 (+0xe8) of an animated target: play animation
 // `name`, looping or not.

@@ -37,7 +37,7 @@ using neg::GetDatabase;
 // --------------------------------------------------------------------------- not reconstructed yet
 
 // C2DInGameMenu 0x40c0f0 (on g_menu): cut-scene letterbox in/out.
-static void CutsceneLetterbox(bool on)				{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
+using neg::CutsceneLetterbox;
 
 // CGameObject slot 224 (+0x380, 0x4ad800): a point relative to the object (struct return).
 // Until it exists the caller skips the camera move (the original always has a point).
