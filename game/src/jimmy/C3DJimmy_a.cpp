@@ -517,7 +517,7 @@ void C3DJimmy::v260(void)									// 0x445740
 			props[i]->HideAgain();							// element +0xdc
 			ev88((char *)"none", static_cast<CGameObject *>(props[i]));	// element +0x160
 		}
-	if (f_d20) f_d20->HideAgain();							// port: NULL-checked (the hook always exists)
+	f_d20->HideAgain();
 	if (f_d44)
 	{
 		f_d44->f_8ac = 0;									// "CanClip"
@@ -865,7 +865,6 @@ void C3DJimmy::ev163(void)									// 0x447c90
 	OMedia3DVector d(t.x - ax, t.y - ay, t.z - az, 0);
 	omt_Angle rx, ry;
 	d.angles(rx, ry);										// OMedia3DVector::angles
-	if (!f_d20) return;										// port: the original always has the hook
 	f_d20->v203((float)rx * kAngleToDeg, (float)ry * kAngleToDeg, 0);	// +0x32c
 	OMedia3DVector at = v224(24.0f, 14.0f, 32.0f);
 	f_d20->v196(at.x, at.y, at.z, at.w);					// +0x310

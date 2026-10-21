@@ -40,6 +40,7 @@
 #include "C3DASEObj.h"
 #include "C3DMagicParticle.h"
 #include "C3DWaterBalloon.h"
+#include "C3DGraplingHook.h"
 #include "OMedia3DPoint.h"
 #include "OMedia3DVector.h"
 
@@ -71,7 +72,7 @@ class C3DJimmy : public C3DPlayer
 	C3DPlayerObject		*f_cc8;			// 0xcc8  C3DRocketShip he can fly (a C3DFlyingObject)
 	C3DJetPack			*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
 	C3DWaterBalloon		*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool
-	C3DAnimated			*f_d20;			// 0xd20  C3DGraplingHook (ev163)
+	C3DGraplingHook		*f_d20;			// 0xd20  C3DGraplingHook (ev163)
 	// 0xd24 never used
 	// props on Jimmy's bones (ev88), dropped by v260 (in the order d28 d2c d30 d38 d34)
 	C3DGrannyObj		*f_d28;			// 0xd28  water gun in the right hand ("newgunbase.grn")

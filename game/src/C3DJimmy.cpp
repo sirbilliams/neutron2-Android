@@ -29,7 +29,6 @@ CGameObject *New_C3DGoddard(void);			// 0x4383d0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
-static CGameObject *NewGraplingHook(void)	{ NEG_TODO(0x43cdb0, "new C3DGraplingHook (0x92c bytes)"); return NULL; }
 
 template <class T> static T *As(CGameObject *o) { return o ? dynamic_cast<T *>(o) : NULL; }
 
@@ -210,7 +209,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_c9c = 0;
 	f_4ef0 = NULL;
 
-	f_d20 = As<C3DAnimated>(NewGraplingHook());				// 0x92c bytes
+	f_d20 = new C3DGraplingHook;							// 0x92c bytes
 	if (f_d20) f_d20->f_590->scale(1.0f, 1.0f, 7.0f);		// its base shape, vtable +0x34
 
 	for (int i = 0; i < 20; i++)
