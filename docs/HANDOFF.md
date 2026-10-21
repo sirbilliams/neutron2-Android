@@ -58,9 +58,20 @@ against our port of the OMT 2.5 engine (LGPL), which we moved from Windows/Direc
    make -C build-desk negatron neg_import
    ```
    `game/src` is globbed, so re-run cmake after adding files.
-3. **Game files:** ask Bill for the game's CD image (`Jimmy Neutron vs. Jimmy Negatron.iso`, about
-   216 MB) if it isn't already in the workspace. Never commit it. Then install it with
-   `build-desk/neg_import game.iso game/`, which produces the installed game folder: `omt/ gam/ grn/ ase/ png/ dat/ save/` plus `Neutron2.exe` and `granny.dll`.
+3. **Game files** live in Bill's private repo **sirbilliams/negatron-gamefiles** (never commit them here):
+   - release `iso`: `Jimmy.Neutron.vs.Jimmy.Negatron.iso` (226,605,056 bytes, sha256 `65c8fc3f...8d88`) and
+     `OMTFullV250.zip` (the full OMT 2.5 distribution: original sources, docs, extras).
+   - `decomp/decomp-inputs.tar.gz` in the repo: the regenerated decompilation inputs (see below), so a new
+     session can skip the r2ghidra run.
+   Getting them in a cloud session: attach the repo (add_repo), then download the release assets with the
+   REST API (`gh release download` fails: GraphQL is blocked, and creating releases is blocked too):
+   ```
+   gh api repos/sirbilliams/negatron-gamefiles/releases/tags/iso --jq '.assets[]|"\(.id) \(.name)"'
+   gh api -H "Accept: application/octet-stream" repos/sirbilliams/negatron-gamefiles/releases/assets/<id> > <name>
+   ```
+   archive.org is blocked by the default network policy. Install with
+   `build-desk/neg_import game.iso game/`, which produces the installed game folder: `omt/ gam/ grn/ ase/ png/ dat/ save/` plus `Neutron2.exe`, `granny.dll` and `OMT2.dll`.
+   Unzip `OMTFullV250.zip` and point `omt_layout.py` at `OMT/sources/OMTClasses` (our ported `engine/OMTClasses` lays out 0 classes).
 4. **Run headless** (start Xvfb first with `Xvfb :99 &`), from inside the game folder:
    ```
    DISPLAY=:99 OMT_WINDOW_SIZE=640x480 OMT_FRAMES=60 OMT_SCREENSHOT=x.bmp timeout 60 ../build-desk/negatron
@@ -72,7 +83,11 @@ against our port of the OMT 2.5 engine (LGPL), which we moved from Windows/Direc
 
 ## Regenerating the decompilation inputs (not in the repo; they are derived from the exe)
 
-The tools read these from a work folder (it was `/home/claude/decomp`; recreate it):
+The tools read these from a work folder, `/home/claude/decomp` (the guide's paths). Fastest: unpack the backup,
+`mkdir -p /home/claude/decomp && tar xzf decomp-inputs.tar.gz -C /home/claude/decomp`, and copy `Neutron2.exe` in.
+The guide also expects `/home/claude/jn/game/Program_Executable_Files` (symlink it to the game install) and
+`/opt/r2/bin/r2`. Python needs `pefile capstone unicorn r2pipe` (pip `--break-system-packages`), and clang for omt_layout.py.
+To regenerate from scratch instead:
 
 1. `python3 tools/decomp/rtti.py Neutron2.exe classes.json` gives classes, bases and vtables from RTTI.
 2. radare2 **6.2.4** plus **r2ghidra** (commit `c1287cc`), both built from source from GitHub
@@ -80,8 +95,10 @@ The tools read these from a work folder (it was `/home/claude/decomp`; recreate 
    `python3 tools/decomp/decompile_all.py Neutron2.exe classes.json raw/` writes `raw/<Class>.c`,
    `raw/_free.c` and `raw/functions.json`.
    - The vtable functions at 0x46e3c0, 0x48f010, 0x49ab40, 0x49d880, 0x4ab3e0 and 0x4ac8f0
-     (plus 0x4ba08e and 0x4ba176) weren't found by analysis. They were decompiled by hand into
-     `raw/_extra.c`; force `af` at those addresses.
+     (plus 0x4ba08e and 0x4ba176) weren't found by analysis. They go in `raw/_extra.c`: force
+     `af` at each, with headers in the same format as the other raw files
+     (`/* ==== 0x4ab3e0 CGameObject__v8 size 22 ==== */`), or gen_class.py drops those slots.
+     Check: regenerating CGameObject, CLocalGameObject, C2DInGameMenu, CTaskList and C3DObject must give no git diff.
 3. `python3 tools/decomp/abi.py Neutron2.exe raw/functions.json abi.json` gives calling conventions
    from the machine code.
 4. `python3 tools/decomp/factory.py Neutron2.exe factory.json abi.json` gives the object factory
@@ -115,29 +132,40 @@ often decompiled wrong. `OMT2.dll` (the 2002 engine) gives the 2002 layouts (`to
   - sound and music
   - input: CInput and the joystick poll (the d-pad drives the X/Y axes)
   - the Granny replacement
-- **Where a run gets to now:** level1d.gam loads, creates CLevel01DGame, and stops at the level's objects whose classes don't exist yet. The first is `'3JIM'` (C3DJimmy).
+- **Level 1 world (Oct 21):** C3DTerrain and C3DSky (the moon surface and starfield render); the
+  level objects level1d uses: C3DStartPoint, C3DPatrolPoint, C3DAITrigger, C3DCutSceneCamera (`game/src/objects/`).
+- **Granny without the DLL:** granny_compat reads the `.grn` files directly (textures by its own Bink decoder,
+  meshes and bindings built as the DLL does), bit-identical to the DLL on all 389 files on x86-64 and arm64
+  (`tools/granny/verify.sh`); `granny.dll` is only read as a data file for its Bink tables. Not yet checked
+  against Android's libm (acos/sin/sqrt/fmod).
+- **Where a run gets to now:** level1d loads, the world draws, and it stops at `new C3DJimmy` (0x443830).
+
+## What level1d contains
+
+Parsed with LoadGame's own logic: 61 objects. 3PAT x28, 3AIT x14, 3FIS x10, 3CAM x4, and one each of
+STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoints, mines or lights.
+(A naive byte count of the IDs doubles everything, because each object also stores its ID as a property.)
 
 ## In progress when this was written (check `git log`; merge if they landed, otherwise redo)
 
-- **Level objects:** C3DStartPoint, C3DCheckPoint, C3DPatrolPoint, C3DMine, C3DAITrigger,
-  C3DCutSceneCamera, C3DMultiCutSceneCamera, CTrigger/C3DLight.
-- **Animated characters:** C3DAnimated, C3DPlayerObject, C3DPlayer, C3DGrannyObj.
-- **Granny without the DLL:** done. granny_compat reads the `.grn` files directly (textures decoded by its
-  own Bink decoder, meshes and bindings built as the DLL does), bit-identical to the DLL on all 389 files on
-  x86-64 and arm64 (`tools/granny/verify.sh`); `granny.dll` is only read as a data file for its Bink tables.
+- **Animated character bases:** C3DAnimated, C3DPlayerObject, C3DPlayer, C3DGrannyObj, plus C3DObject's
+  TODO slots (FitToShape 0x49ab50, ev51 0x49afd0, Process 0x49ae00, v248 0x49add0).
 
 ## Next, for level1d
 
 Roughly in this order. Each one goes in its own `game/src` files.
 
-1. **C3DTerrain** (`'3TER'`) and **C3DSky** (`'3SKY'`). Without them there is no world: the port
-   currently skips the NULL terrain and sky.
-2. **C3DJimmy** (`'3JIM'`, 0x4efc bytes, 166 element slots) on C3DPlayerObject. It creates the
+Remaining raw decompile size, as a guide: C3DJimmy 6,755 lines, C3DAnimated 3,957, C3DPlayer 3,347,
+C3DAI 3,127, C3DRocketShip 1,819, C3DFlyingObject 984, C3DGrannyObj 909, C3DAIGranny 616, C3DFish 521,
+C3DPlayerObject 457.
+
+1. **C3DJimmy** (`'3JIM'`, 0x4efc bytes, 166 element slots) on C3DPlayer/C3DPlayerObject. It creates the
    menu, the task list and the HUD. Huge; split it the way the menu was split (parts a–d).
-3. **C3DAI** (`'3DAI'`), then **C3DAIGranny** (`'3GRN'`) and **C3DFish** (`'3FIS'`).
-4. **C3DRocketShip** (`'3ROC'`) on C3DFlyingObject.
-5. Then the remaining object classes the levels use. `factory.json` plus a scan of the `.gam` files
-   shows which: 118 classes are used across levels.
+2. **C3DAI** (`'3DAI'`), then **C3DAIGranny** (`'3GRN'`) and **C3DFish** (`'3FIS'`).
+3. **C3DFlyingObject**, then **C3DRocketShip** (`'3ROC'`).
+4. The NEG_TODO stubs the level objects left for those classes (call sites listed in
+   `game/src/objects/*.cpp`; grep NEG_TODO).
+5. Then playable on the Thor: the loose ends below, and an APK test by Bill.
 
 Loose ends:
 
@@ -161,6 +189,9 @@ Loose ends:
      `gen_class.py` for the classes that changed.
   2. Reconcile duplicate structs and names between parts, so there is one definition of each.
   3. Build, run the smoke test, commit, push.
+- Give each agent its own scratch files too (the scratchpad is shared; one agent overwrote another's script).
+- The harness may refuse `fetch-deps.sh` inside a worktree (it runs git in subfolders); the desktop
+  `negatron` build doesn't need those deps.
 - Running too many agents at once hits the session usage limit. Four or five was fine; six was not.
 - Desktop success means a "CLEAN EXIT" at the end of the headless run. The Android build only
   happens on CI, so watch the run (`gh api repos/sirbilliams/neutron2-android/actions/runs`).
