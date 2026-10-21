@@ -134,7 +134,14 @@ OMediaGLRenderPort::~OMediaGLRenderPort()
 void OMediaGLRenderPort::prepare_gl_context(void)
 {
 	if (!glVP_zerobased)
-		glViewport(bounds.left,bounds.top,bounds.get_width(),bounds.get_height());
+	{
+		// port: GL counts y from the bottom. The scissor and the clears (begin_render, gl_clear)
+		// flip it; the viewport did not, so a viewport not reaching the window's bottom (the
+		// cut scenes' picture-in-picture) drew outside its own scissor and showed only its clear.
+		int y = bounds.top;
+		if (target->get_window()) y = target->get_window()->get_height() - bounds.bottom;
+		glViewport(bounds.left,y,bounds.get_width(),bounds.get_height());
+	}
 	else
 		glViewport(0,0,bounds.get_width(),bounds.get_height());
 }
