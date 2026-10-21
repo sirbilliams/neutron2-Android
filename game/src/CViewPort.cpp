@@ -2,6 +2,7 @@
     The original uses QueryPerformanceCounter/Frequency; SDL's performance counter replaces them. */
 
 #include "CViewPort.h"
+#include "port/Companion.h"
 #include "CGameObject.h"
 #include "Game.h"
 #include "Bridge.h"
@@ -97,6 +98,7 @@ void CViewPort::render_viewport(OMediaRendererInterface *rdr_i)				// 0x4b96a0
 		PreUpdateObjects();					// 0x4ae5b0
 		UpdateObjects();					// 0x4ae580
 		PostUpdateObjects();				// 0x4ae5e0
+		CompanionTick(g_frame_time);		// port: the dual-screen companion snapshot (port/Companion.h; read-only)
 		if (g_layer_clear) SetClearLayerViewMatrix();
 		UpdateFrameRate(g_frame_time);		// 0x4b2d90
 	}
