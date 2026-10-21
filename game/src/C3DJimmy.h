@@ -41,6 +41,7 @@
 #include "C3DMagicParticle.h"
 #include "C3DWaterBalloon.h"
 #include "C3DGraplingHook.h"
+#include "C3DGoddard.h"
 #include "OMedia3DPoint.h"
 #include "OMedia3DVector.h"
 
@@ -88,7 +89,7 @@ class C3DJimmy : public C3DPlayer
 	short				f_d50;			// 0xd50  next water balloon (0..19)
 	int					f_d54;			// 0xd54  0 after a shot
 	short				f_d58;			// 0xd58  0
-	C3DPlayerObject		*f_d5c;			// 0xd5c  C3DGoddard, Jimmy's dog (a C3DAI)
+	C3DGoddard			*f_d5c;			// 0xd5c  C3DGoddard, Jimmy's dog (a C3DAI)
 	float				f_d60;			// 0xd60  health, 0..100 (50; ev160 adds)
 	float				f_d64;			// 0xd64  0; 0.5 after leaving the jeep
 	short				f_d68;			// 0xd68  -1

@@ -534,8 +534,8 @@ void C3DJimmy::ev149(float spin, CGameObject *target, C3DObject *obj)	// 0x44e42
 void C3DJimmy::ev161(unsigned char show, int which)					// 0x44e3b0
 {
 	if (which != 1) return;
-	NEG_TODO(0x44e3c3, "C3DGoddard +0x1b80 (object shown with Jimmy)");
-	C3DObject *o = NULL;										// C3DGoddard f_1b80 (a CGameObject part) - 0xc0
+	CGameObject *a = f_d5c->f_1b80;							// Goddard's arrow (a CGameObject part)
+	C3DObject *o = a ? dynamic_cast<C3DObject *>(a) : NULL;
 	if (!o) return;												// port: the original calls through NULL
 	if (show) o->ShowAgain();
 	else o->HideAgain();
@@ -847,7 +847,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				NEG_TODO(0x44a006, "C3DRocketShip +0x1134 (cgo) = Goddard");
 				f_d5c->v120(1);
 				f_d5c->v132(0);
-				NEG_TODO(0x44a04c, "C3DGoddard +0x1b60 = 1 (riding)");
+				f_d5c->f_1b60 = 1;								// riding along
 				f_d5c->ev58((char *)"ROCK", 1);
 				f_d5c->v136(0);
 			}
@@ -894,7 +894,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			if (f_d5c)
 			{
 				f_d5c->HideAgain();
-				NEG_TODO(0x44a235, "C3DGoddard +0x1b50 (sprite): HideAgain");
+				f_d5c->f_1b50->HideAgain();						// his shadow, sprite +0xd8
 				f_d5c->v136(0);
 				f_d5c->v132(0);
 			}
@@ -930,7 +930,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			{
 				f_d5c->v136(0);
 				f_d5c->v132(0);
-				NEG_TODO(0x44a45e, "C3DGoddard element slot 107 (7)");
+				f_d5c->ev107(7);								// element +0x1ac
 				f_d5c->ev58((char *)"SIT", 1);
 			}
 			save = true;
@@ -1001,9 +1001,9 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				f_d5c->v120(1);
 				f_d5c->v136(0);
 				f_d5c->ev58((char *)"ROCK", 1);
-				NEG_TODO(0x44a975, "C3DGoddard +0x1b60 = 1 (riding)");
+				f_d5c->f_1b60 = 1;
 				f_d5c->v132(0);
-				NEG_TODO(0x44a99c, "C3DGoddard element slot 121");
+				f_d5c->ev121();									// element +0x1e4
 				NEG_TODO(0x44a9a8, "C3DMiniSub +0x938 (cgo) = Goddard");
 			}
 			save = true;
@@ -1147,11 +1147,11 @@ void C3DJimmy::ev139(void)											// 0x449450
 			{
 				NEG_TODO(0x4495c7, "C3DRocketShip +0x1134 (cgo) = 0");
 				f_d5c->v120(0);
-				NEG_TODO(0x4495ee, "C3DGoddard +0x1b60 = 0 (riding)");
+				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
 				f_d5c->ev58((char *)"STOP", 1);
 				f_d5c->v136(1);
-				if (!g_windowed) NEG_TODO(0x449655, "C3DGoddard +0x1b50 (sprite): ShowAgain");
+				if (!g_windowed) f_d5c->f_1b50->ShowAgain();		// his shadow, sprite +0xd4
 			}
 			break;
 		}
@@ -1195,7 +1195,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->v136(0);
 				f_d5c->v132(0);
 				f_d5c->ShowAgain();
-				NEG_TODO(0x4497f5, "C3DGoddard +0x1b50 (sprite): ShowAgain");
+				f_d5c->f_1b50->ShowAgain();						// his shadow, sprite +0xd4
 				f_d5c->v136(1);
 				f_d5c->v132(1);
 			}
@@ -1222,7 +1222,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			{
 				f_d5c->v136(1);
 				f_d5c->v132(1);
-				NEG_TODO(0x44993f, "C3DGoddard element slot 107 (1)");
+				f_d5c->ev107(1);								// element +0x1ac
 				f_d5c->ev58((char *)"SIT", 1);
 			}
 			NEG_TODO(0x44995c, "C3DVRTank +0x9b8 (cgo, channel): StopChannel if != -1");
@@ -1269,7 +1269,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->v120(0);
 				f_d5c->v136(1);
 				f_d5c->ev58((char *)"SIT", 1);
-				NEG_TODO(0x449ae9, "C3DGoddard +0x1b60 = 0 (riding)");
+				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
 				NEG_TODO(0x449b07, "C3DMiniSub +0x938 (cgo) = 0");
 			}

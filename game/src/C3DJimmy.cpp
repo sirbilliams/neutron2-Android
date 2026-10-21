@@ -25,7 +25,6 @@ using namespace neg;
 // Factory entries of the helper classes (gen/factory.cpp: weak TODO stubs until they exist).
 namespace neg {
 CGameObject *New_C3DRocketShip(void);		// 0x46a290
-CGameObject *New_C3DGoddard(void);			// 0x4383d0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
@@ -262,7 +261,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_4d68 = 0;
 	f_4d64 = 0;
 
-	f_d5c = As<C3DPlayerObject>(New_C3DGoddard());			// 0x1bcc bytes
+	f_d5c = new C3DGoddard;									// 0x1bcc bytes
 	f_d40 = new C3DRadar;									// 0x640 bytes
 	f_d48 = 0;
 	f_d44 = new C3DASEObj;									// 0xbb0 bytes

@@ -200,11 +200,9 @@ static bool CursorWanted(CGameObject *pickup)			// C3DGrannyObj +0xdb4 / C3DPick
 	NEG_TODO(0x4489ac, "pickup +0xdb4 / +0x914: show the point cursor over it");
 	return false;
 }
-static C3DObject *GoddardPointer(C3DPlayerObject *goddard)	// C3DGoddard +0x1b84 (its CGameObject part)
+static C3DObject *GoddardPointer(C3DGoddard *goddard)		// C3DGoddard +0x1b84 (its CGameObject part)
 {
-	(void)goddard;
-	NEG_TODO(0x4488f9, "C3DGoddard +0x1b84");
-	return NULL;
+	return goddard->f_1b84 ? dynamic_cast<C3DObject *>(goddard->f_1b84) : NULL;
 }
 
 // --------------------------------------------------------------------------- element family
@@ -1153,11 +1151,11 @@ void C3DJimmy::Process(float dt)							// 0x446260
 		f_4cbc.x = p.x; f_4cbc.y = p.y; f_4cbc.z = p.z; f_4cbc.w = p.w;
 	}
 	ev133(dt);												// element +0x214
-	if (f_d5c)
+	if (f_d5c && f_d5c->f_1b5c == 4 && f_d5c->f_960 > 9.0f)	// Goddard in front for 9 s: back beside us
 	{
-		// Goddard (+0x1b5c state 4 and +0x960 timer over 9: timer 0, then by +0x1b5e
-		// element slot 144 (2) / (0) and return)
-		NEG_TODO(0x44686f, "C3DGoddard +0x1b5c / +0x960 / +0x1b5e");
+		f_d5c->f_960 = 0;
+		if (f_d5c->f_1b5e == 1) { f_d5c->ev144(2); return; }	// element +0x240
+		if (f_d5c->f_1b5e == 3) { f_d5c->ev144(0); return; }
 	}
 	if (f_4d7c) C3DAnimated::Process(dt);					// 0x41c120
 }
