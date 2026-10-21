@@ -42,6 +42,9 @@ public class NegatronActivity extends SDLActivity {
             String start = getIntent() != null ? getIntent().getStringExtra(EXTRA_START) : null;
             if (start != null) Os.setenv("NEG_START", start, true);
             else Os.unsetenv("NEG_START");
+            // port: the launcher's picture, saved once by the game (game/src/port/Companion.cpp)
+            if (getExternalFilesDir(null) != null)
+                Os.setenv("NEG_MENU_ART", new java.io.File(getExternalFilesDir(null), SetupActivity.MENU_ART).getPath(), true);
             // port: 16:9 widescreen (game/src/port/Widescreen.h), the setup screen's option
             boolean wide = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getBoolean(SetupActivity.PREF_WIDESCREEN, true);
