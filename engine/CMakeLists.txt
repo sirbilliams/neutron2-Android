@@ -122,6 +122,11 @@ else()
   target_link_libraries(omt_viewer omt)
   target_compile_options(omt_viewer PRIVATE -w -fpermissive)
 
+  # HD image pack: extract the game's canvases as PNGs / install a pack (tools/hd, docs/hd-pack.md)
+  add_executable(neg_hdtool ${CMAKE_CURRENT_SOURCE_DIR}/../tools/hd/neg_hdtool.cpp)
+  target_link_libraries(neg_hdtool omt)
+  target_compile_options(neg_hdtool PRIVATE -w -fpermissive)
+
   add_executable(omt_datatest tests/omt_datatest.cpp ${OMT_MAIN})
   target_link_libraries(omt_datatest omt)
   target_compile_options(omt_datatest PRIVATE -w -fpermissive)
