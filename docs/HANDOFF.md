@@ -181,6 +181,8 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
     (its death switches BLOCKWASP off; its WASPDIE trigger does not exist in VR01) -> drive onto the
     touch trigger curevox in the arena -> outro -> vrtank_done -> loadlab -> level1b.gam. Checked per
     segment with teleports (gate 5, the wasp fight, curevox to level1b), not one full manual run.
+  - **The sub's headlight** (key L): also on L3 (left stick click), `port:` in OMediaSDLInput.cpp,
+    docs/controls.md.
   - **C3DBub** ('3BUU', the mini sub's 10 trail bubbles): done; C3DMiniSub creates them directly (the
     weak hook is gone). Level3a / Level3e run with them (bubbles rise and fade; no TODO).
   - **level4a**: C3DUltraLord is written, but the game files have no Ultra Lord art (ultra*.ase,
