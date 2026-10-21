@@ -40,7 +40,12 @@
 #include "gen/globals.h"
 #include "OMediaEngineFactory.h"
 #include "OMediaInputEngine.h"
+#include "OMediaViewPort.h"
+#include "Mouse.h"
 #include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <SDL.h>
 
 using namespace neg;
 
@@ -144,6 +149,23 @@ bool neg::FindDevice(int type)
 		}
 	}
 	return false;
+}
+
+// Port: test hook. NEG_JOY_LOG=1 logs what the game sees of the joystick whenever it changes
+// (the pressed button numbers and the X/Y axes rounded to tenths).
+static void LogJoyChanges(void)
+{
+	static int on = -1;
+	if (on < 0) on = getenv("NEG_JOY_LOG") != NULL;
+	if (!on) return;
+	static char last[160];
+	char now[160];
+	int n = snprintf(now, sizeof now, "x %.1f y %.1f buttons", (double)g_joy_x, (double)g_joy_y);
+	for (int b = 0; b < JOY_BUTTONS && n < (int)sizeof now - 4; b++)
+		if (JoyButtons()[b]) n += snprintf(now + n, sizeof now - n, " %d", b);
+	if (strcmp(now, last) == 0) return;
+	strcpy(last, now);
+	SDL_Log("joystick: %s", now);
 }
 
 // --------------------------------------------------------------------------- 0x4b35d0
@@ -287,5 +309,48 @@ bool neg::UpdateInput(void)
 		g_joy_frames++;
 		ClearJoyButtons();
 	}
+	LogJoyChanges();							// port: test hook
 	return true;
+}
+
+// --------------------------------------------------------------------------- the mouse pointer
+// (CGfx 0x4b1d10..0x4b1dc0 and CAweReal 0x4a3990; Mouse.h. Not part of the input module in the exe,
+// kept here with the other input code.)
+
+void omf_SDLSetMousePosition(short x, short y);		// engine/sdl/OMediaSDLInput.cpp
+
+// 0x4b1d10: the world's input engine (vtable +0x38), its get_mouse_position (+0x20).
+void neg::GetMousePos(short *x, short *y)
+{
+	*x = *y = 0;
+	if (g_input_engine) g_input_engine->get_mouse_position(*x, *y);
+}
+
+// 0x4b1d30: the same engine's set_mouse_position (+0x24; OMT 2.5 has no such call, the SDL layer
+// provides it).
+void neg::SetMousePos(short x, short y)
+{
+	omf_SDLSetMousePosition(x, y);
+}
+
+// 0x4b1da0 / 0x4b1dc0: half the viewport's bounds (2002 +0xd4..+0xe0: left, top, right, bottom).
+short neg::MouseCentreX(void) { return (short)(g_viewport->getbwidth() / 2); }
+short neg::MouseCentreY(void) { return (short)(g_viewport->getbheight() / 2); }
+
+// 0x4b1d50
+void neg::CenterMouse(void)
+{
+	SetMousePos(MouseCentreX(), MouseCentreY());
+}
+
+// 0x4a3990: how far the pointer is from the viewport's centre (centre - pointer, so right / down
+// are negative), then it goes back to the centre. Nothing happens while g_56aed0 is set.
+void neg::GetMouseDelta(short *dx, short *dy)
+{
+	if (g_56aed0) return;
+	short x, y;
+	GetMousePos(&x, &y);
+	*dx = (short)(MouseCentreX() - x);
+	*dy = (short)(MouseCentreY() - y);
+	CenterMouse();
 }
