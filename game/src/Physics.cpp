@@ -8,6 +8,7 @@
 #include "Physics.h"
 #include "CGameObject.h"
 #include "C3DObject.h"
+#include "lab/C3DSphere.h"
 #include "CGameType.h"
 #include "Game.h"
 #include "Todo.h"
@@ -885,7 +886,7 @@ OMedia3DShape *neg::PhysicsHitShape(void)		{ return s_hit_shape; }
 
 // --------------------------------------------------------------------------- debug markers
 
-// The '3CUB' / '3SPH' classes are not reconstructed yet (CreateObject returns NULL for now).
+// The '3CUB' class is not reconstructed yet (CreateObject returns NULL for it for now).
 static void SetupCube(CGameObject *o, OMedia3DVector colour, float size)
 {
 	(void)o; (void)colour; (void)size;
@@ -894,8 +895,8 @@ static void SetupCube(CGameObject *o, OMedia3DVector colour, float size)
 
 static void SetupSphere(CGameObject *o, OMedia3DVector colour, float size)
 {
-	(void)o; (void)colour; (void)size;
-	NEG_TODO(0x4b7b40, "debug sphere: C3DSphere element slot 56 (colour, size)");
+	C3DSphere *s = dynamic_cast<C3DSphere *>(o);			// (the original: o - 0xc0)
+	if (s) s->InitSphere(colour, size);						// element +0xe0
 }
 
 // 0x4b79f0 / 0x4b7b40: the next object of the pool (a new one when it is used up) at pos, shown.
