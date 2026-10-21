@@ -4,6 +4,8 @@
 #include "C3DGem.h"
 #include "../C3DJimmy.h"
 #include "../CGameType.h"
+#include "../InterfaceElement.h"				// AddScore
+#include "../level1/C3DSpriteObject.h"
 #include "../Globals.h"
 #include "../gen/globals.h"
 #include "OMedia3DShape.h"
@@ -132,6 +134,116 @@ void C3DGem::ReadState(OMediaStreamOperators &s)			// 0x437960
 	CGameObject *ray = FindObjectByTag("SPHYNXRAY");
 	if (C3DAnimated *a = ray ? dynamic_cast<C3DAnimated *>(ray) : NULL)	// (ray - 0xc0)
 		a->ev74(0.6f, 1.0f, 1.0f, 1.0f);					// element +0x128 tint
+}
+
+// --------------------------------------------------------------------------- the sphinx puzzle
+
+static void SetFirstMaterial(C3DGem *g, const OMedia3DVector &c)	// shape +0x88 first polygon, +4 material, +0x4c..
+{
+	OMedia3DShape *sh = g->get_shape();
+	if (!sh || sh->get_polygons()->empty()) return;			// port: the original tests the material only
+	OMedia3DMaterial *m = sh->get_polygons()->front().get_material();
+	if (m) m->set_diffuse(OMediaFARGBColor(c.w, c.x, c.y, c.z));
+}
+
+static void TintRay(const OMedia3DVector &c)				// SPHYNXRAY element +0x128
+{
+	CGameObject *ray = FindObjectByTag("SPHYNXRAY");
+	if (C3DAnimated *a = ray ? dynamic_cast<C3DAnimated *>(ray) : NULL)
+		a->ev74(0.6f, c.x, c.y, c.z);
+}
+
+static C3DJimmy *JimmyElement(void)	{ return g_jimmy ? dynamic_cast<C3DJimmy *>(g_jimmy) : NULL; }	// (g_545fd0 - 0xc0)
+
+// A door of the puzzle opens (its NextState(-1): toggled open), for 100 points.
+static bool OpenDoor(const char *tag)
+{
+	CGameObject *d = FindObjectByTag(tag);
+	if (!d) return false;
+	if (CLocalGameObject *l = dynamic_cast<CLocalGameObject *>(d)) l->v268(-1);	// +0x430 NextState: toggle
+	AddScore(100);											// g_gametype, 0x482b50
+	return true;
+}
+
+// 0x437750: the colour of a gem sum (1 red, 2 yellow, 4 blue), alpha 0.6. A mixed colour opens the
+// next door of the order purple, orange, green.
+OMedia3DVector C3DGem::Colour(int gems)
+{
+	f_dd0 = gems;
+	float r = 1.0f, g = 1.0f, b = 1.0f;
+	switch (gems)
+	{
+		case 1: g = 0; b = 0; break;						// red
+		case 2: g = 1.0f; b = 0; break;						// yellow
+		case 3:												// orange
+			g = 0.6f; b = 0.2f;
+			if (g_545f64 == 1 && OpenDoor("ORANGEDOOR")) g_545f64 = 2;
+			break;
+		case 4: r = 0; g = 0.4f; b = 1.0f; break;			// blue
+		case 5:												// purple
+			r = 0.57f; g = 0.15f; b = 0.56f;				// 0x4de8d0
+			if (g_545f64 == 0 && OpenDoor("PURPLEDOOR")) g_545f64 = 1;
+			break;
+		case 6:												// green
+			r = 0; g = 1.0f; b = 0;
+			if (g_545f64 == 2 && FindObjectByTag("GREENDOOR"))
+			{
+				g_545f68 = 1;								// the gems stay where they are
+				OpenDoor("GREENDOOR");
+				g_545f64 = 3;
+			}
+			break;
+	}
+	return OMedia3DVector(r, g, b, 0.6f);
+}
+
+// 0x437410 (thiscall on the gem Jimmy holds): Jimmy puts it in `holder`.
+void C3DGem::PutDown(CGameObject *jimmy, CGameObject *holder)
+{
+	C3DJimmy *jim = JimmyElement();
+	if (!jim || !jim->f_d38) return;						// port: NULL checked
+	float p[4];
+	holder->v195(p);
+	float x = p[0] + 10.0f, y = p[1] + 10.0f, z = p[2] - 30.0f;	// 0x4cb1cc, 0x4ca4b4
+	if (strcasecmp(holder->m_tag, "LEFTGEM") == 0)
+	{
+		g_545f5c = g_545f58;
+		x += 15.0f;											// 0x4dce54
+		y += 10.0f;
+		z -= 5.0f;											// 0x4caa90
+	}
+	if (strcasecmp(holder->m_tag, "RIGHTGEM") == 0)
+	{
+		g_545f60 = g_545f58;
+		x += 20.0f;											// 0x4caa40
+	}
+	SetFirstMaterial(this, Colour(g_545f58));
+	jimmy->v261();											// +0x414
+	if (C3DAnimated *j = dynamic_cast<C3DAnimated *>(jimmy)) j->ev58((char *)"PICKUP", 0);	// element +0xe8
+	g_545f58 = 0;
+	f_dcc = 0.75f;
+	ev98(this, 0);											// element +0x188: let go
+	if (C3DSpriteObject *h = dynamic_cast<C3DSpriteObject *>(holder))	// (holder - 0xc8)
+	{
+		h->f_694[0] = x;									// the holder keeps it there
+		h->f_694[1] = y;
+		h->f_694[2] = z;
+	}
+	jim->f_d38 = NULL;
+	TintRay(Colour(g_545f60 + g_545f5c));
+}
+
+// 0x437340 (thiscall on the gem): taken out of `holder`.
+void C3DGem::TakenFrom(CGameObject *holder)
+{
+	if (g_545f68) return;
+	C3DJimmy *jim = JimmyElement();
+	if (jim && !jim->f_d38)									// port: NULL checked
+	{
+		if (strcasecmp(holder->m_tag, "LEFTGEM") == 0) g_545f5c = 0;
+		if (strcasecmp(holder->m_tag, "RIGHTGEM") == 0) g_545f60 = 0;
+	}
+	TintRay(Colour(g_545f60 + g_545f5c));
 }
 
 namespace neg {

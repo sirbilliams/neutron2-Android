@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DSpriteObject.h"
+#include "../level5a/C3DGem.h"
 #include "../C3DJimmy.h"
 #include "../CGameType.h"
 #include "../Game.h"
@@ -34,15 +35,13 @@ static bool IsGemHolder(const char *tag)
 // LEFTGEM / RIGHTGEM, the "PICKUP" animation, Jimmy's f_d38 cleared, SPHYNXRAY's colour).
 static void PutGemDown(C3DObject *gem, CGameObject *jimmy, CGameObject *holder)
 {
-	(void)gem; (void)jimmy; (void)holder;
-	NEG_TODO(0x437410, "Jimmy puts his gem in a gem holder");
+	if (C3DGem *g = gem ? dynamic_cast<C3DGem *>(gem) : NULL) g->PutDown(jimmy, holder);	// port: checked
 }
 
-// 0x437340: a gem taken out of `holder` (LEFTGEM / RIGHTGEM): SPHYNXRAY's colour.
-static void GemTaken(CGameObject *holder)
+// 0x437340 (thiscall on the held gem): taken out of `holder` (LEFTGEM / RIGHTGEM): SPHYNXRAY's colour.
+static void GemTaken(CGameObject *gem, CGameObject *holder)
 {
-	(void)holder;
-	NEG_TODO(0x437340, "a gem taken out of LEFTGEM / RIGHTGEM");
+	if (C3DGem *g = gem ? dynamic_cast<C3DGem *>(gem) : NULL) g->TakenFrom(holder);	// (the held gem's element)
 }
 
 // Jimmy turned to face this sprite: his rotation (own x, heading towards it, own z).
@@ -158,7 +157,7 @@ void C3DSpriteObject::AddTouching(CGameObject *other)		// 0x473040
 		if (held && held->NameContains((char *)"C3DGEM"))	// +0x18
 		{
 			if (strcasecmp(m_tag, "LEFTGEM") == 0 || strcasecmp(m_tag, "RIGHTGEM") == 0)
-				GemTaken(this);								// 0x437340
+				GemTaken(held, this);						// 0x437340
 			held->AddTouching(other);						// +0x40
 			f_704 = 0;
 		}
