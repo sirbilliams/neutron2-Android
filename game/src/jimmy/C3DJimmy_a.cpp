@@ -189,10 +189,10 @@ static CGameObject *FindNearest(CGameObject *o, int id1, int id2)
 
 // Members of helper classes that are not reconstructed yet (their objects are never created
 // until they are; see C3DJimmy.h).
-static void ParticleBurst(C3DPermanentSprite *p, OMedia3DVector pos)	// +0x610 = 1, element slot 55 (+0xdc)(pos)
+static void ParticleBurst(C3DMagicParticle *p, OMedia3DVector pos)	// +0x610 = 1, element slot 55 (+0xdc)(pos)
 {
-	(void)p; (void)pos;
-	NEG_TODO(0x446395, "C3DMagicParticle +0x610 / element slot 55 (sparkle at pos)");
+	p->f_610 = 1.0f;										// (set before the camera point in the original)
+	p->Burst(pos);
 }
 static bool CursorWanted(CGameObject *pickup)			// C3DGrannyObj +0xdb4 / C3DPickupItem +0x914 (element offsets)
 {
@@ -277,10 +277,11 @@ void C3DJimmy::ev155(void)									// 0x447c70
 }
 
 // The colour of a C3DMagicParticle (+0x600..+0x608).
-static void SetParticleColour(C3DPermanentSprite *p, float r, float g, float b)
+static void SetParticleColour(C3DMagicParticle *p, float r, float g, float b)
 {
-	(void)p; (void)r; (void)g; (void)b;
-	NEG_TODO(0x447970, "C3DMagicParticle colour (+0x600..+0x608)");
+	p->f_600 = r;
+	p->f_604 = g;
+	p->f_608 = b;
 }
 
 void C3DJimmy::ev156(float t, float r, float g, float b)	// 0x447950

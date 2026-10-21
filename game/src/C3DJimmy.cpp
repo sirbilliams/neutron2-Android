@@ -30,7 +30,6 @@ CGameObject *New_C3DGoddard(void);			// 0x4383d0
 
 // Helper classes without a factory ID: not reconstructed yet.
 static CGameObject *NewGraplingHook(void)	{ NEG_TODO(0x43cdb0, "new C3DGraplingHook (0x92c bytes)"); return NULL; }
-static CGameObject *NewMagicParticle(void)	{ NEG_TODO(0x451700, "new C3DMagicParticle (0x620 bytes)"); return NULL; }
 
 template <class T> static T *As(CGameObject *o) { return o ? dynamic_cast<T *>(o) : NULL; }
 
@@ -86,10 +85,9 @@ static int ParticleKind(int a, int b, int c)
 	return c;
 }
 
-static void SetParticleKind(C3DPermanentSprite *p, int kind)	// C3DMagicParticle +0x594
+static void SetParticleKind(C3DMagicParticle *p, int kind)	// C3DMagicParticle +0x594
 {
-	(void)kind;
-	if (p) NEG_TODO(0x4440ac, "C3DMagicParticle +0x594 (sparkle kind)");
+	p->m_sprite_index = kind;								// its sprite ("SpriteIndex")
 }
 
 // The setup the constructor gives the rocket ship and the jet pack: hidden, and (CGameObject
@@ -217,10 +215,10 @@ C3DJimmy::C3DJimmy()										// 0x443830
 
 	for (int i = 0; i < 20; i++)
 	{
-		f_4d00[i] = As<C3DPermanentSprite>(NewMagicParticle());	// 0x620 bytes
-		SetParticleKind(f_4d00[i], ParticleKind(0xe, 0xc, 0x11));	// port: the roll is made even without the particle
+		f_4d00[i] = new C3DMagicParticle;					// 0x620 bytes
+		SetParticleKind(f_4d00[i], ParticleKind(0xe, 0xc, 0x11));
 	}
-	f_4d50[0] = As<C3DPermanentSprite>(NewMagicParticle());
+	f_4d50[0] = new C3DMagicParticle;
 	SetParticleKind(f_4d50[0], ParticleKind(0x1b, 0x1c, 0x1d));
 
 	f_4d7c = 0;

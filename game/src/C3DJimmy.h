@@ -38,6 +38,7 @@
 #include "C3DPlayer.h"
 #include "C3DJetPack.h"
 #include "C3DASEObj.h"
+#include "C3DMagicParticle.h"
 #include "OMedia3DPoint.h"
 #include "OMedia3DVector.h"
 
@@ -135,8 +136,8 @@ class C3DJimmy : public C3DPlayer
 	unsigned char		f_4cfc;			// 0x4cfc 0: grappling hook gadget selected once (12 s help shown)
 	unsigned char		f_4cfd;			// 0x4cfd 0: on the scooter (jeep): no shadow
 	unsigned char		f_4cfe;			// 0x4cfe 1 (0 while the constructor builds the helpers)
-	C3DPermanentSprite	*f_4d00[20];	// 0x4d00 C3DMagicParticle pool (next: f_4d54)
-	C3DPermanentSprite	*f_4d50[1];		// 0x4d50 C3DMagicParticle (next: f_4d60)
+	C3DMagicParticle	*f_4d00[20];	// 0x4d00 C3DMagicParticle pool (next: f_4d54)
+	C3DMagicParticle	*f_4d50[1];		// 0x4d50 C3DMagicParticle (next: f_4d60)
 	int					f_4d54;			// 0x4d54 next of f_4d00 (ev154)
 	float				f_4d58;			// 0x4d58 0; ev156 adds: sparkle time of f_4d00
 	float				f_4d5c;			// 0x4d5c 0
