@@ -114,7 +114,7 @@ public class SetupActivity extends Activity {
         note.setTextSize(15);
         note.setGravity(Gravity.CENTER);
         note.setPadding(0, dp(12), 0, dp(20));
-        note.setText("The game is being rebuilt from the original; it doesn't play yet.");
+        note.setText("The game is being rebuilt from the original; level 1 is in progress.");
         root.addView(note, wrap());
 
         Button play = new Button(this);
@@ -131,8 +131,37 @@ public class SetupActivity extends Activity {
         vl.topMargin = dp(12);
         root.addView(viewer, vl);
 
+        Button log = new Button(this);
+        log.setText("Share log");
+        log.setTextSize(15);
+        log.setOnClickListener(v -> shareLog());
+        LinearLayout.LayoutParams ll = wrap();
+        ll.topMargin = dp(12);
+        root.addView(log, ll);
+
         setContentView(root);
         play.requestFocus();        // the Thor's A button works without touching the screen
+    }
+
+    /** Sends the last run's omt-log.txt (written by the engine next to the game folder) as text. */
+    private void shareLog() {
+        File f = new File(getExternalFilesDir(null), "omt-log.txt");
+        String text;
+        try (FileInputStream in = new FileInputStream(f)) {
+            long len = f.length(), max = 200 * 1024;
+            if (len > max) in.skip(len - max);              // the end of a long log matters most
+            byte[] b = new byte[(int) Math.min(len, max)];
+            int n = 0, r;
+            while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
+            text = new String(b, 0, n, "UTF-8");
+        } catch (IOException e) {
+            text = "No log yet (" + e.getMessage() + "). Run Play first.";
+        }
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_SUBJECT, "Negatron log");
+        i.putExtra(Intent.EXTRA_TEXT, text);
+        startActivity(Intent.createChooser(i, "Share log"));
     }
 
     // ------------------------------------------------------------------ UI

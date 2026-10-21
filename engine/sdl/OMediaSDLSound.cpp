@@ -182,6 +182,8 @@ static void omf_open_audio(void)
 	omg_audio_dev = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 	if (!omg_audio_dev) { SDL_Log("OMT: no audio device (%s), sound disabled", SDL_GetError()); return; }
 	omg_out_freq = have.freq;
+	SDL_Log("OMT: audio %s, %d Hz, %d channels, format 0x%x, %d samples", SDL_GetCurrentAudioDriver(),
+			have.freq, have.channels, have.format, have.samples);
 	SDL_PauseAudioDevice(omg_audio_dev, 0);
 }
 

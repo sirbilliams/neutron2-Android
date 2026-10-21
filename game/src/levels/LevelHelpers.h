@@ -2,6 +2,7 @@
     repeats them inline in every InitGame (0x486730..0x48e150).                              */
 #pragma once
 #include "../CJimmyGame.h"
+#include "../Mouse.h"
 #include "../C3DSky.h"
 #include "../CGameObject.h"
 #include "../Globals.h"
@@ -33,7 +34,9 @@ static inline void CaptureMouse(bool capture)
 {
 	if (capture && !g_56aed0)
 	{
-		NEG_TODO(0x4a3930, "hide the cursor, remember and centre it");
+		// (the original also hides the Windows cursor and remembers its position; the SDL layer
+		// has no visible cursor on the Thor)
+		neg::CenterMouse();
 		g_mouse_captured = 1;
 		return;
 	}
