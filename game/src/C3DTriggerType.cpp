@@ -65,7 +65,8 @@ static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
 	static_cast<C3DCutSceneCamera *>(next)->TriggerCamera(flag);		// element +0xe0
 }
 // C3DFlyingCamera is a C3DObject (CGameObject at +0xc0): element slot 144 (+0x240).
-static void FlyingCameraFire(CGameObject *next)	{ (void)next; NEG_TODO(0x433f50, "C3DFlyingCamera element slot 144"); }
+namespace neg { void FlyingCameraTrigger(CGameObject *o); }
+static void FlyingCameraFire(CGameObject *next)	{ neg::FlyingCameraTrigger(next); }	// objects/C3DFlyingCamera.cpp
 // CLoadLevel (a C3DSprite): element slot 55 (+0xdc).
 static void LoadLevelFire(CGameObject *next)		{ static_cast<CLoadLevel *>(next)->ev55(); }
 

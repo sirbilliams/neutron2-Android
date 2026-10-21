@@ -50,7 +50,8 @@ static void TriggerTypeActivate(CGameObject *o, const char *name, int a)
 	NEG_TODO(0x406cb0, "C3DTriggerType element slot 55 (activate)"); (void)o; (void)name; (void)a;
 }
 // A C3DFlyingCamera (element vtable +0x240, its CGameObject base at +0xc0).
-static void FlyingCameraStart(CGameObject *o)	{ NEG_TODO(0x406cd4, "C3DFlyingCamera element slot 144"); (void)o; }
+namespace neg { void FlyingCameraTrigger(CGameObject *o); }			// objects/C3DFlyingCamera.cpp
+static void FlyingCameraStart(CGameObject *o)	{ neg::FlyingCameraTrigger(o); }	// 0x406cd4
 // A C3DPickupItem (element vtable +0xec, its CGameObject base at +0xc8).
 static void PickupItemCollect(CGameObject *o)	{ NEG_TODO(0x408dce, "C3DPickupItem element slot 59"); (void)o; }
 // C3DJimmy (element vtable +0x1e4): go to `file` at start point `start`.
