@@ -29,6 +29,7 @@ void neg::TestPlayHook(const char *level)
 {
 	const char *want = getenv("NEG_TEST_PLAY");
 	if (!want || strcasecmp(want, level) != 0) return;
+	if (getenv("NEG_TEST_STORY")) return;	// TEMP (agent d, not committed)
 	C3DJimmy *jim = Jimmy();
 	if (!jim || !g_gametype) return;
 	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)

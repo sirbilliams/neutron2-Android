@@ -1,6 +1,7 @@
 /*  C3DTriggerType - see C3DTriggerType.h. */
 #include "DatabaseCache.h"
 #include "C3DTriggerType.h"
+#include <SDL.h> // TEMPDBG
 #include "CJimmyGame.h"
 #include "C3DJimmy.h"
 #include "objects/C3DAITrigger.h"
@@ -209,6 +210,7 @@ void C3DTriggerType::v242(float t)
 // an object tag whose class decides what firing means.
 void C3DTriggerType::CallNextTrigger(const char *name, unsigned char flag)
 {
+	SDL_Log("TEMPDBG CallNextTrigger %s from %s", name, m_tag);
 	if (strcasecmp(name, "none") == 0)
 	{
 		// (debug log "NextTrigger is none for %s", m_tag)

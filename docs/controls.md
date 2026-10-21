@@ -41,7 +41,8 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 | R2 | rZ axis + key Y (port, past half way) | Yes in confirmations |
 | L2 | Z axis + key N (port) | No in confirmations |
 | Right stick | rX / rY + mouse pointer (port) | Camera (mouse look) in play; pointer in menus |
-| L3 / R3 / Guide | buttons 5 / 6 / 7 | Unused by the game |
+| L3 | button 5 + key L (port) | The mini sub's headlight on / off (Level3a; the original only has the L key for it) |
+| R3 / Guide | buttons 6 / 7 | Unused by the game |
 | Android back (tap) | key Esc | Same as Esc; never closes the app (`SDL_HINT_ANDROID_TRAP_BACK_BUTTON`). Reaches the game 0.35 s after release (port: see the port menu below) |
 | Android back (hold 0.6 s, or two taps) | - | Opens the port menu (port) |
 | Touch screen | mouse | Pointer and left click, as the mouse |

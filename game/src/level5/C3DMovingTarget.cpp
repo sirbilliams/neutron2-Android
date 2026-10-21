@@ -1,3 +1,4 @@
+#include <SDL.h> // TEMPDBG
 /*  C3DMovingTarget - see C3DMovingTarget.h. Reconstructed from Neutron2.exe 0x456320..0x456de0. */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
@@ -89,6 +90,7 @@ void C3DMovingTarget::AddTouching(CGameObject *other)		// 0x456670
 {
 	CGameObject::AddTouching(other);						// 0x4ab970
 	if (!other->NameContains((char *)"C3DWATERBALLOON") && !other->NameContains((char *)"C3DENERGYPROJECTILE")) return;
+	SDL_Log("TEMPDBG target hit %s", f_694);
 	HideAgain();											// element +0xd8
 	v136(0);												// +0x220
 	other->v136(0);
