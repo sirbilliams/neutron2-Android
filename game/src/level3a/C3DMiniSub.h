@@ -95,8 +95,3 @@ class C3DMiniSub : public C3DFlyingObject
 	float				f_a7c;			// 0xa7c  time (the light's pulse)
 };
 
-namespace neg {
-// Hook: C3DBub element +0x670 (a just released trail bubble's value, 0.2). Weak in C3DMiniSub.cpp
-// until C3DBub is written; its file defines the real one.
-void MiniSubBubSet670(CGameObject *bub, float v);
-}

@@ -89,7 +89,7 @@ void C3DVortex::Process(float dt)
 	CGameObject **objs = SubObjects(m_sub);					// (m_sub re-read, as an object - 0xc0)
 	if (!objs) return;
 	for (int i = 0; i < 10; ++i)							// +0xa04..+0xa28
-		if (objs[i]) objs[i]->v161(d.x, d.y, d.z, d.w);		// port: NULL until C3DBub is written
+		if (objs[i]) objs[i]->v161(d.x, d.y, d.z, d.w);		// (the trail bubbles)
 }
 
 namespace neg {

@@ -181,8 +181,8 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
     (its death switches BLOCKWASP off; its WASPDIE trigger does not exist in VR01) -> drive onto the
     touch trigger curevox in the arena -> outro -> vrtank_done -> loadlab -> level1b.gam. Checked per
     segment with teleports (gate 5, the wasp fight, curevox to level1b), not one full manual run.
-  - **C3DBub** (the sub's trail bubbles / water-gun bubbles; hook `neg::MiniSubBubSet670` in
-    level3a/C3DMiniSub.cpp) — needed for the lab fight in Level3e.
+  - **C3DBub** ('3BUU', the mini sub's 10 trail bubbles): done; C3DMiniSub creates them directly (the
+    weak hook is gone). Level3a / Level3e run with them (bubbles rise and fade; no TODO).
   - **level4a**: C3DUltraLord is written, but the game files have no Ultra Lord art (ultra*.ase,
     ultralord.png), so the level can't load its textures; no level leads to it. Nothing to do.
   - Untested real play (hacks were used): shooting the dinos/pteros in Level5f, Level4b's 25-hit win,
