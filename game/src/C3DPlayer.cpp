@@ -963,13 +963,13 @@ void C3DPlayer::ev109(float dt)								// 0x461b50
 	else if (T < -45.0f) { turning = 1; T = -45.0f; f_ac6 = 1; f_b18 = 0.5f; }
 	if (f_ac6 == 0)
 	{
-		// a turn animation keeps going a little
+		// a turn animation keeps going a little (0.1 s, 0.5 s after a big turn), then stops
 		if (f_b18 > 0) f_b18 -= dt;
 		if (f_b18 > 0) f_ac6 = 1;
-		else f_b18 = 0.1f;
+		else f_b18 = 0;										// 0x461f74 (ecx was zeroed at 0x461f23)
 		if (f_b14 > 0) f_b14 -= dt;
 		if (f_b14 > 0) f_ac6 = -1;
-		else f_b14 = 0.1f;
+		else f_b14 = 0;										// 0x461fbc
 	}
 	bool mleft = false, mright = false;
 	f_b0c = 0;
