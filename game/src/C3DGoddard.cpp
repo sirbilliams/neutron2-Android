@@ -2,6 +2,7 @@
     Constants: 0x4cb228 = 16384 / 360, 0x4cb1f8 = 360 / 16384, 0x4df740 = 1 / 45, 0x4df73c = 52,
     0x4df74c = 14.4 (mouse to steering), 0x4cb21c = 200 (arrow distance from the viewport).   */
 #include "C3DGoddard.h"
+#include "objects/C3DBone.h"
 #include "Mouse.h"
 #include "C3DShadow.h"
 #include "C3DCursor.h"
@@ -132,12 +133,12 @@ static bool KeyDeactivateItem(void)
 
 using neg::GetMouseDelta;									// 0x4a3990 (Mouse.h)
 
-// A C3DBone that Goddard picked up: hidden, its +0x924 cleared (C3DBone is not reconstructed).
+// A C3DBone that Goddard picked up: hidden, its +0x924 cleared.
 static void BoneTaken(CGameObject *bone)
 {
-	C3DObject *e = bone ? dynamic_cast<C3DObject *>(bone) : NULL;
-	e->HideAgain();											// element +0xdc
-	NEG_TODO(0x43a94b, "C3DBone +0x924 = 0");
+	C3DBone *b = bone ? dynamic_cast<C3DBone *>(bone) : NULL;
+	b->HideAgain();											// element +0xdc
+	b->f_924 = 0;
 }
 
 // The arrow of a C3DCursor (its CGameObject part) as an element.
