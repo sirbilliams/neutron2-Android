@@ -17,6 +17,7 @@
 #include "../C3DJimmy.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
+#include "../C3DShadow.h"
 #include "../C3DTriggerType.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -174,14 +175,6 @@ static float RotationY(CGameObject *o)
 	return r[1];
 }
 
-// 0x46ec30 (C3DShadow): its size w x h (also kept in its shorts +0x600 / +0x602).
-static void ShadowSetSize(C3DPermanentSprite *shadow, short w, short h)
-{
-	if (!shadow) return;									// port: NULL until C3DShadow exists
-	NEG_TODO(0x46ec30, "C3DShadow +0x600 / +0x602 (size as shorts)");
-	shadow->set_size((float)w, (float)h);					// canvas +0xac / +0xb0
-}
-
 // The element (C3DObject family) of a game object found by tag, or NULL.
 static C3DObject *Element(CGameObject *o)
 {
@@ -216,12 +209,12 @@ void C3DJimmy::ev144(void)											// 0x448b40
 		if (g_difficulty == 0) speed = 1800.0f;
 		else if (g_difficulty == 1) speed = 1500.0f;
 		else if (g_difficulty == 2) speed = 1400.0f;
-		ev148(30.0f, 50.0f, 50.0f, f_4cd8, speed, 0.0f, 0.0f, 0.1f);
+		ev148(30.0f, 50.0f, 50.0f, f_4cd8, speed, NULL, 0.0f, 0.1f);
 		ev58((char *)"SHOOT", 0);
 		f_d54 = 0;
 		f_4cd4 = 0;
 		if (g_power_timers[5] <= 0.0f) AddEnergy(-1.0f);
-		if (f_d20) f_d20->HideAgain();						// port: NULL until C3DGraplingHook exists
+		f_d20->HideAgain();
 		return;
 	}
 	if (f_4cd0 < 20.0f)
@@ -229,35 +222,35 @@ void C3DJimmy::ev144(void)											// 0x448b40
 		// the burp gun is not charged yet
 		PlayGameSound(-1, std::string("click shrink ray"), false);
 		f_4cd4 = 0;
-		if (f_d20) f_d20->HideAgain();
+		f_d20->HideAgain();
 		return;
 	}
 	// the burp gun: four big bubbles
 	g_menu->ShowGadgetBar();
 	PlayGameSound(-1, std::string("burpgun"), false);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.0f, 90.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.1f, 85.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.2f, 80.0f);
-	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, 0.0f, 0.3f, 75.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.0f, 90.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.1f, 85.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.2f, 80.0f);
+	ev148(30.0f, 80.0f, 50.0f, f_4cd8, 800.0f, NULL, 0.3f, 75.0f);
 	f_4cd0 = 0;
 	ev58((char *)"SHOOT", 0);
 	f_d54 = 0;
 	f_4cd4 = 0;
 	if (g_power_timers[5] <= 0.0f) AddEnergy(-1.0f);
-	if (f_d20) f_d20->HideAgain();
+	f_d20->HideAgain();
 }
 
-void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, float a6, float a7, float a8)	// 0x44b090
+void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, CGameObject *target, float delay, float growth)	// 0x44b090
 {
 	CGameObject *self = this;
 	const OMedia3DVector p = self->v224(x, y, z);				// +0x380 muzzle in the world
-	C3DPermanentSprite *b = f_cd0[f_d50];
+	C3DWaterBalloon *b = f_cd0[f_d50];
 	if (!b) return;
 	b->ShowAgain();												// sprite slot 53
 	b->v136(1);
 	b->v132(1);
 	b->v196(p.x, p.y, p.z, p.w);								// +0x310
-	NEG_TODO(0x44b1a8, "C3DWaterBalloon +0x660 (start point) = muzzle");
+	b->f_660 = p;												// the muzzle
 	OMedia3DVector d = ObjectDir(self, 0.0f, pitch * 0.022222223f, 1.0f);	// +0x388; 0x4df740
 	const float k = 1.0f / d.quick_magnitude();
 	d.x = k * d.x;
@@ -266,25 +259,22 @@ void C3DJimmy::ev148(float x, float y, float z, float pitch, float speed, float 
 	b->v176(0, 0, 0);											// +0x2c0
 	b->v157(0, 0, 0);											// +0x274
 	b->v162(d.x * speed, d.y * speed, d.z * speed);				// +0x288
-	NEG_TODO(0x44b2b3, "C3DWaterBalloon +0x62c = 0, +0x634 = a6, +0x638 = speed, +0x658 = a8, +0x654 = 0, +0x65c = a7");
-	(void)a6; (void)a7;
-	if (a8 > 0.0f) b->set_size((float)b->m_sprite_size, (float)b->m_sprite_size);	// (+0x658 > 0) canvas = SpriteSize
+	b->f_62c = 0;
+	b->f_634 = target;
+	b->f_638 = speed;
+	b->f_658 = growth;
+	if (b->f_658 > 0.0f) b->set_size((float)b->m_sprite_size, (float)b->m_sprite_size);	// canvas = SpriteSize
+	b->f_654 = 0;
+	b->f_65c = delay;
 	f_d50++;
 	if (f_d50 >= 20) f_d50 = 0;
 }
 
 // The look of the 20 water balloons and of each one's trail sprite (C3DWaterBalloon +0x64c,
 // that sprite's CGameObject part).
-static C3DSprite *BalloonTrail(C3DPermanentSprite *b)
+static void SetTrail(C3DWaterBalloon *b, int index, bool v136_off)
 {
-	(void)b;
-	NEG_TODO(0x44da45, "C3DWaterBalloon +0x64c (trail sprite)");
-	return NULL;
-}
-
-static void SetTrail(C3DPermanentSprite *b, int index, bool v136_off)
-{
-	C3DSprite *t = BalloonTrail(b);
+	C3DSprite *t = b->f_64c;
 	if (!t) return;
 	t->m_sprite_index = index;									// +0x4cc of its CGameObject part
 	t->m_sprite_size = 100;
@@ -299,7 +289,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			b->m_sprite_index = 10;
 			b->m_sprite_size = 45;
@@ -315,7 +305,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			unsigned int *seed = g_random_seed;
 			*seed = *seed * 0x19660d + 0x7fff;
@@ -340,7 +330,7 @@ void C3DJimmy::ev152(int kind)										// 0x44d9e0
 	{
 		for (int i = 0; i < 20; i++)
 		{
-			C3DPermanentSprite *b = f_cd0[i];
+			C3DWaterBalloon *b = f_cd0[i];
 			if (!b) continue;
 			b->m_sprite_index = 0x21;
 			b->m_sprite_size = 0xf;
@@ -544,8 +534,8 @@ void C3DJimmy::ev149(float spin, CGameObject *target, C3DObject *obj)	// 0x44e42
 void C3DJimmy::ev161(unsigned char show, int which)					// 0x44e3b0
 {
 	if (which != 1) return;
-	NEG_TODO(0x44e3c3, "C3DGoddard +0x1b80 (object shown with Jimmy)");
-	C3DObject *o = NULL;										// C3DGoddard f_1b80 (a CGameObject part) - 0xc0
+	CGameObject *a = f_d5c->f_1b80;							// Goddard's arrow (a CGameObject part)
+	C3DObject *o = a ? dynamic_cast<C3DObject *>(a) : NULL;
 	if (!o) return;												// port: the original calls through NULL
 	if (show) o->ShowAgain();
 	else o->HideAgain();
@@ -571,7 +561,11 @@ unsigned char C3DJimmy::ev141(float dt)								// 0x449050
 		}
 		return 1;
 	}
-	NEG_TODO(0x449095, "C3DJetPack +0x9f4 (its sound channel): stopped, -1");
+	if (f_ccc->f_9f4 != -1)
+	{
+		StopGameSound(f_ccc->f_9f4, false);					// 0x48f0d0
+		f_ccc->f_9f4 = -1;
+	}
 	CGameObject *self = this;
 	const OMedia3DVector pos = Position(self);
 	const OMedia3DVector up = self->v224(0.0f, 2400.0f, 2400.0f);	// +0x380
@@ -767,14 +761,11 @@ unsigned char C3DJimmy::ev140(float dt)								// 0x44b490
 				if (PhysicsClosestHit(p, down, false))
 				{
 					const float hit_y = g_phys_ray.end.y;
-					if (f_cc4)
-					{
-						const OMedia3DVector q = Position(self);
-						f_cc4->v197(q.x, hit_y + 30.0f, q.z);		// +0x314 of its CGameObject part
-						if (!g_windowed) f_cc4->ShowAgain();
-					}
+					const OMedia3DVector q = Position(self);
+					f_cc4->v197(q.x, hit_y + 30.0f, q.z);			// +0x314 of its CGameObject part
+					if (!g_windowed) f_cc4->ShowAgain();
 				}
-				else if (f_cc4) f_cc4->HideAgain();
+				else f_cc4->HideAgain();
 			}
 		}
 	}
@@ -834,7 +825,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 		{
 			CGameObject *r = FindObjectByTag("C3DROCKETSHIP");
 			if (!r) break;
-			ShadowSetSize(f_cc4, 150, 50);
+			f_cc4->SetSize(150, 50);								// 0x46ec30
 			Element(r)->ShowAgain();
 			r->v52(1);
 			r->v132(1);
@@ -856,7 +847,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				NEG_TODO(0x44a006, "C3DRocketShip +0x1134 (cgo) = Goddard");
 				f_d5c->v120(1);
 				f_d5c->v132(0);
-				NEG_TODO(0x44a04c, "C3DGoddard +0x1b60 = 1 (riding)");
+				f_d5c->f_1b60 = 1;								// riding along
 				f_d5c->ev58((char *)"ROCK", 1);
 				f_d5c->v136(0);
 			}
@@ -888,7 +879,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			v132(1);
 			f_4d7c = 0;
 			g_flag_545e54 = 1;
-			if (f_ccc) f_ccc->ShowAgain();						// port: NULL until C3DJetPack exists
+			f_ccc->ShowAgain();
 			break;
 
 		case 4:
@@ -903,14 +894,13 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			if (f_d5c)
 			{
 				f_d5c->HideAgain();
-				NEG_TODO(0x44a235, "C3DGoddard +0x1b50 (sprite): HideAgain");
+				f_d5c->f_1b50->HideAgain();						// his shadow, sprite +0xd8
 				f_d5c->v136(0);
 				f_d5c->v132(0);
 			}
 			NEG_TODO(0x44a275, "C3DJeep +0x9c4 (cgo) = Jimmy (driver)");
 			j->v136(1);
 			j->v132(1);
-			if (f_d5c)											// port: the original reads Goddard without a check
 			{
 				const OMedia3DVector p = Position(f_d5c);
 				j->v90(p.x, p.y, p.z);							// +0x168
@@ -939,7 +929,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			{
 				f_d5c->v136(0);
 				f_d5c->v132(0);
-				NEG_TODO(0x44a45e, "C3DGoddard element slot 107 (7)");
+				f_d5c->ev107(7);								// element +0x1ac
 				f_d5c->ev58((char *)"SIT", 1);
 			}
 			save = true;
@@ -973,7 +963,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			f_a6c.x = 0;
 			f_a6c.y = 300.0f;
 			f_a6c.z = -350.0f;
-			if (f_d20) f_d20->ev71(0.5f);						// port: NULL until C3DGraplingHook exists
+			f_d20->ev71(0.5f);
 			if (f_d28) f_d28->ShowAgain();
 			save = true;
 			break;
@@ -1010,9 +1000,9 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				f_d5c->v120(1);
 				f_d5c->v136(0);
 				f_d5c->ev58((char *)"ROCK", 1);
-				NEG_TODO(0x44a975, "C3DGoddard +0x1b60 = 1 (riding)");
+				f_d5c->f_1b60 = 1;
 				f_d5c->v132(0);
-				NEG_TODO(0x44a99c, "C3DGoddard element slot 121");
+				f_d5c->ev121();									// element +0x1e4
 				NEG_TODO(0x44a9a8, "C3DMiniSub +0x938 (cgo) = Goddard");
 			}
 			save = true;
@@ -1046,7 +1036,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			f_a6c.x = 0;
 			f_a6c.y = 250.0f;
 			f_a6c.z = -350.0f;
-			if (f_d20) f_d20->ev71(0.5f);
+			f_d20->ev71(0.5f);
 			g_menu->ShowGadgetBar();
 			if (f_d2c) f_d2c->ShowAgain();
 			save = true;
@@ -1075,7 +1065,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			h->v132(1);
 			ev58((char *)"DRIVE", 1);
 			v136(0);
-			if (f_d5c) f_d5c->v136(0);							// port: the original does not check
+			f_d5c->v136(0);
 			NEG_TODO(0x44ae65, "C3DHoverCycle +0x1af4 (cgo): if != -1, = PlayGameSound3D(Jimmy, -1, \"harley1\", true)");
 			save = true;
 			cam = h;
@@ -1139,7 +1129,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			// (debug log "Deactivating Rocket")
 			CGameObject *r = FindObjectByTag("C3DROCKETSHIP");
 			if (!r) break;
-			ShadowSetSize(f_cc4, 70, 30);
+			f_cc4->SetSize(70, 30);								// 0x46ec30
 			Element(r)->HideAgain();
 			r->v52(0);
 			r->v132(0);
@@ -1156,11 +1146,11 @@ void C3DJimmy::ev139(void)											// 0x449450
 			{
 				NEG_TODO(0x4495c7, "C3DRocketShip +0x1134 (cgo) = 0");
 				f_d5c->v120(0);
-				NEG_TODO(0x4495ee, "C3DGoddard +0x1b60 = 0 (riding)");
+				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
 				f_d5c->ev58((char *)"STOP", 1);
 				f_d5c->v136(1);
-				if (!g_windowed) NEG_TODO(0x449655, "C3DGoddard +0x1b50 (sprite): ShowAgain");
+				if (!g_windowed) f_d5c->f_1b50->ShowAgain();		// his shadow, sprite +0xd4
 			}
 			break;
 		}
@@ -1191,7 +1181,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			if (!g_windowed && f_cc4) f_cc4->ShowAgain();		// port: f_cc4 NULL until C3DShadow exists
+			if (!g_windowed) f_cc4->ShowAgain();
 			{
 				float p[4];
 				v195(p);
@@ -1204,7 +1194,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->v136(0);
 				f_d5c->v132(0);
 				f_d5c->ShowAgain();
-				NEG_TODO(0x4497f5, "C3DGoddard +0x1b50 (sprite): ShowAgain");
+				f_d5c->f_1b50->ShowAgain();						// his shadow, sprite +0xd4
 				f_d5c->v136(1);
 				f_d5c->v132(1);
 			}
@@ -1231,7 +1221,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			{
 				f_d5c->v136(1);
 				f_d5c->v132(1);
-				NEG_TODO(0x44993f, "C3DGoddard element slot 107 (1)");
+				f_d5c->ev107(1);								// element +0x1ac
 				f_d5c->ev58((char *)"SIT", 1);
 			}
 			NEG_TODO(0x44995c, "C3DVRTank +0x9b8 (cgo, channel): StopChannel if != -1");
@@ -1250,7 +1240,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d30->ev95(0);
 			}
 			f_ae8 = 0;
-			if (f_d20) f_d20->ev71(0);
+			f_d20->ev71(0);
 			ev122();
 			break;
 
@@ -1278,7 +1268,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->v120(0);
 				f_d5c->v136(1);
 				f_d5c->ev58((char *)"SIT", 1);
-				NEG_TODO(0x449ae9, "C3DGoddard +0x1b60 = 0 (riding)");
+				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
 				NEG_TODO(0x449b07, "C3DMiniSub +0x938 (cgo) = 0");
 			}
@@ -1303,7 +1293,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			}
 			f_ae8 = 0;
 			ev122();
-			if (f_d20) f_d20->ev71(0);
+			f_d20->ev71(0);
 			g_menu->HideGadgetBar();
 			break;
 
@@ -1328,7 +1318,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			if (f_d5c) f_d5c->v136(1);							// port: the original does not check
+			f_d5c->v136(1);
 			NEG_TODO(0x449d02, "C3DHoverCycle +0x1af4 (cgo, channel): stopped, -1");
 			break;
 		}

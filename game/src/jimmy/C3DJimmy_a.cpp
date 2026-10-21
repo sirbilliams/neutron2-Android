@@ -1,6 +1,8 @@
 /*  C3DJimmy, part A: the slots below 0x448b40 (see C3DJimmy.h). */
 #include "../C3DJimmy.h"
 #include "../C3DPermanentSprite.h"
+#include "../C3DShadow.h"
+#include "../C3DPointCursor.h"
 #include "../C3DGrannyObj.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -102,13 +104,6 @@ static OMedia3DMaterial *FirstMaterial(OMedia3DShapeElement *e)
 	return (*polys->begin()).get_material();
 }
 
-static int ShadowHeight(C3DPermanentSprite *shadow)		// C3DShadow +0x602 (short)
-{
-	(void)shadow;
-	NEG_TODO(0x446e80, "C3DShadow +0x602 (its height)");
-	return 0;
-}
-
 static OMedia3DVector Position(CGameObject *o)			// vtable +0x30c
 {
 	float p[4];
@@ -194,10 +189,10 @@ static CGameObject *FindNearest(CGameObject *o, int id1, int id2)
 
 // Members of helper classes that are not reconstructed yet (their objects are never created
 // until they are; see C3DJimmy.h).
-static void ParticleBurst(C3DPermanentSprite *p, OMedia3DVector pos)	// +0x610 = 1, element slot 55 (+0xdc)(pos)
+static void ParticleBurst(C3DMagicParticle *p, OMedia3DVector pos)	// +0x610 = 1, element slot 55 (+0xdc)(pos)
 {
-	(void)p; (void)pos;
-	NEG_TODO(0x446395, "C3DMagicParticle +0x610 / element slot 55 (sparkle at pos)");
+	p->f_610 = 1.0f;										// (set before the camera point in the original)
+	p->Burst(pos);
 }
 static bool CursorWanted(CGameObject *pickup)			// C3DGrannyObj +0xdb4 / C3DPickupItem +0x914 (element offsets)
 {
@@ -205,11 +200,9 @@ static bool CursorWanted(CGameObject *pickup)			// C3DGrannyObj +0xdb4 / C3DPick
 	NEG_TODO(0x4489ac, "pickup +0xdb4 / +0x914: show the point cursor over it");
 	return false;
 }
-static C3DObject *GoddardPointer(C3DPlayerObject *goddard)	// C3DGoddard +0x1b84 (its CGameObject part)
+static C3DObject *GoddardPointer(C3DGoddard *goddard)		// C3DGoddard +0x1b84 (its CGameObject part)
 {
-	(void)goddard;
-	NEG_TODO(0x4488f9, "C3DGoddard +0x1b84");
-	return NULL;
+	return goddard->f_1b84 ? dynamic_cast<C3DObject *>(goddard->f_1b84) : NULL;
 }
 
 // --------------------------------------------------------------------------- element family
@@ -282,10 +275,11 @@ void C3DJimmy::ev155(void)									// 0x447c70
 }
 
 // The colour of a C3DMagicParticle (+0x600..+0x608).
-static void SetParticleColour(C3DPermanentSprite *p, float r, float g, float b)
+static void SetParticleColour(C3DMagicParticle *p, float r, float g, float b)
 {
-	(void)p; (void)r; (void)g; (void)b;
-	NEG_TODO(0x447970, "C3DMagicParticle colour (+0x600..+0x608)");
+	p->f_600 = r;
+	p->f_604 = g;
+	p->f_608 = b;
 }
 
 void C3DJimmy::ev156(float t, float r, float g, float b)	// 0x447950
@@ -339,7 +333,7 @@ void C3DJimmy::ev165(CGameObject *start)					// 0x445d20
 		f_bd9 = 0;
 		v90(f_bdc.x, f_bdc.y, f_bdc.z);
 		place(f_bdc.x, f_bdc.y, f_bdc.z);
-		if (f_d5c) f_d5c->v89(f_bdc.x, f_bdc.y, f_bdc.z, *(unsigned int *)&f_bdc.w);	// port: NULL-checked
+		f_d5c->v89(f_bdc.x, f_bdc.y, f_bdc.z, *(unsigned int *)&f_bdc.w);
 	}
 	// The view and the music of the start point (C3DStartPoint +0x600, +0x620, +0x684).
 	C3DStartPoint *sp = dynamic_cast<C3DStartPoint *>(start);
@@ -521,7 +515,7 @@ void C3DJimmy::v260(void)									// 0x445740
 			props[i]->HideAgain();							// element +0xdc
 			ev88((char *)"none", static_cast<CGameObject *>(props[i]));	// element +0x160
 		}
-	if (f_d20) f_d20->HideAgain();							// port: NULL-checked (the hook always exists)
+	f_d20->HideAgain();
 	if (f_d44)
 	{
 		f_d44->f_8ac = 0;									// "CanClip"
@@ -717,15 +711,15 @@ void C3DJimmy::ev136(float dt)								// 0x446d40
 	OMedia3DVector b(p.x, a.y - 2500.0f, p.z, p.w);
 	if (!PhysicsClosestHit(a, b, false))					// 0x4b7640
 	{
-		if (f_cc4) f_cc4->HideAgain();						// +0xd8 (port: NULL-checked)
+		f_cc4->HideAgain();									// +0xd8
 		f_c04 = 0;
 		return;
 	}
 	const OMedia3DVector hit = RayEnd();
-	if (!f_cc4) return;
+	if (!f_cc4) return;										// (the original checks here)
 	if (!g_windowed) f_cc4->ShowAgain();					// +0xd4 (0x56afab)
 	// the shadow sits on the floor, half its height (+0x602) - 2 up
-	const float half = (float)(ShadowHeight(f_cc4) / 2 - 2);
+	const float half = (float)(f_cc4->f_602 / 2 - 2);
 	p = Position(this);
 	f_cc4->v197(p.x, hit.y + half, p.z);					// +0x314
 	{
@@ -869,7 +863,6 @@ void C3DJimmy::ev163(void)									// 0x447c90
 	OMedia3DVector d(t.x - ax, t.y - ay, t.z - az, 0);
 	omt_Angle rx, ry;
 	d.angles(rx, ry);										// OMedia3DVector::angles
-	if (!f_d20) return;										// port: the original always has the hook
 	f_d20->v203((float)rx * kAngleToDeg, (float)ry * kAngleToDeg, 0);	// +0x32c
 	OMedia3DVector at = v224(24.0f, 14.0f, 32.0f);
 	f_d20->v196(at.x, at.y, at.z, at.w);					// +0x310
@@ -882,8 +875,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 {
 	if (f_4ef0)
 	{
-		// port: the original reads Goddard (f_d5c) unchecked
-		ev149(dt, f_4ef0, f_d5c ? GoddardPointer(f_d5c) : NULL);	// element +0x254
+		ev149(dt, f_4ef0, GoddardPointer(f_d5c));			// element +0x254
 	}
 	CGameObject *o = FindNearest(static_cast<CGameObject *>(this), '3PIC', '3GRO');	// 0x48f730
 	if (!o)
@@ -904,7 +896,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 		{
 			if (CursorWanted(o))
 			{
-				if (f_d4c)									// port: NULL-checked
+				if (f_d4c)									// (checked in the original)
 				{
 					f_d4c->ev71((float)(1.0 - (double)d * (double)0.0010526316f));	// +0x11c: fades with distance
 					OMedia3DVector q = Position(o);
@@ -916,7 +908,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 			}
 		}
 	}
-	if (f_d4c) f_d4c->HideAgain();							// +0xdc (port: NULL-checked)
+	if (f_d4c) f_d4c->HideAgain();							// +0xdc (checked in the original)
 }
 
 void C3DJimmy::Slide(float dt)								// 0x4479b0
@@ -947,14 +939,14 @@ void C3DJimmy::Slide(float dt)								// 0x4479b0
 			ev58((char *)"SLIDE", 1);
 			f_4d98 = PlayGameSound(-1, std::string("slide"), true);
 		}
-		if (g_flag_545e54 && f_ccc) f_ccc->HideAgain();		// +0xdc
+		if (g_flag_545e54) f_ccc->HideAgain();				// +0xdc
 	}
 	else
 	{
 		StopSound(&f_4d98);
 		f_96c = f_96c - 10.0f;
 		if (f_96c < 0) f_96c = 0;
-		if (g_flag_545e54 && f_ccc) f_ccc->ShowAgain();		// +0xd8
+		if (g_flag_545e54) f_ccc->ShowAgain();				// +0xd8
 	}
 	const float top = f_968 * 2.7f;
 	// (debug text "%d" of f_96c)
@@ -1158,11 +1150,11 @@ void C3DJimmy::Process(float dt)							// 0x446260
 		f_4cbc.x = p.x; f_4cbc.y = p.y; f_4cbc.z = p.z; f_4cbc.w = p.w;
 	}
 	ev133(dt);												// element +0x214
-	if (f_d5c)
+	if (f_d5c && f_d5c->f_1b5c == 4 && f_d5c->f_960 > 9.0f)	// Goddard in front for 9 s: back beside us
 	{
-		// Goddard (+0x1b5c state 4 and +0x960 timer over 9: timer 0, then by +0x1b5e
-		// element slot 144 (2) / (0) and return)
-		NEG_TODO(0x44686f, "C3DGoddard +0x1b5c / +0x960 / +0x1b5e");
+		f_d5c->f_960 = 0;
+		if (f_d5c->f_1b5e == 1) { f_d5c->ev144(2); return; }	// element +0x240
+		if (f_d5c->f_1b5e == 3) { f_d5c->ev144(0); return; }
 	}
 	if (f_4d7c) C3DAnimated::Process(dt);					// 0x41c120
 }

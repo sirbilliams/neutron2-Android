@@ -2,9 +2,16 @@
     hooks C3DPlayer.h declares weak. The slots are in jimmy/C3DJimmy_a.cpp and _b.cpp.       */
 #include "C3DJimmy.h"
 #include "C3DPermanentSprite.h"
+#include "C3DRadar.h"
+#include "C3DShadow.h"
+#include "C3DJetpackFire.h"
+#include "C3DTargetCursor.h"
+#include "C3DPointCursor.h"
+#include "C3DASEObj.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
+#include "C3DRocketShip.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -18,19 +25,9 @@ using namespace neg;
 // Factory entries of the helper classes (gen/factory.cpp: weak TODO stubs until they exist).
 namespace neg {
 CGameObject *New_C3DRocketShip(void);		// 0x46a290
-CGameObject *New_C3DShadow(void);			// 0x46e9f0
-CGameObject *New_C3DWaterBalloon(void);		// 0x47c780
-CGameObject *New_C3DGoddard(void);			// 0x4383d0
-CGameObject *New_C3DRadar(void);			// 0x468180
-CGameObject *New_C3DASEObj(void);			// 0x4207e0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
-static CGameObject *NewJetPack(void)		{ NEG_TODO(0x442f10, "new C3DJetPack (0xa04 bytes)"); return NULL; }
-static CGameObject *NewTargetCursor(void)	{ NEG_TODO(0x475b20, "new C3DTargetCursor (0x60c bytes)"); return NULL; }
-static CGameObject *NewPointCursor(void)	{ NEG_TODO(0x466a70, "new C3DPointCursor (0x92c bytes)"); return NULL; }
-static CGameObject *NewGraplingHook(void)	{ NEG_TODO(0x43cdb0, "new C3DGraplingHook (0x92c bytes)"); return NULL; }
-static CGameObject *NewMagicParticle(void)	{ NEG_TODO(0x451700, "new C3DMagicParticle (0x620 bytes)"); return NULL; }
 
 template <class T> static T *As(CGameObject *o) { return o ? dynamic_cast<T *>(o) : NULL; }
 
@@ -86,10 +83,9 @@ static int ParticleKind(int a, int b, int c)
 	return c;
 }
 
-static void SetParticleKind(C3DPermanentSprite *p, int kind)	// C3DMagicParticle +0x594
+static void SetParticleKind(C3DMagicParticle *p, int kind)	// C3DMagicParticle +0x594
 {
-	(void)kind;
-	if (p) NEG_TODO(0x4440ac, "C3DMagicParticle +0x594 (sparkle kind)");
+	p->m_sprite_index = kind;								// its sprite ("SpriteIndex")
 }
 
 // The setup the constructor gives the rocket ship and the jet pack: hidden, and (CGameObject
@@ -140,18 +136,18 @@ C3DJimmy::C3DJimmy()										// 0x443830
 
 	f_cc8 = As<C3DPlayerObject>(New_C3DRocketShip());		// 0x1284 bytes
 	ParkVehicle(f_cc8);
-	f_ccc = As<C3DPlayerObject>(NewJetPack());				// 0xa04 bytes
+	f_ccc = new C3DJetPack;									// 0xa04 bytes
 	ParkVehicle(f_ccc);
 
 	f_4cfe = 0;
-	f_cc4 = As<C3DPermanentSprite>(New_C3DShadow());		// 0x60c bytes
-	f_4c8c = As<C3DPermanentSprite>(NewTargetCursor());		// 0x60c bytes
+	f_cc4 = new C3DShadow;									// 0x60c bytes
+	f_4c8c = new C3DTargetCursor;							// 0x60c bytes
 	if (f_4c8c) f_4c8c->HideAgain();						// element +0xd8
-	f_d4c = As<C3DAnimated>(NewPointCursor());				// 0x92c bytes
+	f_d4c = new C3DPointCursor;								// 0x92c bytes
 	if (f_d4c) f_d4c->HideAgain();							// element +0xdc
 	for (int i = 0; i < 20; i++)
 	{
-		f_cd0[i] = As<C3DPermanentSprite>(New_C3DWaterBalloon());	// 0x678 bytes
+		f_cd0[i] = new C3DWaterBalloon;						// 0x678 bytes
 		if (f_cd0[i])
 		{
 			f_cd0[i]->HideAgain();							// element +0xd8
@@ -212,15 +208,15 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_c9c = 0;
 	f_4ef0 = NULL;
 
-	f_d20 = As<C3DAnimated>(NewGraplingHook());				// 0x92c bytes
+	f_d20 = new C3DGraplingHook;							// 0x92c bytes
 	if (f_d20) f_d20->f_590->scale(1.0f, 1.0f, 7.0f);		// its base shape, vtable +0x34
 
 	for (int i = 0; i < 20; i++)
 	{
-		f_4d00[i] = As<C3DPermanentSprite>(NewMagicParticle());	// 0x620 bytes
-		SetParticleKind(f_4d00[i], ParticleKind(0xe, 0xc, 0x11));	// port: the roll is made even without the particle
+		f_4d00[i] = new C3DMagicParticle;					// 0x620 bytes
+		SetParticleKind(f_4d00[i], ParticleKind(0xe, 0xc, 0x11));
 	}
-	f_4d50[0] = As<C3DPermanentSprite>(NewMagicParticle());
+	f_4d50[0] = new C3DMagicParticle;
 	SetParticleKind(f_4d50[0], ParticleKind(0x1b, 0x1c, 0x1d));
 
 	f_4d7c = 0;
@@ -265,15 +261,19 @@ C3DJimmy::C3DJimmy()										// 0x443830
 	f_4d68 = 0;
 	f_4d64 = 0;
 
-	f_d5c = As<C3DPlayerObject>(New_C3DGoddard());			// 0x1bcc bytes
-	f_d40 = As<C3DPermanentSprite>(New_C3DRadar());			// 0x640 bytes
+	f_d5c = new C3DGoddard;									// 0x1bcc bytes
+	f_d40 = new C3DRadar;									// 0x640 bytes
 	f_d48 = 0;
-	f_d44 = As<C3DAnimated>(New_C3DASEObj());				// 0xbb0 bytes
+	f_d44 = new C3DASEObj;									// 0xbb0 bytes
 	if (f_d44)
 	{
-		// C3DASEObj +0x988 / +0x924 "energybubble.ase", +0x9ec "vrtankbubble.ase",
-		// +0xa50 "stratobubble.ase", +0xab4 "bubble.png", +0xb80 0.5, +0xb84 0.1
-		NEG_TODO(0x4443ee, "C3DASEObj bubble files (+0x924..+0xab4) and +0xb80 / +0xb84");
+		strcpy(f_d44->f_988, "energybubble.ase");			// STOP
+		strcpy(f_d44->f_924, "energybubble.ase");			// ANIMATE
+		strcpy(f_d44->f_9ec, "vrtankbubble.ase");			// ANIM1
+		strcpy(f_d44->f_a50, "stratobubble.ase");			// ANIM2
+		strcpy(f_d44->f_ab4, "bubble.png");
+		f_d44->f_b80 = 0.5f;								// texture scrolling
+		f_d44->f_b84 = 0.1f;
 		f_d44->f_89c = 0.2f;								// "Translucent"
 		f_d44->HideAgain();									// element +0xdc
 		f_d44->v52(0);										// +0xd0
@@ -314,27 +314,21 @@ C3DJimmy *neg::Jimmy(void)
 // its own (+0x9f0 -> +0x928) to 0, stop its sound (+0x9f4).
 void neg::JimmyJetpackOff(CGameObject *jimmy)
 {
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: the original always has a jet pack
-	NEG_TODO(0x443370, "C3DJetPack: flames (+0x9f0 -> +0x928) 0, stop the sound (+0x9f4)");
+	dynamic_cast<C3DJimmy *>(jimmy)->f_ccc->Off();
 }
 
 // 0x4433f0 (C3DJetPack, `a` unused): loop "jetpack" on its channel +0x9f4 unless it plays.
 void neg::JimmyJetpackSound(CGameObject *jimmy, int a)
 {
 	(void)a;
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: as above
-	NEG_TODO(0x4433f0, "C3DJetPack: loop \"jetpack\" (+0x9f4)");
+	dynamic_cast<C3DJimmy *>(jimmy)->f_ccc->Sound();
 }
 
 // C3DPlayer 0x4613a0 inline: jet pack (+0xccc) -> fire (+0x9f0, if any) -> size (+0x928).
 void neg::JimmyJetpackFlame(CGameObject *jimmy, float size)
 {
-	(void)size;
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: as above
-	NEG_TODO(0x4613a0, "C3DJetPack fire (+0x9f0) size (+0x928)");
+	C3DJetPack *p = dynamic_cast<C3DJimmy *>(jimmy)->f_ccc;
+	if (p->f_9f0) p->f_9f0->f_928 = size;
 }
 
 // Element slot 138 (+0x228) of g_jimmy.
@@ -349,4 +343,25 @@ void neg::JimmyHurt(CGameObject *jimmy, float damage, int points, float time, un
 {
 	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
 	if (j) j->ev134(damage, points, time, a);
+}
+
+// --------------------------------------------------------------------------- hooks (C3DRocketShip.h)
+
+// Jimmy's element slot 148 (+0x250): the next water balloon (the rocket ship's shots).
+void neg::JimmyRocketShoot(CGameObject *jimmy, float x, float y, float z, float side, float speed,
+						   CGameObject *target, int a7, float a8)
+{
+	dynamic_cast<C3DJimmy *>(jimmy)->ev148(x, y, z, side, speed, target, (float)a7, a8);
+}
+
+// C3DRocketShip 0x46bf95 inline: the next water balloon of g_jimmy aims 1300 above and 550 in
+// front of its target (+0x63c..+0x644), if there is one.
+void neg::JimmyGadgetShot(CGameObject *jimmy)
+{
+	C3DJimmy *j = dynamic_cast<C3DJimmy *>(jimmy);
+	C3DWaterBalloon *b = j->f_cd0[j->f_d50];
+	if (!b) return;
+	b->f_63c = 0;
+	b->f_640 = 1300.0f;
+	b->f_644 = 550.0f;
 }

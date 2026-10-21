@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DFish.h"
+#include "C3DGoddard.h"
 #include "objects/C3DAITrigger.h"
 #include "Game.h"
 #include "Todo.h"
@@ -54,8 +55,8 @@ static void MiniSubCrash(CGameObject *sub)
 // C3DGoddard element +0x1b60 = 1 (he rides along).
 static void GoddardSetRiding(CGameObject *goddard)
 {
-	(void)goddard;
-	NEG_TODO(0x432709, "C3DGoddard +0x1b60 = 1");
+	C3DGoddard *g = dynamic_cast<C3DGoddard *>(goddard);
+	if (g) g->f_1b60 = 1;									// 0x432709 (port: the original writes +0x1b60 of whatever the object is)
 }
 
 // --------------------------------------------------------------------------- construction
