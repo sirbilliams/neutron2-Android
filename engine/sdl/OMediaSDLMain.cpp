@@ -104,12 +104,14 @@ void omf_SDLFrameHook(SDL_Window *win)
 #ifndef __ANDROID__
 	omf_test_hooks(win);
 #endif
+	// OMT_SCREENSHOT saves frame OMT_FRAMES (default 30) and quits; OMT_FRAMES alone just quits there
 	const char *shot = getenv("OMT_SCREENSHOT");
-	if (!shot) return;
-	int want = getenv("OMT_FRAMES") ? atoi(getenv("OMT_FRAMES")) : 30;
+	const char *frames = getenv("OMT_FRAMES");
+	if (!shot && !frames) return;
+	int want = frames ? atoi(frames) : 30;
 	if (omg_frame != want) return;
 
-	omf_save_shot(win, shot);
+	if (shot) omf_save_shot(win, shot);
 	SDL_Event q; SDL_zero(q); q.type = SDL_QUIT; SDL_PushEvent(&q);
 }
 
