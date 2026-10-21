@@ -2,6 +2,7 @@
 #include "DatabaseCache.h"
 #include "C3DSprite.h"
 #include "Game.h"
+#include "Physics.h"
 #include "Todo.h"
 #include "gen/globals.h"
 #include "OMediaWorld.h"
@@ -17,10 +18,7 @@ using namespace neg;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-static void PhysicsAddObject(CGameObject *o)				// 0x4b4ae0
-{
-	(void)o; NEG_TODO(0x4b4ae0, "CPhysics::AddObject");
-}
+using neg::PhysicsAddObject;								// 0x4b4ae0 (Physics.cpp)
 
 // 0x4a4180 / 0x4a4560: the level and permanent database caches (DatabaseCache.cpp).
 using neg::GetDatabase;

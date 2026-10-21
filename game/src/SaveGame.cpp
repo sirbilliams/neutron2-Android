@@ -80,7 +80,7 @@ static CLocalGameObject *Local(CGameObject *o)	{ return static_cast<CLocalGameOb
 // Objects whose state goes into a save: slot 108 (f_00b, "saved in the .gam") or f_4c4.
 static bool IsSaved(CGameObject *o)		{ return o->v108() || Local(o)->f_4c4; }
 
-static void MenuShowLoading(int a)	{ NEG_TODO(0x40c0f0, "C2DInGameMenu loading screen"); (void)a; }
+static void MenuShowLoading(int a)	{ neg::CutsceneLetterbox(a != 0); }	// 0x40c0f0 (C2DInGameMenu.h)
 
 // 0x485360: the game state (0 menu/new game, 1 loading, 2 saving, 3 cut scene, 5 playing...),
 // told to every object (copy of CEditor.cpp's).

@@ -3,6 +3,8 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DAITrigger.h"
 #include "../C3DObject.h"
+#include "../C3DAnimated.h"
+#include "../C3DGrannyObj.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
 #include "../C2DInGameMenu.h"
@@ -68,23 +70,25 @@ static C3DObject *Obj(CGameObject *o)		{ return o ? dynamic_cast<C3DObject *>(o)
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-// C3DObject-family element slots of classes not reconstructed yet (C3DAnimated, C3DAI,
-// C3DGrannyObj, C3DJimmy, C3DLibby...), and their members, at their 2002 element offsets.
+// C3DAnimated element slots (the callers have checked the name, or the object is Jimmy; the
+// original goes from the CGameObject part to the element by -0xc0 without looking - port: an
+// object that is no C3DAnimated is left alone).
+static C3DAnimated *Anim(CGameObject *o)	{ return o ? dynamic_cast<C3DAnimated *>(o) : NULL; }
 static void ObjSetAnimation(CGameObject *o, const char *name, bool loop)	// +0xe8 (slot 58)
 {
-	(void)o; (void)name; (void)loop; NEG_TODO(0x418c6e, "C3DAnimated element slot 58 (set animation)");
+	if (C3DAnimated *a = Anim(o)) a->ev58((char *)name, loop);
 }
 static void ObjSetLit(CGameObject *o, float lit)							// +0x120 (slot 72)
 {
-	(void)o; (void)lit; NEG_TODO(0x419221, "C3DObject element slot 72 (lit)");
+	if (C3DAnimated *a = Anim(o)) a->ev72(lit);
 }
 static void ObjFadeIn(CGameObject *o, float t)								// +0x12c (slot 75)
 {
-	(void)o; (void)t; NEG_TODO(0x41930f, "C3DObject element slot 75 (fade in)");
+	if (C3DAnimated *a = Anim(o)) a->ev75(t);
 }
 static void ObjFadeOut(CGameObject *o, float t)							// +0x130 (slot 76)
 {
-	(void)o; (void)t; NEG_TODO(0x419350, "C3DObject element slot 76 (fade out)");
+	if (C3DAnimated *a = Anim(o)) a->ev76(t);
 }
 // C3DAI (the original goes from the CGameObject part to the object by -0xc0 once NameContains
 // said "C3DAI"; port: an object whose name only contains it, a C3DAITRIGGER, is left alone).
@@ -118,17 +122,22 @@ static void AISetPatrolPoint(CGameObject *ai, const char *name)			// C3DAI +0x9a
 		a->f_b8c = NULL;
 	}
 }
-static int GrannyObjFlag(CGameObject *o)									// C3DGrannyObj +0x6d0
+static int GrannyObjFlag(CGameObject *o)									// C3DAnimated +0x6d0: 1 = Granny
 {
-	(void)o; NEG_TODO(0x419143, "C3DGrannyObj +0x6d0"); return 0;
+	C3DAnimated *a = Anim(o);
+	return a ? a->f_6d0 : 0;
 }
-static void GrannyAttach(CGameObject *holder, CGameObject *o, float detach_time)	// +0x180 (slot 96), +0xdac
+static C3DGrannyObj *Granny(CGameObject *o)	{ return o ? dynamic_cast<C3DGrannyObj *>(o) : NULL; }
+static void GrannyAttach(CGameObject *holder, CGameObject *o, float detach_time)	// +0x180 (slot 96)(o), +0xdac
 {
-	(void)holder; (void)o; (void)detach_time; NEG_TODO(0x41916b, "C3DGrannyObj element slot 96 (attach) / +0xdac");
+	C3DGrannyObj *g = Granny(holder);
+	if (!g) return;
+	g->ev96(o);
+	g->f_dac = detach_time;
 }
 static void GrannyDetach(CGameObject *holder, CGameObject *o)				// +0x188 (slot 98)(o, 0)
 {
-	(void)holder; (void)o; NEG_TODO(0x419202, "C3DGrannyObj element slot 98 (detach)");
+	if (C3DGrannyObj *g = Granny(holder)) g->ev98(o, 0);
 }
 // C3DJimmy element slot 138 (+0x228)(caller, other, item, t): hand Jimmy gadget `item` (0: put
 // it away; 1 rocket, 2 invisibility, 3 jet pack, 4 scooter, 6 water gun, 9 sub, 11 crane,

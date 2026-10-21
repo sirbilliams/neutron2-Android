@@ -104,6 +104,18 @@ void neg::InitSoundEngine(void)
 		SDL_zero(want);
 		want.freq = 44100; want.format = AUDIO_S16SYS; want.channels = 2; want.samples = 1024;
 		probe = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		if (!probe)
+		{
+			// port: without an audio device, SDL's silent "dummy" driver stands in for one. The
+			// original turned all sound off, and then every cut scene camera stops at its first
+			// shot (TriggerCamera gets no channel for its voice clip, so the shot never starts and
+			// never fires NextTrigger): the level1d intro would hang. Silent sound keeps the game
+			// as it is with sound (and the cut scenes timed by their clips).
+			SDL_Log("InitSoundEngine: no audio device (%s), using the silent dummy driver", SDL_GetError());
+			SDL_AudioQuit();
+			if (SDL_AudioInit("dummy") == 0)
+				probe = SDL_OpenAudioDevice(NULL, 0, &want, &have, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		}
 		if (probe) SDL_CloseAudioDevice(probe);
 	}
 	if (!probe)

@@ -3,6 +3,8 @@
 #include "C3DTriggerType.h"
 #include "objects/C3DAITrigger.h"
 #include "objects/C3DCutSceneCamera.h"
+#include "levels/CLoadLevel.h"
+#include "C3DPlayer.h"
 #include "CGameType.h"
 #include "CEditor.h"
 #include "C2DInGameMenu.h"
@@ -35,7 +37,7 @@ using neg::GetDatabase;
 // --------------------------------------------------------------------------- not reconstructed yet
 
 // C2DInGameMenu 0x40c0f0 (on g_menu): cut-scene letterbox in/out.
-static void CutsceneLetterbox(bool on)				{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
+using neg::CutsceneLetterbox;
 
 // CGameObject slot 224 (+0x380, 0x4ad800): a point relative to the object (struct return).
 // Until it exists the caller skips the camera move (the original always has a point).
@@ -65,19 +67,52 @@ static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
 // C3DFlyingCamera is a C3DObject (CGameObject at +0xc0): element slot 144 (+0x240).
 static void FlyingCameraFire(CGameObject *next)	{ (void)next; NEG_TODO(0x433f50, "C3DFlyingCamera element slot 144"); }
 // CLoadLevel (a C3DSprite): element slot 55 (+0xdc).
-static void LoadLevelFire(CGameObject *next)		{ (void)next; NEG_TODO(0x48ebf0, "CLoadLevel element slot 55"); }
+static void LoadLevelFire(CGameObject *next)		{ static_cast<CLoadLevel *>(next)->ev55(); }
 
-// C3DJimmy (a C3DObject, element = object - 0xc0): element byte +0xa99 = 0.
-static void JimmyClearA99(CGameObject *jim)		{ (void)jim; NEG_TODO(0x4795cf, "C3DJimmy +0xa99 = 0 (CallNextTrigger, LoadLevel)"); }
+// The player (Jimmy: a C3DPlayer) behind a JIM1 tag.
+static C3DPlayer *PlayerOf(CGameObject *jim)		{ return jim ? dynamic_cast<C3DPlayer *>(jim) : NULL; }
 
-// 0x479610..0x47973d: the LoadLevel trigger hands its level over to Jimmy (element offsets):
-//   jim+0xc18 = ll+0x708; jim->slot 121 (+0x1e4)(ll+0x600, ll+0x650, jim+0xc25, jim+0xb24, ll+0x704)
-//   if (ll+0x6fc != -1) { g_editor->m_load_pending = 0; g_54a498 = 1; jim->slot 79 (+0x13c)(1);
-//                         StartFade 0x406a40 (ll+0x6fc, ll+0x700); }
+// 0x4795cf: element byte +0xa99 = 0.
+static void JimmyClearA99(CGameObject *jim)
+{
+	if (C3DPlayer *p = PlayerOf(jim)) p->f_a99 = 0;
+}
+
+// 0x406a40: start the in-game menu's fade (mode, seconds). (A static copy, as in CEditor.cpp.)
+static void StartFade(int mode, float t)
+{
+	if (g_5324fc == 0) { g_5324ec = 1; return; }
+	if (mode == 6) mode = 4;
+	if (t < 0.1f) t = 0.1f;				// 0x4caa68
+	g_5324e8 = t;
+	g_545dcc = t;
+	g_545dd0 = mode;
+	g_5324ec = 0;
+	g_545e5c = 1;
+}
+
+// 0x479610..0x47973d: the LoadLevel trigger hands its level over to Jimmy: his promotion, then
+// PlayerLoadLevel (element slot 121) with copies of the four strings; with a FadeType the load
+// waits for the fade (and Jimmy's morph animation is paused, element slot 79).
 static void LoadLevelHandOver(CGameObject *loadlevel, CGameObject *jim)
 {
-	(void)loadlevel; (void)jim;
-	NEG_TODO(0x479610, "CLoadLevel -> C3DJimmy level hand-over (C3DJimmy slots 121/79, StartFade)");
+	CLoadLevel *ll = static_cast<CLoadLevel *>(loadlevel);
+	C3DPlayer *p = PlayerOf(jim);
+	if (!p) return;										// port: a JIM1 that is no player (the original has no check)
+	p->f_c18 = ll->m_promotion;
+	char level[80], start[80], ret_level[100], ret_start[100];	// (stack copies, as in the original)
+	strcpy(level, ll->m_level_name);
+	strcpy(start, ll->m_start_point);
+	strcpy(ret_level, p->f_c25);
+	strcpy(ret_start, p->f_b24);
+	p->ev121(level, start, ret_level, ret_start, ll->m_load_screen);	// element +0x1e4
+	if (ll->m_fade_type != -1)
+	{
+		g_editor->m_load_pending = 0;					// the fade loads the level when it ends
+		g_view_restore = 1;								// 0x54a498
+		p->ev79(1);										// element +0x13c
+		StartFade(ll->m_fade_type, ll->m_fade_time);	// 0x406a40
+	}
 }
 
 // C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera.

@@ -6,6 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
+#include "TestHooks.h"
 #include "DatabaseCache.h"
 #include "Mouse.h"
 #include "CEditor.h"
@@ -174,7 +175,7 @@ static void DeleteFlaggedObjects(void)
 }
 
 
-static void MenuShowLoading(int a)	{ NEG_TODO(0x40c0f0, "C2DInGameMenu loading screen"); (void)a; }
+static void MenuShowLoading(int a)	{ neg::CutsceneLetterbox(a != 0); }	// 0x40c0f0 (C2DInGameMenu.h)
 
 // 0x485360: the game state (0 menu/new game, 1 loading, 3, 5 playing...), told to every object
 static void SetGameState(int state)
@@ -598,6 +599,7 @@ countdown:
 				if (fscanf(f, "%s", m_level_name) < 0) {}		// (an empty file leaves the name as it was)
 				if (fclose(f) != 0) SDL_Log("The file 'startlevel.txt' was not closed\n");
 			}
+			if (const char *t = TestPlayLevel()) strcpy(m_level_name, t);	// port: test-only (NEG_TEST_PLAY)
 			if (strcasecmp(m_level_name, "autosave") == 0)
 			{
 				if (!ReadTaskFile("autosave.tsk"))
@@ -762,6 +764,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	if (g_task_file[0]) RestoreTask(g_task_file);			// 0x498440
 	Trace("File closed, Calling ResetLevel 2");
 	g_splash->hide(true);
+	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY)
 }
 
 // --------------------------------------------------------------------------- 0x4a8100
