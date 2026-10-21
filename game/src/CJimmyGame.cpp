@@ -63,8 +63,17 @@ static void MenuGivePendingPickup(void)			{ NEG_TODO(0x409b20, "C2DInGameMenu pe
 static OMediaElement *PlayerHud(void)			{ C3DRadar *r = Jimmy()->f_d40; return r ? static_cast<OMediaElement *>(r) : NULL; }	// 0x483b9d
 static void HudHide(OMediaElement *hud)			{ static_cast<C3DRadar *>(hud)->Hide(); }
 
-// g_camera's element slot 105 (+0x1a4): called once when the health has run out.
-static void CameraPlayerDead(CGameObject *camera) { (void)camera; NEG_TODO(0x4843d9, "camera element slot 105 (health ran out)"); }
+// g_camera's element slot 105 (+0x1a4): called once when the health has run out. Every 3D object's
+// slot 105 is 0x465360 (C3DPlayerObject::ev105: back to the autosave + a comment), the other game
+// objects' is 0x4ac710 (returns a member, nothing done). 0x465360 uses only globals, so for a camera
+// that is not a C3DPlayerObject (the hover cycle, a cut-scene object) it runs on Jimmy.
+static void CameraPlayerDead(CGameObject *camera)
+{
+	if (!dynamic_cast<C3DObject *>(camera)) return;			// 0x4ac710
+	C3DPlayerObject *p = dynamic_cast<C3DPlayerObject *>(camera);
+	if (!p) p = Jimmy();									// port: the same code (0x465360) through Jimmy
+	if (p) p->ev105();
+}
 
 // C3DJimmy's level-music members: +0x4c14 channel, +0x4c18 a value given to PlayMusic, +0x4c28
 // the music .omt name (21 chars). Until C3DJimmy exists they live here (its constructor's values).
