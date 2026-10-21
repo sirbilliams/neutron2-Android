@@ -467,10 +467,20 @@ void C3DAnimated::CreateAnim(char *name, char *file)		// 0x41b360
 	m_db->generate_from_stream(fs, f_590);					// database vtable +0x2c
 	if (first) m_db->set_dbsize_dirty();					// +0x4c
 	fs.close();
-	OMedia3DMorphAnimDef *def = (OMedia3DMorphAnimDef *)m_db->get_object(OMedia3DMorphAnimDef::db_type,	// +0x14
-		OMedia3DShapeConverter::related_morphdefs[0].morph_def);	// port: 2002 kept the chunk ids only
+	// The original reads related_morphdefs[0] whether or not this file made a morph definition.
+	// A static .ase (no *MESH_ANIMATION, e.g. the intro logo letters) makes none; the converter
+	// only erased the vector, and MSVC 6 keeps the old element in place, so the original picks
+	// up the id the previous animated file left there (another object's definition).
+	// port: keep that id ourselves instead of reading past the end of an empty vector, and do
+	// nothing if no animated file was ever converted (the original would crash).
+	static omt_FSChunkID last_morph_def = 0;
+	if (!OMedia3DShapeConverter::related_morphdefs.empty())
+		last_morph_def = OMedia3DShapeConverter::related_morphdefs[0].morph_def;
+	OMedia3DMorphAnimDef *def = last_morph_def == 0 ? NULL :
+		(OMedia3DMorphAnimDef *)m_db->get_object(OMedia3DMorphAnimDef::db_type,	// +0x14
+		last_morph_def);									// port: 2002 kept the chunk ids only
 	a->def = def;
-	def->db_unlock();
+	if (def) def->db_unlock();							// port: NULL check
 	f_5a0++;
 	g_545f2c++;
 	if (strlen(name) > 0x3f)

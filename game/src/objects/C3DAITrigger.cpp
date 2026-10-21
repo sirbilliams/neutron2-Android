@@ -4,6 +4,7 @@
 #include "C3DAITrigger.h"
 #include "../C3DObject.h"
 #include "../C3DJimmy.h"
+#include "../C3DAI.h"
 #include "../C2DInGameMenu.h"
 #include "../CGameType.h"
 #include "../SaveGame.h"
@@ -85,29 +86,37 @@ static void ObjFadeOut(CGameObject *o, float t)							// +0x130 (slot 76)
 {
 	(void)o; (void)t; NEG_TODO(0x419350, "C3DObject element slot 76 (fade out)");
 }
+// C3DAI (the original goes from the CGameObject part to the object by -0xc0 once NameContains
+// said "C3DAI"; port: an object whose name only contains it, a C3DAITRIGGER, is left alone).
+static C3DAI *AI(CGameObject *o)											{ return o ? dynamic_cast<C3DAI *>(o) : NULL; }
 static void AISetState(CGameObject *ai, int state)							// C3DAI +0x1ac (slot 107)
 {
-	(void)ai; (void)state; NEG_TODO(0x4195ce, "C3DAI element slot 107 (set state)");
+	if (C3DAI *a = AI(ai)) a->ev107(state);
 }
-static int AIInitialState(CGameObject *ai)									// C3DAI +0xc08
+static int AIInitialState(CGameObject *ai)									// C3DAI +0xc08 "AIState"
 {
-	(void)ai; NEG_TODO(0x418d09, "C3DAI +0xc08 (initial state)"); return 0;
+	C3DAI *a = AI(ai);
+	return a ? a->f_c08 : 0;
 }
 static void AISetHover(CGameObject *ai, unsigned char on)					// C3DAI +0xbd4
 {
-	(void)ai; (void)on; NEG_TODO(0x419528, "C3DAI +0xbd4 (hover)");
+	if (C3DAI *a = AI(ai)) a->f_bd4 = on;
 }
 static void AISetSpeed(CGameObject *ai, float speed)						// C3DAI +0x968
 {
-	(void)ai; (void)speed; NEG_TODO(0x4195f4, "C3DAI +0x968 (speed)");
+	if (C3DAI *a = AI(ai)) a->f_968 = speed;
 }
-static void AISetPatrolTarget(CGameObject *ai, CGameObject *p)				// C3DAI +0x214 (slot 133), AIState 13
+static void AISetPatrolTarget(CGameObject *ai, CGameObject *p)				// C3DAI +0x214 (slot 133 FindBestPath), AIState 13
 {
-	(void)ai; (void)p; NEG_TODO(0x419642, "C3DAI element slot 133 (patrol target)");
+	if (C3DAI *a = AI(ai)) a->FindBestPath(p);
 }
 static void AISetPatrolPoint(CGameObject *ai, const char *name)			// C3DAI +0x9ac = name, +0xb8c = 0
 {
-	(void)ai; (void)name; NEG_TODO(0x419689, "C3DAI +0x9ac / +0xb8c (patrol point)");
+	if (C3DAI *a = AI(ai))
+	{
+		strcpy(a->f_9ac, name);
+		a->f_b8c = NULL;
+	}
 }
 static int GrannyObjFlag(CGameObject *o)									// C3DGrannyObj +0x6d0
 {

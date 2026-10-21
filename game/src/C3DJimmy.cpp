@@ -4,6 +4,7 @@
 #include "C3DPermanentSprite.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
+#include "C3DFish.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -341,4 +342,11 @@ void neg::JimmyActivateMenuItem(CGameObject *jimmy, CGameObject *o, CGameObject 
 {
 	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
 	if (j) j->ev138(o, who, item, value);
+}
+
+// C3DFish.h: Jimmy's element slot 134 (+0x218), hurt.
+void neg::JimmyHurt(CGameObject *jimmy, float damage, int points, float time, unsigned char a)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->ev134(damage, points, time, a);
 }
