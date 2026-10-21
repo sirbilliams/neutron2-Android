@@ -333,7 +333,7 @@ void C3DJimmy::ev165(CGameObject *start)					// 0x445d20
 		f_bd9 = 0;
 		v90(f_bdc.x, f_bdc.y, f_bdc.z);
 		place(f_bdc.x, f_bdc.y, f_bdc.z);
-		if (f_d5c) f_d5c->v89(f_bdc.x, f_bdc.y, f_bdc.z, *(unsigned int *)&f_bdc.w);	// port: NULL-checked
+		f_d5c->v89(f_bdc.x, f_bdc.y, f_bdc.z, *(unsigned int *)&f_bdc.w);
 	}
 	// The view and the music of the start point (C3DStartPoint +0x600, +0x620, +0x684).
 	C3DStartPoint *sp = dynamic_cast<C3DStartPoint *>(start);
@@ -875,8 +875,7 @@ void C3DJimmy::ev164(float dt)								// 0x4488e0
 {
 	if (f_4ef0)
 	{
-		// port: the original reads Goddard (f_d5c) unchecked
-		ev149(dt, f_4ef0, f_d5c ? GoddardPointer(f_d5c) : NULL);	// element +0x254
+		ev149(dt, f_4ef0, GoddardPointer(f_d5c));			// element +0x254
 	}
 	CGameObject *o = FindNearest(static_cast<CGameObject *>(this), '3PIC', '3GRO');	// 0x48f730
 	if (!o)

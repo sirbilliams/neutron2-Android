@@ -20,10 +20,10 @@
       f_4d00[20] / f_4d50[1] C3DMagicParticle (burp-gun / bubble sparkles, ev154..ev157),
       f_d5c C3DGoddard (his dog), f_d40 C3DRadar (the HUD panel the menu shows with R),
       f_d44 C3DASEObj (the bubble he floats in, ev146 / ev147).
-    Most of those classes are not reconstructed yet: their pointers are typed with the nearest
-    reconstructed base (C3DPlayerObject, C3DAnimated, C3DPermanentSprite) and created through the
-    factory's New_<Class> where the class has a factory ID (weak TODO stubs until it exists), else
-    through a TODO stub here; until then they stay NULL and every use is NULL-checked (port:).
+    Each helper is a class of its own (C3DRadar.h, C3DShadow.h, C3DJetPack.h, C3DTargetCursor.h,
+    C3DPointCursor.h, C3DWaterBalloon.h, C3DGraplingHook.h, C3DMagicParticle.h, C3DGoddard.h,
+    C3DASEObj.h); the rocket ship is C3DRocketShip.h. The constructor news them as the original
+    does; uses are NULL-checked only where the original checks.
 
     This class is written in two parts (jimmy/C3DJimmy_a.{inc,cpp}: everything below 0x448b40,
     jimmy/C3DJimmy_b.{inc,cpp}: 0x448b40 and above). Each part declares the slots it writes in
@@ -33,7 +33,8 @@
     offset - 0xc0).
 
     Hooks: C3DPlayer.h declares neg::JimmyJetpackOff / JimmyJetpackSound / JimmyJetpackFlame /
-    JimmyActivateMenuItem weak; C3DJimmy.cpp defines them.                                    */
+    JimmyActivateMenuItem weak, C3DRocketShip.h JimmyRocketShoot / JimmyGadgetShot (and others);
+    C3DJimmy.cpp defines them.                                                                 */
 #pragma once
 #include "C3DPlayer.h"
 #include "C3DJetPack.h"

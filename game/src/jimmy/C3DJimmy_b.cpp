@@ -901,7 +901,6 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			NEG_TODO(0x44a275, "C3DJeep +0x9c4 (cgo) = Jimmy (driver)");
 			j->v136(1);
 			j->v132(1);
-			if (f_d5c)											// port: the original reads Goddard without a check
 			{
 				const OMedia3DVector p = Position(f_d5c);
 				j->v90(p.x, p.y, p.z);							// +0x168
@@ -1066,7 +1065,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			h->v132(1);
 			ev58((char *)"DRIVE", 1);
 			v136(0);
-			if (f_d5c) f_d5c->v136(0);							// port: the original does not check
+			f_d5c->v136(0);
 			NEG_TODO(0x44ae65, "C3DHoverCycle +0x1af4 (cgo): if != -1, = PlayGameSound3D(Jimmy, -1, \"harley1\", true)");
 			save = true;
 			cam = h;
@@ -1319,7 +1318,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			if (f_d5c) f_d5c->v136(1);							// port: the original does not check
+			f_d5c->v136(1);
 			NEG_TODO(0x449d02, "C3DHoverCycle +0x1af4 (cgo, channel): stopped, -1");
 			break;
 		}
