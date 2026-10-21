@@ -49,7 +49,7 @@ static void GemTaken(CGameObject *holder)
 // (Inlined twice, in AddTouching and Process.)
 static void FaceJimmy(C3DSpriteObject *self, CGameObject *jim)
 {
-	float p[3], q[3], rot[3];
+	float p[4], q[4], rot[4];
 	self->v195(p);											// +0x30c
 	jim->v195(q);
 	OMedia3DVector v(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
@@ -190,7 +190,7 @@ void C3DSpriteObject::Process(float dt)						// 0x472d60
 		f_708 = 0;
 		f_70c = 0;
 	}
-	float p[3];
+	float p[4];
 	v195(p);												// +0x30c
 	const float y = p[1] + 10.0f;							// 0x4cb1cc
 	const float z = p[2] - 30.0f;							// 0x4ca4b4

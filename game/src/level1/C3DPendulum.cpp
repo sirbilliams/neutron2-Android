@@ -96,7 +96,7 @@ void C3DPendulum::Process(float dt)							// 0x45cfd0
 		f_930 -= dt * 3.0f;									// 0x4cb1e8
 		if (f_930 <= 0) f_930 = 0;
 	}
-	float rot[3];
+	float rot[4];
 	if (!IsLevel1Run(LevelID()))
 	{
 		if (g_enemy_time_scale != 1.0f)						// 0x540594, 0x4caa6c: the stopwatch
