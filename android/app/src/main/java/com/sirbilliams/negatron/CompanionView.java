@@ -490,9 +490,10 @@ final class CompanionView extends View {
             for (int i = 0; i < mPtKind.length; i++) {
                 float px = left + mPtX[i] * k, py = top + mPtY[i] * k;
                 char kind = mPtKind[i];
-                boolean in = px > crt.left - 40 && px < crt.right + 40 && py > crt.top - 40 && py < crt.bottom + 40;
+                float margin = (kind == 'o' || kind == 'x' || kind == 'X') ? -12 : 40;   // marked on the edge when out
+                boolean in = px > crt.left - margin && px < crt.right + margin && py > crt.top - margin && py < crt.bottom + margin;
                 if (!in) {
-                    if (kind == 'o' || kind == 'x') edgeMarker(c, crt, cx, cy, px, py, kind, mPtLabel[i]);
+                    if (kind == 'o' || kind == 'x' || kind == 'X') edgeMarker(c, crt, cx, cy, px, py, kind, mPtLabel[i]);
                     continue;
                 }
                 drawPoint(c, kind, px, py, mPtIcon[i], mPtLabel[i], iconScale);
