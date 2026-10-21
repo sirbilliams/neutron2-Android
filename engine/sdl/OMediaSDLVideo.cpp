@@ -2,6 +2,9 @@
 /*  OMT SDL platform layer - video engine, engine factory, windows, OpenGL context, offscreen buffers.
     Port of OS/MSWindows (GDI/WGL path) to SDL2.  LGPL. */
 
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "OMediaSDLRetarget.h"
 #include "OMediaEngineFactory.h"
 #include "OMediaSingleWindow.h"
@@ -85,11 +88,21 @@ void OMediaSDLVideoEngine::set_widescreen(int height)
 	omf_SDLInit();
 	SDL_DisplayMode dm;
 	logical_height = height;
-	if (SDL_GetDesktopDisplayMode(0, &dm) == 0 && dm.h > 0 && dm.w > 0)
+	int dw = 0, dh = 0;
+	const char *ws = getenv("OMT_WINDOW_SIZE");          // desktop testing: the window's aspect
+	if (!(ws && sscanf(ws, "%dx%d", &dw, &dh) == 2 && dw > 0 && dh > 0))
+	{
+		dw = dh = 0;
+		if (SDL_GetDesktopDisplayMode(0, &dm) == 0) { dw = dm.w; dh = dm.h; }
+	}
+	if (dh > 0 && dw > 0)
 	{
 		// Landscape game: use long side / short side (Android may report portrait at start-up).
-		float lo = float(dm.w < dm.h ? dm.w : dm.h), hi = float(dm.w > dm.h ? dm.w : dm.h);
-		logical_width = (int)(height * hi / lo + 0.5f) & ~1;
+		// Rounded up to an even width, so the picture fills the panel (at most half a pixel of
+		// letterbox instead of a pillarbox).
+		float lo = float(dw < dh ? dw : dh), hi = float(dw > dh ? dw : dh);
+		logical_width = ((int)ceilf(height * hi / lo - 0.01f) + 1) & ~1;
+		if (logical_width < height * 4 / 3) logical_width = height * 4 / 3;
 	}
 }
 

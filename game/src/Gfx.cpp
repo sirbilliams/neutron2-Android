@@ -15,6 +15,7 @@
 #include "OMediaLayer.h"
 #include "OMediaViewPort.h"
 #include "CViewPort.h"
+#include "port/Widescreen.h"
 #include "OMediaTimeCounter.h"
 #include <SDL.h>
 #include <strings.h>
@@ -46,6 +47,7 @@ CGfx::~CGfx() {}
 void CGfx::InitDisplay(void)
 {
 	SDL_Log("InitDisplay()");
+	WidescreenSetup();							// port: the logical window's width (port/Widescreen.h)
 	g_window = new OMediaFullscreenWindow((OMediaSupervisor*)g_app, false);
 
 	// The original logs every engine the factory offers, then asks for ommeic_Best (6).
