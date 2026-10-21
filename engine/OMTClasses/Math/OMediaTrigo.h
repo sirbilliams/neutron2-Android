@@ -104,6 +104,9 @@ class OMediaCosSinTable
 		adj2=adj*adj;
 		hyp=adj2+opp*opp;
 		t=int(adj2*acos_table_size/hyp);	
+		// port: a NaN vector (the game normalises zero vectors, e.g. CGameObject 0x4ad5e0) gave
+		// the 32-bit original index 0x80000000, which wraps to acos_tab[0] with 2-byte entries.
+		if (!(hyp > 0) || t < 0 || t > acos_table_size) t = 0;
 	
 		angle = acos_tab[t];
 

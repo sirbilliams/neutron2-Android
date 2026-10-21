@@ -18,6 +18,7 @@
 #include "../level3c/C3DHoverCycle.h"
 #include "../level3d/C3DCraneBoom.h"
 #include "../level3a/C3DMiniSub.h"
+#include "../level5/C3DLunarLander.h"
 #include "../C3DRocketShip.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
@@ -841,14 +842,14 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				r->v203(rot[0], rot[1], rot[2]);				// +0x32c
 			}
 			r->f_00b = 0;
-			NEG_TODO(0x449fc0, "C3DRocketShip +0x934 (cgo) = Jimmy (pilot)");
+			if (C3DRocketShip *rs = dynamic_cast<C3DRocketShip *>(r)) rs->f_9f4 = this;	// 0x449fc0: the rider (port: checked)
 			ev116();
 			v136(0);
 			ev58((char *)"DRIVE", 1);
 			v120(1);
 			if (f_d5c)
 			{
-				NEG_TODO(0x44a006, "C3DRocketShip +0x1134 (cgo) = Goddard");
+				if (C3DRocketShip *rs = dynamic_cast<C3DRocketShip *>(r)) rs->f_11f4 = f_d5c;	// 0x44a006: Goddard on board
 				f_d5c->v120(1);
 				f_d5c->v132(0);
 				f_d5c->f_1b60 = 1;								// riding along
@@ -1098,7 +1099,12 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			l->v162(0, 750.0f, (r - 0.5f) * 250.0f);			// +0x288
 			l->v203(0, 0, 0);
 			PlayGameSound(-1, std::string("rocket blast"), false);
-			NEG_TODO(0x44afa3, "C3DLunarLander +0x1aa4 (cgo) = 0, +0x1aa8 = 100");
+			C3DLunarLander *ll = dynamic_cast<C3DLunarLander *>(l);	// (l - 0xc0)
+			if (ll)												// port: checked (the tag names a lander)
+			{
+				ll->m_landed = 0;								// 0x44afa3: +0x1aa4 (cgo)
+				ll->m_fuel = 100.0f;							// +0x1aa8
+			}
 			cam = l;
 			break;
 		}
@@ -1151,10 +1157,11 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v120(0);
 			r->v120(1);
-			NEG_TODO(0x4495b5, "C3DRocketShip element slot 108 (0)");
+			C3DRocketShip *rs = dynamic_cast<C3DRocketShip *>(r);	// (r - 0xc0; port: checked)
+			if (rs) rs->ev108(0);								// 0x4495b5: engine sound off
 			if (f_d5c)
 			{
-				NEG_TODO(0x4495c7, "C3DRocketShip +0x1134 (cgo) = 0");
+				if (rs) rs->f_11f4 = NULL;						// 0x4495c7: Goddard off
 				f_d5c->v120(0);
 				f_d5c->f_1b60 = 0;
 				f_d5c->v132(1);
