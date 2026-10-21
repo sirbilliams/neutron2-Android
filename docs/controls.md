@@ -42,7 +42,8 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 | L2 | Z axis + key N (port) | No in confirmations |
 | Right stick | rX / rY + mouse pointer (port) | Camera (mouse look) in play; pointer in menus |
 | L3 / R3 / Guide | buttons 5 / 6 / 7 | Unused by the game |
-| Android back | key Esc | Same as Esc; never closes the app (`SDL_HINT_ANDROID_TRAP_BACK_BUTTON`) |
+| Android back (tap) | key Esc | Same as Esc; never closes the app (`SDL_HINT_ANDROID_TRAP_BACK_BUTTON`). Reaches the game 0.35 s after release (port: see the port menu below) |
+| Android back (hold 0.6 s, or two taps) | - | Opens the port menu (port) |
 | Touch screen | mouse | Pointer and left click, as the mouse |
 
 - **Button numbers:** DirectInput numbered a pad's buttons in its driver's order, so Windows had
@@ -51,6 +52,24 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
   the game cannot tell them apart. A key is down while its control is held on any controller.
 - **Mapped controllers first:** the game takes the first joystick, so SDL game controllers come
   before other joystick devices.
+
+## Port menu and the bottom-screen panel (port)
+
+Hold the Android back button (or the back swipe from the screen edge) for 0.6 s, or give it two
+quick taps (within 0.35 s), to open a small menu over the game (the game pauses while it is open):
+
+- **Bottom screen panel: ON / OFF** - shows a companion panel on the Thor's second screen
+  (any second Android display; the first presentation display if there are several): neutron
+  energy, score and lives, the boss's health while it shows, the current gadget, the pickups /
+  neutrons / checkpoints collected in the level, the caption being typed, the story task states
+  and a top-down map centred on Jimmy (north up; yellow pickups, blue neutrons, green
+  checkpoints, purple friends, red other characters). The setting is remembered. With no second
+  screen the menu says so and nothing is shown.
+
+A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
+a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads
+the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1` logs the same
+snapshot once a second.
 
 ## Pointer helpers
 

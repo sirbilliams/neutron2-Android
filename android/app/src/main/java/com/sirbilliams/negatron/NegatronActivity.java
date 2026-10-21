@@ -1,8 +1,13 @@
 package com.sirbilliams.negatron;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 
 import org.libsdl.app.SDLActivity;
@@ -41,5 +46,105 @@ public class NegatronActivity extends SDLActivity {
         if (getExternalFilesDir(null) != null) {
             getExternalFilesDir(null).mkdirs();
         }
+        // port: the bottom-screen companion panel, for the game only (docs/controls.md)
+        String lib = getIntent() != null ? getIntent().getStringExtra(EXTRA_LIB) : null;
+        if ("negatron".equals(lib)) mPanel = new CompanionPanel(this);
+    }
+
+    // ------------------------------------------------------------------ port: companion panel
+
+    private CompanionPanel mPanel;
+    private final Handler mUi = new Handler(Looper.getMainLooper());
+    private KeyEvent mBackDown, mBackUp;
+    private boolean mBackLong, mBackPending, mSwallowBackUp;
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mPanel != null) mPanel.resume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (mPanel != null) mPanel.pause();
+        super.onPause();
+    }
+
+    /** Back held for 0.6 s, or pressed twice within 0.35 s, opens the port menu. A single back
+     *  still reaches the game (as Esc), 0.35 s late. */
+    private final Runnable mBackLongPress = new Runnable() {
+        @Override
+        public void run() {
+            mBackLong = true;
+            showPortMenu();
+        }
+    };
+
+    private final Runnable mDeliverBack = new Runnable() {
+        @Override
+        public void run() {
+            mBackPending = false;
+            if (mBackDown != null) superDispatchKeyEvent(mBackDown);
+            if (mBackUp != null) superDispatchKeyEvent(mBackUp);
+            mBackDown = mBackUp = null;
+        }
+    };
+
+    private boolean superDispatchKeyEvent(KeyEvent e) {
+        return super.dispatchKeyEvent(e);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent e) {
+        if (mPanel == null || e.getKeyCode() != KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(e);
+        if (e.getAction() == KeyEvent.ACTION_DOWN) {
+            if (e.getRepeatCount() > 0) return true;
+            if (mBackPending) {                         // second back: the menu
+                mUi.removeCallbacks(mDeliverBack);
+                mBackPending = false;
+                mBackDown = mBackUp = null;
+                mSwallowBackUp = true;
+                showPortMenu();
+                return true;
+            }
+            mBackDown = e;
+            mBackLong = false;
+            mSwallowBackUp = false;                     // (an up that went to the menu dialog)
+            mUi.postDelayed(mBackLongPress, 600);
+            return true;
+        }
+        if (e.getAction() == KeyEvent.ACTION_UP) {
+            mUi.removeCallbacks(mBackLongPress);
+            if (mSwallowBackUp) {
+                mSwallowBackUp = false;
+                return true;
+            }
+            if (mBackLong) {                            // the long press opened the menu
+                mBackLong = false;
+                mBackDown = null;
+                return true;
+            }
+            mBackUp = e;
+            mBackPending = true;
+            mUi.postDelayed(mDeliverBack, 350);
+            return true;
+        }
+        return true;
+    }
+
+    private void showPortMenu() {
+        if (mPanel == null || isFinishing()) return;
+        final boolean on = mPanel.isEnabled();
+        String panel = "Bottom screen panel: " + (on ? "ON" : "OFF")
+                + (mPanel.hasSecondDisplay() ? "" : " (no second screen found)");
+        new AlertDialog.Builder(this)
+                .setTitle("Negatron")
+                .setItems(new String[] { panel, "Close" }, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int which) {
+                        if (which == 0) mPanel.setEnabled(!on);
+                    }
+                })
+                .show();
     }
 }
