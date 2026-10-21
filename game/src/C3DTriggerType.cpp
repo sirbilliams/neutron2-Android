@@ -51,7 +51,8 @@ static float *ObjectRelativePoint(CGameObject *o, float *out, float a, float b, 
 // vtable of the next object); they are called once its type is known from NameContains.
 static void TextTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x476bd0, "C3DTextTrigger element slot 56"); }
 static void MusicTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x4590d0, "C3DMusicTrigger element slot 56"); }
-static void FadeObjectFire(CGameObject *next)		{ (void)next; NEG_TODO(0x431420, "C3DFadeObject element slot 56"); }
+namespace neg { void FadeObjectTrigger(CGameObject *o); }
+static void FadeObjectFire(CGameObject *next)		{ neg::FadeObjectTrigger(next); }	// objects/C3DFadeObject.cpp
 static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char flag)
 {
 	static_cast<C3DAITrigger *>(next)->Trigger(caller, flag);			// element +0xe4
