@@ -156,40 +156,65 @@ STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoint
 The 10 "fish" are the intro logo letters (T, H, Q, AWE games...): level1d opens with the logo cut scene.
 LoadGame stops at the first NULL object, so every class in the file must exist or nothing after it loads.
 
-## Next, for a playable level1d
+## Status at the end of the Oct 21 session (read this first)
 
-1. **The story opening (checked against the original running under Wine, `tools/wine/run_original.sh`):**
-   level1d is only the logo intro (THQ, AWE, Nick: the C3DFish letters, cut scene cameras cam4 / cam6 /
-   nickcam2 timed by their voice clips). It ends with the LOAD trigger `startgame`, which loads
-   **level5.gam** (the museum: Fowl, the friends, a flying camera); that level's exit `tolab` loads
-   **level3.gam** (Negatron's lab), and only there, after several minutes of cut scenes, does the player get Jimmy (HUD on).
-   The port now plays the logo intro as the original and loads level5.gam; level5's LoadGame stops at
-   its first missing class (3FOW), so its opening never starts and the game sits in mode 1 (Loading).
-   Needed next, in file order: level5 - C3DFowl 3FOW, C3DSheen 3SHE, C3DLibby 3LIB, C3DCarl 3CAR,
-   C3DCindy 3CIN, C3DNick 3NIC, C3DBenny 3BEN, C3DFlyingCamera 3FLY, C3DAIJimmy 3AIJ,
-   C3DMultiCutSceneCamera 3MCA, C3DTree 3TRE, C3DFog 3FOG (3ASE exists now); level3 - 3GRO, 3FAD,
-   3NEU, 3CHK, 3TSP, 3PIC, 3HEL, 3BOT, 3TEX, 3TES, 3SPH, 3SWN, 3SCR, 3NUM, 3MUS, 3HER, 3BUT, 3ARR.
-   `NEG_TEST_PLAY=level5.gam` (environment, desktop or Android) starts the game in that level, skips its opening and gives Jimmy the camera in mode 5:
-   he walks, turns, jumps and stops at the museum walls. Under Wine the voice clips play fast (ALSA
-   null device), so its timing is not a reference; the port's shots last as long as their clips.
-   C3DRocketShip::v260 -> InitPhysics taking the element position is as in the original (0x46a852).
-2. **Jimmy's helper objects** (created in his constructor, NULL until written; every use is NULL-checked):
-   C3DShadow 0x46e9f0, C3DRadar (the HUD) 0x468180, C3DJetPack 0x442f10, C3DTargetCursor 0x475b20,
-   C3DPointCursor 0x466a70, C3DASEObj 0x4207e0 (bubble), C3DMagicParticle 0x451700, C3DWaterBalloon
-   0x47c780, C3DGraplingHook 0x43cdb0, C3DGoddard 0x4383d0. Plus `player HUD hide` 0x468aa0.
-3. **Thor controls:** the joystick names JOY_01..JOY_09 aren't found by C3DPlayerObject::TextToKeys
-   (`dat\options.opt` key names); map them, and give the keyboard-only actions buttons (below).
-4. Open TODOs in a run (`grep TODO` in the log): CPhysics::AddObject 0x4b4ae0, CGameObject slots 248
-   0x4ae3a0 and 262 0x4af030, GetMouseDelta 0x4a3990, texture animations 0x4a28c0, shape material setup
-   0x4a23e0, clear layer view matrix 0x4b974e, C3DParticle::Reset 0x49b260.
-5. Weak hooks (`grep -n weak game/src`) whose real owners aren't written yet: C3DMiniSub, C3DGoddard,
-   C3DAIOmtObj, C3DDino/C3DPtero, mines - not used by level1d.
+- **On the Thor today:** Play runs the logo intro (THQ, AWE, Nick) with sound, then loads Level5.gam and
+  freezes there (its first class, 3FOW, is missing; LoadGame stops at the first NULL object). The start
+  screen's **Jump to Jimmy (test)** button sets `NEG_TEST_PLAY=Level5.gam`: Jimmy runs around the museum
+  with the HUD, under the Thor gamepad (`docs/controls.md`). **Share log** sends `omt-log.txt`.
+- **The goal is Level3.gam (Negatron's lab)**, where the original first gives the player Jimmy:
+  level1d.gam (logo intro) -> LOAD `startgame` -> Level5.gam (museum cut scene) -> exit `tolab` ->
+  Level3.gam (lab, several minutes of cut scenes, then play). Checked against the original under Wine
+  (`tools/wine/run_original.sh <game dir> <out dir> <seconds>`; delete `save/autosave.tsk` afterwards).
+- **Remaining: 29 classes** (C3DSphere '3SPH' is done). A four-agent wave was started and stopped for
+  budget after the research below; no code was written for these yet. Their scratch scripts (vtable diffs,
+  disassembly notes) are backed up in Bill's private repo `negatron-gamefiles/notes/wave3-research.tar.gz`.
+
+## Next: the Level5 and Level3 classes (suggested split, one agent each)
+
+Bases and sizes from factory.json/classes.json. Test each with `NEG_TEST_PLAY=Level5.gam` / `Level3.gam`.
+
+1. **The friends** (base **C3DFriends**, C3DAI; no factory ID, ctor 0x436a50): C3DFowl '3FOW' 0x436540,
+   C3DSheen '3SHE' 0x46ecd0, C3DLibby '3LIB' 0x44f720, C3DCarl '3CAR' 0x425840 (largest), C3DCindy '3CIN'
+   0x427600, C3DNick '3NIC' 0x45a350, C3DBenny '3BEN' 0x421be0, C3DAIJimmy '3AIJ' 0x416af0, C3DNumey '3NUM'
+   0x45ab70. Research so far: C3DFriends members 0x1b50..0x1d74 = TalkState0..4 (ints, 0 then -1 x4),
+   TalkTrigger0..4 (100-byte strings at 0x1b64/0x1bc8/0x1c2c/0x1c90/0x1cf4, "none"), short 0x1d58, float
+   0x1d5c (100.0, counted up by dt), shadow offset 0x1d60..0x1d68 (0,-60,0), C3DShadow* 0x1d70 (SetSize
+   90x30; not created in windowed mode). Overrides: InitObject 0x436da0, ResetObject 0x436d70, Process
+   0x436eb0 (places the shadow), ev113 0x436d90, new element slots 144..146. Shared compiled copies:
+   InitObject 0x44ebc0 / 0x43e920, v260 0x417110, ev60 0x4369f0, v266 0x4368e0, v267 0x436900 / 0x471950.
+   The v270 methods use C3DPlayerObject's 40-byte buffer at 0x938 (C3DJimmy declares it as `f_938`; move
+   it to C3DPlayerObject). Stub to replace: `LibbySlot` in objects/C3DAITrigger.cpp (0x41a039).
+2. **Cut scene cameras etc.:** C3DMultiCutSceneCamera '3MCA' (C3DTriggerType; Level3 has 15 - the story
+   cut scenes), C3DFlyingCamera '3FLY' (C3DAI), C3DTree '3TRE' (ctor/dtor only), C3DFogTrigger '3FOG'.
+   3MCA research: members 0x7a0..0x134c = eight shots, each CameraTarget, TargetAnim, LookatVOffset,
+   SoundIndex, CameraType, SoundNames; InitObject 0x4570b0, Process 0x457400, slots 56-63. Quirks: Process
+   passes the shot time from before adding dt to UpdateView (slot 62); UpdateView's 18 camera types each set
+   a camera offset (constants read from the exe at run time, not copied); TriggerCamera looks up the C3DAI to
+   release from CameraTarget[1]; the shot end hands the camera to PlayerControlled, calls CloseDatabase, then
+   CallNextTrigger(NextTrigger, 0). Stubs: CEditor.cpp 0x4a6520, C3DTriggerType.cpp 0x457be0 / 0x433f50,
+   C2DInGameMenu_d.cpp 0x406cd4.
+3. **Pickups and triggers:** CPickupType (ctor 0x496c20, size 0x7b0: 0x7a0 PickupIndex=0, 0x7a4
+   PIC_NUMBER=-1, 0x7a8 RequiredLevel=0, 0x7ac ExactLevel=-1; overrides 7, 242, 260, 266 (shared 0x4368e0),
+   267), C3DPickupItem '3PIC' (ctor 0x45dc00; properties 0x7b0..0x938, corona 0x918; AddTouching 0x45e200;
+   slot 56 = powerups by tag, calls C3DRadar::Open(g_camera, '3DIN', 23, 16, 40, FindObjectByTag("JOHNNY"));
+   57 needs the required pickup; also 58, 59, 10, 240, 260, 268, 284, 285), C3DCheckPoint '3CHK', C3DNeutron
+   '3NEU', C3DTransportEffect '3TSP', C3DHelpSound '3HEL', C3DTextTrigger '3TEX', C3DMusicTrigger '3MUS',
+   C3DFadeObject '3FAD', C3DArrow '3ARR'.
+4. **Lab objects:** C3DBot '3BOT' 0x422250 and C3DHerman '3HER' 0x43e2a0 (C3DAI), C3DTesla '3TES' 0x475ff0,
+   C3DSwingDoor '3SWN' 0x474da0, C3DLabScreen '3SCR' 0x44ec70 (mostly worked out: InitObject, a texture
+   cycle in Process, empty dtor, timer at 0x924), C3DButton '3BUT' 0x4238e0. Jimmy's C3DBot TODO 0x44512a.
+5. **Then integration:** play Level5's opening to its exit `tolab`, then Level3's cut scenes to player
+   control, comparing with the original under Wine. Give Bill an APK.
+
+Other open TODOs seen in runs: texture animations 0x4a28c0 / 0x4a2270 / 0x490300 and shape material setup
+0x4a23e0 (likely why the sun billboard behind the Nick logo isn't drawn), C3DRocketShip +0x9f4 show
+0x445ce5, C3DJimmy surface flags 0x4848ba, clear layer view matrix 0x4b974e, C3DParticle::Reset 0x49b260,
+CGameObject slot 221 0x4ad5e0, C3DBone (Goddard 0x43a94b).
 
 Loose ends:
 
 - `CJimmyGame::GetSceneStage` should use `neg::GetTaskState("SCENE")`; check that it does.
-- Keyboard-only actions need Thor buttons: Y/N confirmations, Esc (close text / skip), R (HUD), and
-  "any key" on the score screen. That is a port-level mapping in the SDL layer, not a game change.
 - Several modules have private static copies of the same small helpers: find object by tag
   (0x4aefb0), menu item state (0x404dd0/0x404ef0/0x404f20), mouse capture (0x4a3930), health
   (0x485730) and SetGameState (0x485360). Consolidate them into one shared definition each.
