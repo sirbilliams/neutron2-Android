@@ -207,7 +207,6 @@
 	virtual void v243(float a2);	// slot 243 0x464ee0 gen
 	virtual void v244(unsigned int a2);	// slot 244 0x464ee0 gen
 	virtual void v247();	// slot 247 0x463890 gen
-	virtual void v248();	// slot 248 0x4ae3a0 TODO
 	virtual void v249(short a2, short a3, short a4);	// slot 249 0x4ae440 gen
 	virtual void v250(unsigned int a2, unsigned int a3, unsigned int a4, unsigned int a5);	// slot 250 0x4ae6b0 gen
 	virtual void v251(unsigned int a2, unsigned int a3, unsigned int a4);	// slot 251 0x4ae620 TODO

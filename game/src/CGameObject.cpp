@@ -550,6 +550,20 @@ void CGameObject::RotateToDest(float dt)					// 0x4ae180: turn towards f_274.. a
 	if (fabsf(rz * k) < k) f_22c = dz; else f_22c = rz * k + f_22c;
 }
 
+// 0x4ae3a0: the element's angles (OMT units, 0..0x3fff) from the rotation in degrees (slot 249,
+// SetElementAngles). Each angle: _CIfmod(deg, 360.0) * (16384 / 360.0), _ftol, & 0x3fff.
+void CGameObject::v248(void)
+{
+	float r[4];
+	v201(r);												// vtable +0x324 (called once per angle)
+	const short az = (short)((int)(fmod((double)r[2], 360.0) * 45.51111111111111) & 0x3fff);	// 0x51b5d8, 0x51b5d0
+	v201(r);
+	const short ay = (short)((int)(fmod((double)r[1], 360.0) * 45.51111111111111) & 0x3fff);
+	v201(r);
+	const short ax = (short)((int)(fmod((double)r[0], 360.0) * 45.51111111111111) & 0x3fff);
+	v249(ax, ay, az);										// vtable +0x3e4
+}
+
 // --------------------------------------------------------------------------- not reconstructed yet
 
 void CGameObject::v262(CGameObject *other, float dist)	// 0x4af030: push away unless other is a C3DWHEEL
