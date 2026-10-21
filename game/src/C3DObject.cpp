@@ -153,7 +153,7 @@ static float FoldDegrees(double a)
 	return (float)a;
 }
 
-static void FloorNormalToAngles(const OMedia3DVector &n, float *ax, float *ay, float *az)	// 0x4b1fc0
+void neg::FloorNormalToAngles(const OMedia3DVector &n, float *ax, float *ay, float *az)	// 0x4b1fc0
 {
 	short a = 0, b = 0, c = 0;
 	if (n.z != 0.0f)

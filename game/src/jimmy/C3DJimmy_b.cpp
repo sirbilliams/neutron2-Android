@@ -16,6 +16,7 @@
     lower, translated here.                                                                    */
 #include "../C3DJimmy.h"
 #include "../level3c/C3DHoverCycle.h"
+#include "../level1/C3DJeep.h"
 #include "../level3d/C3DCraneBoom.h"
 #include "../level3a/C3DMiniSub.h"
 #include "../level5/C3DLunarLander.h"
@@ -903,7 +904,8 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				f_d5c->v136(0);
 				f_d5c->v132(0);
 			}
-			NEG_TODO(0x44a275, "C3DJeep +0x9c4 (cgo) = Jimmy (driver)");
+			C3DJeep *jp = dynamic_cast<C3DJeep *>(j);
+			if (jp) jp->f_a84 = this;						// the driver
 			j->v136(1);
 			j->v132(1);
 			{
@@ -914,7 +916,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 				j->v92(rot[0], rot[1], rot[2]);					// +0x170
 			}
 			Element(j)->ShowAgain();
-			NEG_TODO(0x44a3ad, "C3DJeep element slot 141 (73, -30, 3, 3, 1, 1, 1)");
+			if (jp) jp->ev141(73.0f, -30.0f, 3.0f, 3.0f, 1.0f, 1, 1);	// element +0x234: SetupCar4
 			save = true;
 			cam = j;
 			break;
@@ -1216,11 +1218,20 @@ void C3DJimmy::ev139(void)											// 0x449450
 				f_d5c->v132(1);
 			}
 			f_d64 = 0.5f;
-			NEG_TODO(0x449842, "C3DJeep +0x9c4 (cgo) = 0");
+			C3DJeep *jp = dynamic_cast<C3DJeep *>(j);
+			if (jp) jp->f_a84 = NULL;						// no driver
 			j->v136(0);
 			j->v132(0);
 			Element(j)->HideAgain();
-			NEG_TODO(0x449871, "C3DJeep element slot 140; +0xa78 (engine channel) stopped, -1");
+			if (jp)
+			{
+				jp->ev140();									// element +0x230: mirror off
+				if (jp->f_a78 != -1)
+				{
+					StopGameSound(jp->f_a78, false);			// 0x48f0d0
+					jp->f_a78 = -1;
+				}
+			}
 			break;
 		}
 
