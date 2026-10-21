@@ -10,6 +10,7 @@
 #include "../C3DAI.h"
 #include "../friends/C3DLibby.h"
 #include "../C2DInGameMenu.h"
+#include "../CanvasWrapper.h"
 #include "../CGameType.h"
 #include "../SaveGame.h"
 #include "../Globals.h"
@@ -204,7 +205,25 @@ static void MinisubReset(CGameObject *sub)									// C3DMiniSub +0x5a0, +0x934,
 }
 // C2DInGameMenu helpers private to the menu module.
 static void MenuOpenHelp(float secs)		{ (void)secs; NEG_TODO(0x40a0c0, "C2DInGameMenu open help"); }
-static void MenuRestartGame(void)			{ NEG_TODO(0x410540, "C2DInGameMenu 0x410540 (score box, restart)"); }
+// 0x410540 (a C2DInGameMenu method): the end of the game: the score box (as the menu's "give up",
+// 0x40b2b0 case 11), then the score screen (0x545f0f) counts 8 s down and starts a new game.
+static void MenuRestartGame(void)
+{
+	C2DInGameMenu *m = g_menu;
+	m->v317(0, 1, 0, 0xffffffffu);							// +0x4f4
+	if (!g_score_box2_on)
+	{
+		m->SetupSprite(g_score_box, 407.0f, (float)g_score_box_y, 0x221, 1.0f, true, 1.0f);	// +0x488
+		g_score_box->force_show();							// (hide count -> 1, +0x58 (0))
+	}
+	else
+	{
+		m->SetupSprite(g_score_box2, 41.0f, 221.0f, 0x222, 1.0f, true, 1.0f);
+		g_score_box2->force_show();
+	}
+	g_545f0f = 1;
+	g_532508 = 8.0f;
+}
 
 // --------------------------------------------------------------------------- construction
 
