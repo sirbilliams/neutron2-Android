@@ -101,7 +101,7 @@ class C3DJimmy : public C3DPlayer
 	OMedia3DPoint		f_2cb0[500];	// 0x2cb0 ?
 	OMedia3DPoint		f_4bf0;			// 0x4bf0 position saved by ev150 / ev151
 	int					f_4c00;			// 0x4c00 the level (g_gametype ID) of f_4bf0
-	int					f_4c04;			// 0x4c04 0
+	CGameObject			*f_4c04;		// 0x4c04 NULL; the C3DCheckPoint he last checked (its game object)
 	int					f_4c08;			// 0x4c08 sound channel (-1) "ropeswing" / "ropeclimb"
 	int					f_4c0c;			// 0x4c0c sound channel (-1) "water stream"
 	int					f_4c10;			// 0x4c10 sound channel (-1) "shrinkray"

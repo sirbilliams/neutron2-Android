@@ -1,0 +1,5 @@
+# Checkpoints and pickups (agent D): game/src/objects/C3DCheckPoint.cpp, pickups/
+# address kind type [name]      kinds: ptr (pointer slot), ptrarray, val (value in g_data), array
+0x545f38 val int g_checkpoint_num                    # CheckpointNum of the last checkpoint (0 on level load)
+0x545f3c val bool g_checkpoint_pending                # a checkpoint was touched outside game mode 5 (C3DCheckPoint::v270 checks it)
+0x545f40 ptr CGameObject* g_checkpoint_toucher        # who touched it
