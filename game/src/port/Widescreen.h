@@ -12,15 +12,13 @@
         full-screen effects (letterbox, fades) are widened to cover the whole window, and window-
         space rectangles / mouse positions are shifted between the window and the 4:3 area.
 
-    The setting: NEG_WIDESCREEN=1 / 0 in the environment; off by default (unfinished: only the
-    3D Hor+ part and the centred 4:3 2D area are done - see the TODO list below).
+    The setting: NEG_WIDESCREEN=1 / 0 in the environment; unset: on for Android (the setup screen's
+    "Widescreen (16:9)" option, stored in the app's prefs, sets it), off on the desktop.
 
-    TODO: anchor the edge HUD pieces (health/neutrons top left, gadget bar and HelpMenu bottom,
-    f_5b0 top right) by WideMargin(); widen the full-screen effects (LetterBoxTop/Bottom morphs
-    in C2DInGameMenu_b.cpp CutsceneLetterbox, the fades); shift window-space rectangles (the cut
-    scenes' picture-in-picture viewports in C3DCutSceneCamera / C3DMultiCutSceneCamera) and
-    the mouse / touch positions (window -> 4:3 area: x - WideMargin()); an Android SetupActivity
-    option that sets NEG_WIDESCREEN; check the cut scenes widened.                               */
+    Done: the edge HUD pieces (WideAnchor below: the health corner top left, the radar and pickup
+    pop-up top right, the help keys bottom right, the help icons bottom left; the gadget bar is
+    top centre and stays there), the letterbox bars and the black fade widened, the cut scenes'
+    picture-in-picture viewport moved by the margin, mouse / touch positions (Input.cpp).          */
 #pragma once
 
 namespace neg {

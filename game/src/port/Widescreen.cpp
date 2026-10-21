@@ -15,7 +15,14 @@ bool WidescreenOn(void)
 	{
 		const char *e = getenv("NEG_WIDESCREEN");
 		if (e && *e) on = atoi(e) != 0;
-		else on = 0;			// off by default until the HUD / letterbox / mouse parts are done
+		else
+		{
+#ifdef __ANDROID__
+			on = 1;				// Android: on (the setup screen's option sets the variable)
+#else
+			on = 0;				// desktop: off unless asked for
+#endif
+		}
 	}
 	return on != 0;
 }
