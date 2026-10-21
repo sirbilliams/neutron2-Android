@@ -89,7 +89,9 @@ const char *neg::StartModeChoose(char *level_name)
 	// The Main Menu only over a continued game (a new game opens with the title / logos).
 	int level, score;
 	char gam[256];
-	s_menu_pending = s_mode == MODE_MENU && strcasecmp(level_name, "autosave") == 0
+	// NEG_TEST_PLAY (the level picker) replaces the level later in CEditor: no menu then.
+	const char *test = getenv("NEG_TEST_PLAY");
+	s_menu_pending = s_mode == MODE_MENU && !(test && *test) && strcasecmp(level_name, "autosave") == 0
 					 && ReadHeader(s_task, level, gam, score);
 	SDL_Log("NEG_START: %s -> %s%s%s", s && *s ? s : "(menu)", level_name,
 			strcasecmp(level_name, "autosave") == 0 ? " " : "",
