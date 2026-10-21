@@ -7,6 +7,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "TextureAnims.h"
 #include "Physics.h"
 #include "Sound.h"
 #include <SDL.h>
@@ -23,7 +24,6 @@ using namespace neg;
 
 // --------------------------------------------------------------------------- not reconstructed yet
 
-static void UpdateTextureAnims(float dt)	{ (void)dt; NEG_TODO(0x4a28c0, "texture animations (list 0x56ad7c)"); }
 static void UpdateFrameRate(float dt)		{ (void)dt; NEG_TODO(0x4b2d90, "frame rate average / debug overlay"); }
 static void SetClearLayerViewMatrix(void)
 {

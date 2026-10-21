@@ -6,6 +6,7 @@
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
+#include "TextureAnims.h"
 #include "Physics.h"
 #include "Sound.h"
 #include "gen/globals.h"
@@ -46,7 +47,6 @@ using namespace neg;
 // --------------------------------------------------------------------------- not reconstructed yet
 
 static void ResetParticles(void)			{ NEG_TODO(0x49b260, "C3DParticle::Reset"); }
-static void ResetTextureAnims(void)			{ NEG_TODO(0x4a2270, "Reset() texture animation list 0x56ad7c"); }
 // 0x4a3930 (as in CEditor.cpp): capture centres the pointer (hiding the Windows cursor has no
 // equivalent on the Thor); release only clears the flag.
 static void CaptureMouse(bool capture)
@@ -56,12 +56,6 @@ static void CaptureMouse(bool capture)
 }
 // OMediaMouseCursor::hide() (OMT2.dll); the SDL build of OMT has no OMediaMouseCursor.
 static void HideMouseCursor(void)			{ SDL_ShowCursor(SDL_DISABLE); }
-static void SetupShapeMaterials(OMediaDataBase *db, OMedia3DShape *shape)
-{
-	(void)db; (void)shape;
-	NEG_TODO(0x4a23e0, "shape material setup (0x4a23e0, 0x490300)");
-}
-
 // --------------------------------------------------------------------------- shape helpers (0x4b2xxx)
 
 // 0x4b2d70. Quirk: the chunk type argument is ignored, the test is always made for '3DSh'.
@@ -80,7 +74,8 @@ OMedia3DShape *neg::Load3DShape(OMediaDataBase *db, int id)
 		shape = (OMedia3DShape *)db->get_object('3DSh', id);
 		if (g_56afaa) NEG_TODO(0x4b2c80, "debug database call (db vtable +0x4c)");
 		if (shape) shape->db_unlock();
-		SetupShapeMaterials(db, shape);
+		AddShapeTextureAnims(db, shape);					// 0x4a23e0
+		AddShapeMaterialAnims(db, shape);					// 0x490300
 		g_56afac = 0;
 		// Translucent materials (diffuse alpha != 1) are drawn in the second pass, alpha blended.
 		omt_PolygonList *polys = shape->get_polygons();			// (no NULL test in the original)
