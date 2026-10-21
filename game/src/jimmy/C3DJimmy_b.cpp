@@ -17,6 +17,7 @@
 #include "../C3DJimmy.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
+#include "../C3DShadow.h"
 #include "../C3DTriggerType.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -172,14 +173,6 @@ static float RotationY(CGameObject *o)
 	float r[4];
 	o->v201(r);												// vtable +0x324
 	return r[1];
-}
-
-// 0x46ec30 (C3DShadow): its size w x h (also kept in its shorts +0x600 / +0x602).
-static void ShadowSetSize(C3DPermanentSprite *shadow, short w, short h)
-{
-	if (!shadow) return;									// port: NULL until C3DShadow exists
-	NEG_TODO(0x46ec30, "C3DShadow +0x600 / +0x602 (size as shorts)");
-	shadow->set_size((float)w, (float)h);					// canvas +0xac / +0xb0
 }
 
 // The element (C3DObject family) of a game object found by tag, or NULL.
@@ -767,14 +760,11 @@ unsigned char C3DJimmy::ev140(float dt)								// 0x44b490
 				if (PhysicsClosestHit(p, down, false))
 				{
 					const float hit_y = g_phys_ray.end.y;
-					if (f_cc4)
-					{
-						const OMedia3DVector q = Position(self);
-						f_cc4->v197(q.x, hit_y + 30.0f, q.z);		// +0x314 of its CGameObject part
-						if (!g_windowed) f_cc4->ShowAgain();
-					}
+					const OMedia3DVector q = Position(self);
+					f_cc4->v197(q.x, hit_y + 30.0f, q.z);			// +0x314 of its CGameObject part
+					if (!g_windowed) f_cc4->ShowAgain();
 				}
-				else if (f_cc4) f_cc4->HideAgain();
+				else f_cc4->HideAgain();
 			}
 		}
 	}
@@ -834,7 +824,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 		{
 			CGameObject *r = FindObjectByTag("C3DROCKETSHIP");
 			if (!r) break;
-			ShadowSetSize(f_cc4, 150, 50);
+			f_cc4->SetSize(150, 50);								// 0x46ec30
 			Element(r)->ShowAgain();
 			r->v52(1);
 			r->v132(1);
@@ -1139,7 +1129,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			// (debug log "Deactivating Rocket")
 			CGameObject *r = FindObjectByTag("C3DROCKETSHIP");
 			if (!r) break;
-			ShadowSetSize(f_cc4, 70, 30);
+			f_cc4->SetSize(70, 30);								// 0x46ec30
 			Element(r)->HideAgain();
 			r->v52(0);
 			r->v132(0);
@@ -1191,7 +1181,7 @@ void C3DJimmy::ev139(void)											// 0x449450
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
-			if (!g_windowed && f_cc4) f_cc4->ShowAgain();		// port: f_cc4 NULL until C3DShadow exists
+			if (!g_windowed) f_cc4->ShowAgain();
 			{
 				float p[4];
 				v195(p);

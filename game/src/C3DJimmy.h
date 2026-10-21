@@ -43,6 +43,7 @@ class CTaskList;
 class C3DGrannyObj;
 class C3DPermanentSprite;
 class C3DRadar;
+class C3DShadow;
 class OMediaStreamOperators;
 
 class C3DJimmy : public C3DPlayer
@@ -60,7 +61,7 @@ class C3DJimmy : public C3DPlayer
 	// 0xcb0..0xcbb never used
 	C3DObject			*f_cbc;			// 0xcbc  shrink-ray effect: hidden when the ray stops / out of energy (0; set elsewhere)
 	CGameObject			*f_cc0;			// 0xcc0  0 (ev118 calls an empty function on it)
-	C3DPermanentSprite	*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
+	C3DShadow			*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
 	C3DPlayerObject		*f_cc8;			// 0xcc8  C3DRocketShip he can fly (a C3DFlyingObject)
 	C3DPlayerObject		*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
 	C3DPermanentSprite	*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool

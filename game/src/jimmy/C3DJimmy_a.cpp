@@ -1,6 +1,7 @@
 /*  C3DJimmy, part A: the slots below 0x448b40 (see C3DJimmy.h). */
 #include "../C3DJimmy.h"
 #include "../C3DPermanentSprite.h"
+#include "../C3DShadow.h"
 #include "../C3DGrannyObj.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
@@ -100,13 +101,6 @@ static OMedia3DMaterial *FirstMaterial(OMedia3DShapeElement *e)
 	omt_PolygonList *polys = sh ? sh->get_polygons() : NULL;
 	if (!polys || polys->empty()) return NULL;				// port: the original takes polygon 0 unchecked
 	return (*polys->begin()).get_material();
-}
-
-static int ShadowHeight(C3DPermanentSprite *shadow)		// C3DShadow +0x602 (short)
-{
-	(void)shadow;
-	NEG_TODO(0x446e80, "C3DShadow +0x602 (its height)");
-	return 0;
 }
 
 static OMedia3DVector Position(CGameObject *o)			// vtable +0x30c
@@ -717,15 +711,15 @@ void C3DJimmy::ev136(float dt)								// 0x446d40
 	OMedia3DVector b(p.x, a.y - 2500.0f, p.z, p.w);
 	if (!PhysicsClosestHit(a, b, false))					// 0x4b7640
 	{
-		if (f_cc4) f_cc4->HideAgain();						// +0xd8 (port: NULL-checked)
+		f_cc4->HideAgain();									// +0xd8
 		f_c04 = 0;
 		return;
 	}
 	const OMedia3DVector hit = RayEnd();
-	if (!f_cc4) return;
+	if (!f_cc4) return;										// (the original checks here)
 	if (!g_windowed) f_cc4->ShowAgain();					// +0xd4 (0x56afab)
 	// the shadow sits on the floor, half its height (+0x602) - 2 up
-	const float half = (float)(ShadowHeight(f_cc4) / 2 - 2);
+	const float half = (float)(f_cc4->f_602 / 2 - 2);
 	p = Position(this);
 	f_cc4->v197(p.x, hit.y + half, p.z);					// +0x314
 	{
