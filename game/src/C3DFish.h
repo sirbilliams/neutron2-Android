@@ -36,7 +36,7 @@ class C3DFish : public C3DAI
 	// ---- CGameObject-family overrides
 	virtual void InitObject(void);											// SLOT 7   0x432240 properties
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x432820 bite / be hit / barrel roll
-	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x432a60 collides with the camera, '3JIM', '3AIT', '3DOG', '3LBW' only
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x432a60 collides with the camera, '3JIM', '3AIT', '3GOD', '3WBL' only
 	virtual void Process(float dt);											// SLOT 240 0x4324e0 SpecialCase 5 carrying, barrel roll
 	virtual void v260(void);												// SLOT 260 0x432350 properties loaded: the SpecialCase set-up
 

@@ -171,7 +171,7 @@ unsigned char C3DFish::v231(CGameObject *other)				// 0x432a60
 {
 	if (g_camera == other) return 1;
 	const int id = other->m_object_id;
-	return id == '3JIM' || id == '3AIT' || id == '3DOG' || id == '3LBW';
+	return id == '3JIM' || id == '3AIT' || id == '3GOD' || id == '3WBL';
 }
 
 void C3DFish::Process(float dt)								// 0x4324e0

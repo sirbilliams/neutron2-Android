@@ -3,7 +3,7 @@
     Touched by the camera object (Jimmy) while "TouchActivated" (1), or told so by NextState
     (v268), it squeaks and turns at "OpenSpeed" (50 degrees / s) for "TimeToOpen" (1.8 s);
     the next time it turns back. Collides only with the camera, Goddard, the bots, '3EPR',
-    Jimmy and '3LBW'. Its name is "C3DDOORSWING"; its InitObject logs "C3DShrinkRay" (copied).
+    Jimmy and '3WBL'. Its name is "C3DDOORSWING"; its InitObject logs "C3DShrinkRay" (copied).
     Reconstructed from Neutron2.exe: constructor 0x474da0 (factory '3SWN', 0xa0c bytes),
     destructor 0x474fa0 (only resets the vtables, then ~C3DAnimated; deleting thunks 0x474f70 /
     0x475310 / 0x475320 / 0x475330).
@@ -23,7 +23,7 @@ class C3DSwingDoor : public C3DAnimated
 	// ---- CGameObject-family overrides
 	virtual void InitObject(void);											// SLOT 7   0x474ff0 properties
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x4750a0 the camera: open (TouchActivated)
-	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x4752a0 collides with the camera, '3GOD', '3BOT', '3EPR', '3JIM', '3LBW' only
+	virtual unsigned char v231(CGameObject *other);							// SLOT 231 0x4752a0 collides with the camera, '3GOD', '3BOT', '3EPR', '3JIM', '3WBL' only
 	virtual void Process(float dt);											// SLOT 240 0x475130 turning (C3DAnimated's is not called)
 	virtual void v260(void);												// SLOT 260 0x475200 properties loaded: animation, texture
 	virtual void v268(int state);											// SLOT 268 0x4750e0 "NextState": start turning (state unused)
