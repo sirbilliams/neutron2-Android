@@ -8,14 +8,16 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 /** Desktop check of the launcher menu (tools/companion/render-menu.sh): draws the real LauncherView
- *  pages (main screen 1920 x 1080 and bottom screen 1240 x 1080) from a game folder's save files. */
+ *  pages (main screen 1920 x 1080 and bottom screen 1240 x 1080) from a game folder's save files
+ *  (and the picture the game saves for the launcher, NEG_MENU_ART, if given). */
 public final class RenderMenu {
     public static void main(String[] a) throws Exception {
         File game = new File(a[0]), out = new File(a[1]);
         out.mkdirs();
         File save = new File(game, "save");
         LauncherModel m = new LauncherModel();
-        m.reset(LauncherPages.main(LauncherPages.readSlot(save, 0), true));
+        if (a.length > 2) m.art = Bitmap.wrap(ImageIO.read(new File(a[2])));
+        m.reset(LauncherPages.main(LauncherPages.slots(save)[0], true));
         draw(m, out, "main");
         m.push(LauncherPages.newGame());
         draw(m, out, "new");

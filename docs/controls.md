@@ -57,18 +57,21 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 
 The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no
 artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it wipes the autosave),
-**Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: name, level, date), **Settings**
+**Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: level, score, date), **Settings**
 (widescreen 16:9, dual screen, menu style, "HD image pack" for later) and **Quit**. Select or Y on
 the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
 viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
 back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows the page's
 options and the selected item's details or save-slot preview.
 
-The game starts with `NEG_START` set: `new`, `continue`, `load:<slot>`, or `menu` when Settings
--> Menu style is ORIGINAL (the app then skips the launcher and opens the game's own title menu;
-the port menu below switches back). Continue and Load stay disabled until the game reads
-`NEG_START` (`LauncherPages.GAME_LOADS`). Desktop preview: `tools/companion/render-menu.sh
-<game folder> <out dir>` draws every page for both screens.
+The game starts with `NEG_START` set (see "How the game starts" below): `new`, `continue`,
+`load:<slot>`, or `menu` when Settings -> Menu style is ORIGINAL (the app then skips the launcher:
+the original start, with the game's own Main Menu, the PDA; the port menu below switches back).
+The slots come from the game's `save/slots.txt` (before the game first wrote it: the .tsk headers).
+The info window shows the game's own main-menu background (screens.omt, read at run time): the
+game saves it once to `launcher-art.png` in the app's files folder (`NEG_MENU_ART`), so it appears
+from the second start. Desktop preview: `tools/companion/render-menu.sh <game folder> <out dir>
+[picture]` draws every page for both screens.
 
 ## Port menu and the bottom-screen panel (port)
 

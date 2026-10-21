@@ -1,9 +1,11 @@
 package com.sirbilliams.negatron;
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -17,43 +19,96 @@ import java.util.Locale;
 final class LauncherPages {
     private LauncherPages() {}
 
-    /** Whether the game takes NEG_START=continue / load:<slot> yet (the game side of the menu). */
-    static final boolean GAME_LOADS = false;
+    /** The game takes NEG_START=continue / load:<slot> (game/src/port/StartMode.h). */
+    static final boolean GAME_LOADS = true;
     static final int SLOTS = 10;
 
-    /** A save file's header: the name, the level it was saved in, and when. */
+    /** A saved game: its slot, the level it was saved in, the score and when. */
     static final class Slot {
         int number;                 // 1..10, 0 = the autosave
-        String name = "", level = "";
-        long time;
+        String levelName = "", gam = "";
+        long score = -1;
+        long time;                  // ms
         boolean present;
+
+        /** The level as the player knows it: the game's own name, else the .gam file. */
+        String level() {
+            if (levelName.length() > 0) return levelName;
+            return gam.toLowerCase(Locale.ROOT).endsWith(".gam") ? gam.substring(0, gam.length() - 4) : gam;
+        }
 
         String[] detail() {
             String title = number == 0 ? "AUTOSAVE" : "SLOT " + number;
             if (!present) return new String[] { title, "EMPTY" };
-            return new String[] { title, "NAME   " + name, "LEVEL  " + level,
-                    "SAVED  " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(new Date(time)) };
+            ArrayList<String> d = new ArrayList<>();
+            d.add(title);
+            d.add("LEVEL  " + level().toUpperCase(Locale.ROOT));
+            if (score >= 0) d.add("SCORE  " + score);
+            if (time > 0) d.add("SAVED  " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(new Date(time)));
+            return d.toArray(new String[0]);
         }
     }
 
-    /** save/autosave.tsk (number 0) or save/JimmyGame<n>.tsk: a length-prefixed name, the level's
-     *  four-letter code, its .gam and the file's own name (length-prefixed), then the game state. */
-    static Slot readSlot(File saveDir, int number) {
-        Slot s = new Slot();
-        s.number = number;
-        File f = new File(saveDir, number == 0 ? "autosave.tsk" : "JimmyGame" + number + ".tsk");
-        if (!f.isFile()) return s;
+    /** The autosave (index 0) and slots 1..10, from save/slots.txt (written by the game: TAB-separated
+     *  slot, level id, level name, gam, score, mtime; docs/controls.md), else from the .tsk headers. */
+    static Slot[] slots(File saveDir) {
+        Slot[] out = new Slot[SLOTS + 1];
+        for (int n = 0; n <= SLOTS; n++) {
+            out[n] = new Slot();
+            out[n].number = n;
+        }
+        File list = new File(saveDir, "slots.txt");
+        if (list.isFile()) {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(list), "ISO-8859-1"))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (line.startsWith("#")) continue;
+                    String[] f = line.split("\t", -1);
+                    if (f.length < 6) continue;
+                    int n = f[0].equalsIgnoreCase("autosave") ? 0 : parseInt(f[0], -1);
+                    if (n < 0 || n > SLOTS) continue;
+                    Slot s = out[n];
+                    s.levelName = f[2].trim();
+                    s.gam = f[3].trim();
+                    s.score = parseInt(f[4], -1);
+                    s.time = parseInt(f[5], 0) * 1000L;
+                    s.present = true;
+                }
+            } catch (IOException e) {
+                // as if empty
+            }
+            return out;
+        }
+        for (int n = 0; n <= SLOTS; n++) readTsk(saveDir, out[n]);
+        return out;
+    }
+
+    private static int parseInt(String s, int def) {
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return def;
+        }
+    }
+
+    /** The game has not written slots.txt yet: the .tsk header (big-endian: version string,
+     *  "DUMMY   " = empty; int level 4cc; gam string; task string; float health; short lives; int score). */
+    private static void readTsk(File saveDir, Slot s) {
+        File f = new File(saveDir, s.number == 0 ? "autosave.tsk" : "JimmyGame" + s.number + ".tsk");
+        if (!f.isFile()) return;
         try (DataInputStream in = new DataInputStream(new FileInputStream(f))) {
-            s.name = pascal(in).trim().replaceAll(" +", " ");
-            in.readFully(new byte[4]);              // the level's four-letter code
-            s.level = pascal(in);
-            if (s.level.toLowerCase(Locale.ROOT).endsWith(".gam")) s.level = s.level.substring(0, s.level.length() - 4);
+            if (pascal(in).trim().equalsIgnoreCase("DUMMY")) return;
+            in.readInt();
+            s.gam = pascal(in);
+            pascal(in);
+            in.readFloat();
+            in.readShort();
+            s.score = in.readInt();
             s.time = f.lastModified();
             s.present = true;
         } catch (IOException e) {
             s.present = false;
         }
-        return s;
     }
 
     private static String pascal(DataInputStream in) throws IOException {
@@ -69,7 +124,7 @@ final class LauncherPages {
         LauncherModel.Page p = new LauncherModel.Page("main", "Main menu");
         boolean canContinue = GAME_LOADS && autosave.present;
         LauncherModel.Item i = p.add("continue", "Continue", canContinue
-                ? "Carry on from the autosave: " + autosave.level + "."
+                ? "Carry on from the autosave."
                 : GAME_LOADS ? "No autosave yet: start a new game." : "Continue from the autosave: coming with the game's save / load.");
         i.enabled = canContinue;
         if (canContinue) i.detail = autosave.detail();
@@ -92,27 +147,18 @@ final class LauncherPages {
         return p;
     }
 
-    static LauncherModel.Page load(List<Slot> slots) {
+    static LauncherModel.Page load(Slot[] slots) {
         LauncherModel.Page p = new LauncherModel.Page("load", "Load game");
-        for (Slot s : slots) {
-            LauncherModel.Item i = p.add("slot:" + s.number, s.present ? s.number + "  " + s.name : s.number + "  ---",
+        for (int n = 1; n < slots.length; n++) {
+            Slot s = slots[n];
+            LauncherModel.Item i = p.add("slot:" + n, n + "  " + (s.present ? s.level() : "---"),
                     s.present ? "Load this game." : "Empty slot.");
-            i.value = s.present ? shortLevel(s.level) : null;
+            i.value = s.present && s.score >= 0 ? String.valueOf(s.score) : null;
             i.enabled = s.present && GAME_LOADS;
             i.detail = s.detail();
         }
         p.add("back", "Back", "Back to the main menu.");
         return p;
-    }
-
-    static List<Slot> slots(File saveDir) {
-        List<Slot> out = new ArrayList<>();
-        for (int n = 1; n <= SLOTS; n++) out.add(readSlot(saveDir, n));
-        return out;
-    }
-
-    private static String shortLevel(String level) {
-        return level.length() > 9 ? level.substring(0, 9) : level;
     }
 
     static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen, boolean original) {

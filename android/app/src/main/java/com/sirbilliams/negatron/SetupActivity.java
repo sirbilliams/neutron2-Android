@@ -111,6 +111,8 @@ public class SetupActivity extends Activity {
     static final String PREF_MENU_ORIGINAL = "menu_original";
     /** Intent extra: show the launcher even when the original menu is chosen. */
     static final String EXTRA_LAUNCHER = "launcher";
+    /** The game's main menu background, saved by the game on its first run (NEG_MENU_ART). */
+    static final String MENU_ART = "launcher-art.png";
 
     private LauncherModel mMenu;
     private LauncherView mTop;
@@ -145,6 +147,7 @@ public class SetupActivity extends Activity {
             return;
         }
         mMenu = new LauncherModel();
+        mMenu.art = android.graphics.BitmapFactory.decodeFile(new File(getExternalFilesDir(null), MENU_ART).getPath());
         mMenu.reset(mainPage());
         mTop = new LauncherView(this, mMenu, false);
         mTop.setFocusable(true);
@@ -166,7 +169,7 @@ public class SetupActivity extends Activity {
     }
 
     private LauncherModel.Page mainPage() {
-        return LauncherPages.main(LauncherPages.readSlot(saveDir(), 0), mTestShown);
+        return LauncherPages.main(LauncherPages.slots(saveDir())[0], mTestShown);
     }
 
     private LauncherModel.Page settingsPage() {
