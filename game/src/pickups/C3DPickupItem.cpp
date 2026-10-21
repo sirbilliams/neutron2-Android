@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DPickupItem.h"
+#include "../level3a/C3DWaterPlane.h"
 #include "../objects/C3DCorona.h"
 #include "../C2DInGameMenu.h"
 #include "../C3DJimmy.h"
@@ -83,11 +84,10 @@ static int  PickupCount(int pic)			{ return g_pickup_counts[2 * pic]; }	// 0x408
 static void AddPickupCount(int pic, int n)	{ g_pickup_counts[2 * pic] += n; }		// 0x408f00
 
 
-// C3DWaterPlane (not reconstructed yet): game object +0x87c = 3.0 (the oxygen refill).
+// 0x45f2eb: C3DWaterPlane game object +0x87c (f_93c, the time under water) = 3.0: the oxygen refill.
 static void WaterPlaneOxygen(CGameObject *wp)
 {
-	(void)wp;
-	NEG_TODO(0x45f2eb, "C3DWATERPLANE +0x87c = 3 (oxygen)");
+	if (C3DWaterPlane *w = dynamic_cast<C3DWaterPlane *>(wp)) w->f_93c = 3.0f;	// port: checked
 }
 
 // The power timers g_power_timers[0..9] (0x54a424..): which powerup each one runs.

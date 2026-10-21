@@ -6,6 +6,7 @@
 #include "../C3DAnimated.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DJimmy.h"
+#include "../level3a/C3DMiniSub.h"
 #include "../C3DAI.h"
 #include "../friends/C3DLibby.h"
 #include "../C2DInGameMenu.h"
@@ -195,7 +196,11 @@ static void LibbySlot(CGameObject *libby, bool digitize)					// C3DLibby +0x24c 
 }
 static void MinisubReset(CGameObject *sub)									// C3DMiniSub +0x5a0, +0x934, +0x938 = 0
 {
-	(void)sub; NEG_TODO(0x419dba, "C3DMiniSub +0x5a0 / +0x934 / +0x938 = 0");
+	C3DMiniSub *m = dynamic_cast<C3DMiniSub *>(sub);
+	if (!m) return;
+	m->f_660 = 0;											// 0x419dba
+	m->f_9f4 = NULL;
+	m->f_9f8 = NULL;
 }
 // C2DInGameMenu helpers private to the menu module.
 static void MenuOpenHelp(float secs)		{ (void)secs; NEG_TODO(0x40a0c0, "C2DInGameMenu open help"); }
