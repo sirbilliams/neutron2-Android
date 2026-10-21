@@ -82,7 +82,8 @@ using neg::CenterMouse;						// 0x4b1d50
 
 // 0x4859b0 (a CJimmyGame method, ecx = g_gametype): the "+N" pop-up for 1.2 s - big at (300, 210),
 // or (450, 210) without a camera or with the dialog open (0x40a850), flying off to the lower
-// right in its last 0.2 s - and the score at the bottom.
+// right in its last 0.2 s - and the score at the bottom. (port: widescreen moves the score to the right
+// edge and the pop-up's flight with it)
 static void DrawScoreHud(float dt)
 {
 	if (g_score_popup_time > 0.0f)
@@ -102,12 +103,13 @@ static void DrawScoreHud(float dt)
 			{
 				const double k = 0.2 - (double)g_score_popup_time;
 				const int y = (int)(k * 1000.0 + 210.0);	// 0x506f98, 0x506f90
-				const int x = aside ? (int)(k * 400.0 + 450.0) : (int)(k * 1500.0 + 300.0);	// 0x506f78 / 0x506f70, 0x506f88 / 0x506f80
+				int x = aside ? (int)(k * 400.0 + 450.0) : (int)(k * 1500.0 + 300.0);	// 0x506f78 / 0x506f70, 0x506f88 / 0x506f80
+				x += (int)(neg::WideMargin() * (float)(k / 0.2));	// port: widescreen, it flies to the score at the right edge
 				DrawText((short)x, (short)y, 'MED', "%d", g_score_popup);
 			}
 		}
 	}
-	DrawText(0x1a9, (short)(g_545e78->f_594 + 0x1b3), 'LARG', "%6.0d", g_score);
+	DrawText(neg::WideX(0x1a9, neg::WIDE_RIGHT), (short)(g_545e78->f_594 + 0x1b3), 'LARG', "%6.0d", g_score);	// port: WideX
 }
 // (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 
