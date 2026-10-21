@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "C3DOmtObj.h"
+#include "../level3d/C3DCraneBoom.h"
 #include "../C3DFlyingObject.h"
 #include "../C3DJimmy.h"
 #include "../C3DPlayer.h"
@@ -118,9 +119,8 @@ void C3DOmtObj::ev94(CGameObject *o)						// 0x45b950
 	}
 	if (boom)
 	{
-		C3DAnimated *b = dynamic_cast<C3DAnimated *>(boom);
-		// the crane boom's sound channel (its element +0x8cc)
-		if (b) StopGameSound(*(int *)((char *)b + 0x8cc), false);	// port: C3DCraneBoom is not reconstructed yet
+		C3DCraneBoom *b = dynamic_cast<C3DCraneBoom *>(boom);	// port: checked
+		if (b) StopGameSound(b->m_channel, false);			// its CGameObject +0x8cc
 	}
 	C3DTriggerType *tt = dynamic_cast<C3DTriggerType *>(done);	// (done - 0xc8), not checked
 	if (tt) tt->CallNextTrigger("CRANEDONE", 0);			// element +0xdc

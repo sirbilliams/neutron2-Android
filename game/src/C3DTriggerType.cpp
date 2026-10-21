@@ -11,6 +11,8 @@
 #pragma GCC diagnostic pop
 #include "levels/CLoadLevel.h"
 #include "C3DPlayer.h"
+#include "C3DJimmy.h"
+#include "CJimmyGame.h"
 #include "CGameType.h"
 #include "CEditor.h"
 #include "C2DInGameMenu.h"
@@ -129,7 +131,7 @@ static void LoadLevelHandOver(CGameObject *loadlevel, CGameObject *jim)
 // C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera.
 static int JeepField9c4(CGameObject *jeep)			{ (void)jeep; NEG_TODO(0x4791dd, "C3DJeep +0x9c4"); return 0; }
 
-// CJimmyGame element slot 102 (+0x198)(jim element + 0x4c28, *(jim element + 0x4c18)).
+// CJimmyGame element slot 102 (+0x198): PlayLevelMusic(jim element + 0x4c28, *(jim element + 0x4c18)).
 // (The original reads those even when there is no JIM1: a crash.)
 static void JimmyGameRestore(CGameObject *jim)
 {

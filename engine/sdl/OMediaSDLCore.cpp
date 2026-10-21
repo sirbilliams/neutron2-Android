@@ -157,7 +157,7 @@ bool OMediaFilePath::ask_user(OMediaWindow *, OMediaAskUserFilters &, bool, stri
 
 #define RTG_FILE(fp) (((OMediaSDLRtgFilePath*)(fp).getretarget()))
 
-OMediaFileStream::OMediaFileStream(void) { isopenflag = false; position = 0; }
+OMediaFileStream::OMediaFileStream(void) { isopenflag = false; readonlyflag = false; position = 0; }
 OMediaFileStream::~OMediaFileStream(void) { close(); }
 
 unsigned int OMediaFileStream::do_getsize(void)
@@ -200,6 +200,7 @@ void OMediaFileStream::open(omt_FilePermission perm, bool truncate, bool createi
 	if (!f) omd_OSEXCEPTION(errno);
 	rp->file = f;
 	isopenflag = true;
+	readonlyflag = perm == omcfp_Read;					// port: see ~OMediaFormattedStream
 	position = 0;
 	set_buffer_size(2 * 1024);
 }
