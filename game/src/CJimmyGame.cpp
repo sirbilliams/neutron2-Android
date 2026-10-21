@@ -67,13 +67,17 @@ static void CameraPlayerDead(CGameObject *camera) { (void)camera; NEG_TODO(0x484
 // C3DJimmy's level-music members (g_player - 0xc0): +0x4c14 channel, +0x4c18 a value given to
 // PlayMusic, +0x4c28 the music .omt name. port: without a Jimmy the original writes through
 // NULL; a spare set is used then.
-struct PlayerMusicState { int &channel; int &param; char *name; };
+struct PlayerMusicState
+{
+	int &channel; int &param; char *name;
+	PlayerMusicState(int &c, int &p, char *n) : channel(c), param(p), name(n) {}
+};
 static PlayerMusicState PlayerMusic(void)
 {
 	static int spare_channel = -1, spare_param = 0;
 	static char spare_name[100] = "none";
-	if (C3DJimmy *j = Jimmy()) return PlayerMusicState{ j->f_4c14, j->f_4c18, j->f_4c28 };
-	return PlayerMusicState{ spare_channel, spare_param, spare_name };
+	if (C3DJimmy *j = Jimmy()) return PlayerMusicState(j->f_4c14, j->f_4c18, j->f_4c28);
+	return PlayerMusicState(spare_channel, spare_param, spare_name);
 }
 
 // C3DJimmy members and slots TouchSurface uses (on the player's element).
