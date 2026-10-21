@@ -18,6 +18,7 @@
 #include "Globals.h"
 #include "Todo.h"
 #include "Sound.h"
+#include "pickups/C3DPickupItem.h"
 #include "gen/globals.h"
 
 #include "OMediaFilePath.h"
@@ -172,9 +173,12 @@ static void LetterboxOut(void)
 // 0x4a3850: "EXIT REQUEST, CALLING QUIT (CLEAN EXIT)".
 static void RequestQuit(void)		{ g_app->quit(); }
 
+// 0x4104c0: element slot 59 (vtable +0xec, 0x45efb0 SyncWithMenu) of every C3DPICKUPITEM.
+static void PickupItemSlot59(CGameObject *o)
+{
+	if (C3DPickupItem *p = dynamic_cast<C3DPickupItem *>(o)) p->SyncWithMenu();
+}
 // --- not reconstructed yet
-// 0x4104c0: element slot 59 (vtable +0xec) of every C3DPICKUPITEM (its CGameObject base at +0xc8).
-static void PickupItemSlot59(CGameObject *o)	{ NEG_TODO(0x4104c0, "C3DPickupItem element slot 59"); (void)o; }
 static void ResetPickupItems(void)												// 0x4104c0
 {
 	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); i++)

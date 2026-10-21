@@ -52,12 +52,10 @@ static void GameTypePauseGame(bool pause)
 	g_gametype->PauseGame(pause);
 }
 
-// g_gametype->f_490 == id (the running level's 4cc, e.g. 'LV5F').
+// g_gametype +0x490 == id: the running level's ObjectID (its 4cc, e.g. 'LV5F'; as C3DJimmy's LevelID).
 static bool GameTypeLevelIs(int id)
 {
-	(void)id;
-	NEG_TODO(0x40be3a, "g_gametype->f_490 (level id)");
-	return false;
+	return g_gametype && static_cast<CGameObject *>(g_gametype)->m_object_id == id;	// port: NULL test
 }
 
 // The player's HUD object (a C3DRadar): C3DJimmy (g_545fd0 - 0xc0)->f_d40 - 200, NULL when f_d40 is 0.
@@ -68,10 +66,12 @@ static void HudShow(void *hud)			{ static_cast<C3DRadar *>(hud)->Show(); }	// 0x
 static void HudHide(void *hud)			{ static_cast<C3DRadar *>(hud)->Hide(); }	// 0x468aa0
 
 // C3DJimmy element-family slots, called on (g_545fd0 - 0xc0).
-static void PlayerAnimEvents(void)		{ NEG_TODO(0x44e0b0, "C3DJimmy slot 67 (anim events)"); }
-static void PlayerStopSound(void)		{ NEG_TODO(0x44b060, "C3DJimmy slot 116 (stop sound 0x4c20)"); }
-static bool PlayerAltButton(void)		{ NEG_TODO(0x4655d0, "C3DPlayerObject slot 103 (2nd button)"); return false; }
-static bool PlayerFireButton(void)		{ NEG_TODO(0x465650, "C3DPlayerObject slot 104 (fire button)"); return false; }
+// port: the original calls through (NULL - 0xc0) when there is no player; these do nothing then.
+static C3DPlayerObject *PlayerObj(void)	{ return g_545fd0 ? dynamic_cast<C3DPlayerObject *>(g_545fd0) : NULL; }
+static void PlayerAnimEvents(void)		{ if (C3DPlayerObject *p = PlayerObj()) p->ev67(); }		// slot 67 (C3DJimmy 0x44e0b0)
+static void PlayerStopSound(void)		{ if (C3DPlayer *p = dynamic_cast<C3DPlayer *>(PlayerObj())) p->ev116(); }	// slot 116 (C3DJimmy 0x44b060)
+static bool PlayerAltButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev103(); }	// slot 103 0x4655d0
+static bool PlayerFireButton(void)		{ C3DPlayerObject *p = PlayerObj(); return p && p->ev104(); }	// slot 104 0x465650
 
 // (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth.
 static void PhoneBoothTeleport(void)	{ NEG_TODO(0x4648a0, "phone booth teleport (g_56af7c slot 121)"); }
@@ -80,8 +80,35 @@ static void SetMousePos(int x, int y)		{ neg::SetMousePos((short)x, (short)y); }
 using neg::GetMousePos;						// 0x4b1d10 (Mouse.h)
 using neg::CenterMouse;						// 0x4b1d50
 
-// CJimmyGame (ecx = g_gametype): score and "+N" pop-up text.
-static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame score / pop-up text"); }
+// 0x4859b0 (a CJimmyGame method, ecx = g_gametype): the "+N" pop-up for 1.2 s - big at (300, 210),
+// or (450, 210) without a camera or with the dialog open (0x40a850), flying off to the lower
+// right in its last 0.2 s - and the score at the bottom.
+static void DrawScoreHud(float dt)
+{
+	if (g_score_popup_time > 0.0f)
+	{
+		g_score_popup_time -= dt;
+		if (g_score_popup_time <= 0.0f)
+		{
+			g_score_popup = 0;
+			g_score_popup_time = 0.0f;
+		}
+		else if (g_score_popup >= 1)
+		{
+			const bool aside = !g_camera || g_545dd4;
+			if ((double)g_score_popup_time > 0.2)			// 0x4d6c38
+				DrawText(aside ? 450 : 300, 210, 'BIG', "%d", g_score_popup);
+			else
+			{
+				const double k = 0.2 - (double)g_score_popup_time;
+				const int y = (int)(k * 1000.0 + 210.0);	// 0x506f98, 0x506f90
+				const int x = aside ? (int)(k * 400.0 + 450.0) : (int)(k * 1500.0 + 300.0);	// 0x506f78 / 0x506f70, 0x506f88 / 0x506f80
+				DrawText((short)x, (short)y, 'MED', "%d", g_score_popup);
+			}
+		}
+	}
+	DrawText(0x1a9, (short)(g_545e78->f_594 + 0x1b3), 'LARG', "%6.0d", g_score);
+}
 // (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 
 // --------------------------------------------------------------------------- input / system helpers

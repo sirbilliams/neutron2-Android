@@ -13,6 +13,7 @@
 #include "gen/globals.h"
 #include "OMediaViewPort.h"
 #include "CanvasWrapper.h"
+#include "Mouse.h"
 #include <math.h>
 #include <string.h>
 #include <strings.h>
@@ -22,10 +23,7 @@ using namespace neg;
 // --------------------------------------------------------------------------- helpers
 
 // 0x4b1d50: put the mouse cursor in the middle of the viewport (window vtable +0x38 -> +0x24).
-static void CentreMouse(void)
-{
-	NEG_TODO(0x4b1d50, "centre the mouse cursor in the viewport");
-}
+static void CentreMouse(void)	{ neg::CenterMouse(); }		// Mouse.h
 
 // 0x410510 (a C2DInGameMenu method, `this` unused): forget the keys and mouse buttons held.
 static void ClearInput(void)

@@ -35,4 +35,7 @@ namespace neg {
 void SetGameMode(int mode);			// 0x485360 (C2DInGameMenu_b.cpp): 0 Starting 1 Loading 2 Saving 3 CutScene 4 Menu 5 Playing 6 Paused 9 None
 void SetLevelItems(int which);		// 0x40a860 (C2DInGameMenu_b.cpp): the level items page for a level-progress value
 void CutsceneLetterbox(bool on);	// 0x40c0f0 (C2DInGameMenu_b.cpp, a menu method): cut scene starts (mode 3, bars in) / ends (mode 5, bars out)
+void MenuInterfaceEffect(const char *name, float t);	// 0x405420 (C2DInGameMenu_e.cpp): "ANTIHOLO", the inventing brain
+void AnnouncePickup(int pic, int index);	// 0x408f80 (C2DInGameMenu_e.cpp): a page 2 pickup collected: pop-up, gadget sets, count
+void GivePendingInvention(void);	// 0x409b20 (C2DInGameMenu_e.cpp): hand out the gadget waiting in 0x545e64
 }

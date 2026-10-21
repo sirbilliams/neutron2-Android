@@ -83,13 +83,6 @@ static short GetItemState(short page, short item)
 static int  PickupCount(int pic)			{ return g_pickup_counts[2 * pic]; }	// 0x408ef0
 static void AddPickupCount(int pic, int n)	{ g_pickup_counts[2 * pic] += n; }		// 0x408f00
 
-// 0x408f80 (2496 bytes, not reconstructed yet): the pickup menu's announcement of pickup `pic`
-// (interface elements, the "jimmyself121" voice and the gadget-complete checks).
-static void AnnouncePickup(int pic, int index)
-{
-	(void)pic; (void)index;
-	NEG_TODO(0x408f80, "pickup announcement (menu interface elements, jimmyself121)");
-}
 
 // 0x45f2eb: C3DWaterPlane game object +0x87c (f_93c, the time under water) = 3.0: the oxygen refill.
 static void WaterPlaneOxygen(CGameObject *wp)

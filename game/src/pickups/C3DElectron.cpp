@@ -71,13 +71,6 @@ static void SetItemState(short page, short item, short state)
 	if (p) p->items[item].type = state;
 }
 
-// 0x408f80 (not reconstructed yet): the pickup menu's announcement of pickup `pic` (as in
-// C3DPickupItem.cpp).
-static void AnnouncePickup(int pic, int index)
-{
-	(void)pic; (void)index;
-	NEG_TODO(0x408f80, "pickup announcement (menu interface elements, jimmyself121)");
-}
 
 // 0x40ac50: show the electron indicator for 3 s (C2DInGameMenu::UpdateIndicator): sprite set a
 // at `a`, set b at `b`, all nine opaque white again.
