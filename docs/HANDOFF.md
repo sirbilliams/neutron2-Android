@@ -173,8 +173,9 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
   5-10 s) and with the virtual pad: holding the stick forward from launch (`OMT_FAKE_PAD="5:lefty=-32767"`)
   does nothing in the cut scenes and walks Jimmy once control starts. Both levels load all objects
   (`tools/decomp/gamcensus.py` reports nothing missing). Smoke test: CLEAN EXIT. main = Android CI green.
-- **Not yet checked on the Thor itself** (Bill has the APK from main 378528e): voice timing and the
-  gl4es rendering of the new objects. The Granny code is still unchecked against Android's libm.
+- **Bill tested it on the Thor:** "runs fantastic", all cut scenes true to the original. He reported two
+  bugs (the lab's bolt barrier off its posts, Jimmy jittery when standing still); both are fixed on main
+  (see "Next" 3). The Granny code is still unchecked against Android's libm.
 - **All 29 classes are written** (one commit each, faithful, `port:` where they deviate):
   - friends (`game/src/friends/`): C3DFriends (base), C3DFowl, C3DSheen, C3DLibby, C3DCindy, C3DBenny,
     C3DNumey, C3DCarl, C3DNick (+ C3DSkateBoard, no factory ID), C3DAIJimmy;
@@ -200,20 +201,48 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
 ## Next
 
 1. **Bill's checks on the Thor** of the build on main; fix what he reports (**Share log** sends `omt-log.txt`).
+   First real test of the dual-screen panel (below).
 2. **Open TODOs in the new classes:** the pickup menu announcement 0x408f80 (a menu pickup ticks but shows
    nothing), the OXYGEN pickup's C3DWaterPlane 0x45f2eb (class not written), Jimmy's point cursor over
    pickups 0x4489ac (reads C3DPickupItem `m_show_arrow` +0x914, which now exists). The C3DAI subclasses'
    slot 126 overrides (called when a cut scene releases a character; `C3DAI::ev126` is empty inline in
    `C3DAI.h`) were not checked for the friends/lab classes.
-3. **Port features Bill asked about** (after the above, each optional and marked `port:`):
-   - **Dual screen:** a companion panel on the Thor's bottom screen (1240x1080), shown/hidden from a
-     back-button / edge-swipe menu: health, neutrons, current and owned gadgets, task list (CTaskList), cut
-     scene captions, boss health, per-level pickups/checkpoints, a simple top-down map (C3DRadar has the
-     data). Read-only game state over JNI; icons read from the player's own game files at run time.
-   - **16:9:** render the 3D at the Thor's 1920x1080 width with the same vertical view (more world at the
-     sides, nothing stretched); move the HUD pieces hard-wired to 640 (gadget bar, health/neutrons corner)
-     to the screen edges; keep 4:3 full-screen art pillarboxed; a setting (4:3 original / 16:9). Risk: cut
-     scenes framed for 4:3 may show unfinished edges, so cut scenes may need to stay 4:3.
+3. **Port features Bill asked for** (all `port:`, read-only or off by default; state at the end of session 2):
+   - **Bug fixes after Bill's Thor test (done, on main):** the lab's Tesla bolt sat at (0,0,0) because
+     C3DTesla slot 10 (0x482a70) is a jump to CLocalGameObject::ResetObject, not empty; Jimmy jittered when
+     idle because C3DPlayer::ev109 (0x461b50) reset its turn-animation timers f_b14/f_b18 to 0.1 instead of 0.
+   - **Dual screen, rough version (done, on main, untested on a real second screen):** `game/src/port/
+     Companion.*` snapshots read-only state as JSON (<= 10/s, only while the panel is on; desktop
+     `NEG_COMPANION_LOG=1` logs it); Android `Companion.java`, `CompanionPanel.java` (a Presentation on the
+     second display), `CompanionView.java`. Toggle: hold Back (or the edge back swipe) 0.6 s, or double-tap
+     it -> menu "Bottom screen panel: ON/OFF" (remembered; the game pauses while it's open); see
+     docs/controls.md. Shows level/mode, neutron energy, score, lives, Herman's health, gadget slots,
+     pickups/neutrons/checkpoints collected, the caption, story tasks, and a top-down map around Jimmy.
+     Rough: a single Back tap reaches the game 0.35 s late (tap/hold detection); gadgets show as numbers;
+     task states are raw values; boss = Herman only; map axes/heading sign and its 3000-unit range unchecked;
+     display choice (first presentation display) unchecked; no icons yet (planned: from the HD pack).
+   - **16:9 widescreen (PAUSED by Bill; groundwork on main, OFF by default):** `NEG_WIDESCREEN=1` makes the
+     window 480 lines at the panel aspect (854x480 at 16:9) and the 3D shows more at the sides with the
+     original vertical view (OMT keeps the vertical angle; no projection change needed); 2D stays a centred
+     640x480 area. To do, in order (also in `game/src/port/Widescreen.h`): HUD edge pieces out to the edges
+     (health/neutrons corner, gadget bar, help icon, top-right sprite); the 640-wide letterbox bars
+     (C2DInGameMenu_b.cpp) and fades; the cut-scene cameras' picture-in-picture viewport; mouse/touch
+     margin; a SetupActivity option (then default on for Android); check the widened cut scenes.
+     Test: `NEG_WIDESCREEN=1 OMT_WINDOW_SIZE=1920x1080` with NEG_TEST_PLAY=Level5.gam, compare with
+     `NEG_WIDESCREEN=0` (the pillars stay the same height, more is visible at the sides).
+   - **AI-upscaled HD pack of full-screen art + HUD/icons (PAUSED by Bill):** `tools/hd/neg_hdtool.cpp`
+     (desktop: `list`, `extract` to `<out>/<db>/<id>.png` + manifest.tsv, `install` (untested)) is on main.
+     Inventory: 739 images: screens.omt 553 (27 full-screen 640x480; help panels, menu buttons/icons,
+     pickup/collect icons, digits, letterbox, cursor), alpha.omt 142 (font), Editor.omt 8 (THQ/AWE splash),
+     RetainedSprites.omt 36 (radar, cursor, splashes); icons/permanenticons.omt left out (editor only).
+     Upscaler: Real-ESRGAN ncnn-vulkan from GitHub on CPU (needs `mesa-vulkan-drivers`):
+     realesr-animevideov3 ~44 s per 640x480 (whole set ~35-40 min), realesrgan-x4plus-anime ~7 min each
+     (~5 h, visibly sharper). Plan: upscale the alpha separately, keep hard alpha hard, full-screen art to
+     1440x1080, the rest 3x. Loader designed, not written: an engine hook when a canvas is loaded from an
+     .omt looks for `hd/<db>/<id>.png`, uploads the HD pixels to the GL texture while the canvas keeps its
+     original size; the full-screen tile path needs a small change; drop the HD copy if the game draws into
+     the canvas. Then a SetupActivity "Install HD image pack (.zip)". THE PACK IS GAME ART: only ever in
+     Bill's private negatron-gamefiles repo (branch `hd-pack`), never in this repo.
 4. Then the rest of the game: the next .gam files after Level3, the same way (census -> classes -> compare).
 
 ## Reference: the research for the Level5 and Level3 classes (all done now)
