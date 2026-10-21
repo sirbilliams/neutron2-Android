@@ -21,6 +21,7 @@ import android.view.WindowManager;
 final class CompanionPanel implements DisplayManager.DisplayListener {
     static final String PREFS = "negatron";
     static final String KEY_ON = "bottom_panel";
+    static final String KEY_FAR = "bottom_panel_zoom_far";
 
     private final Activity mActivity;
     private final DisplayManager mDisplays;
@@ -29,12 +30,16 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     private PanelPresentation mPresentation;
     private boolean mResumed;
     private boolean mEnabled;
+    private boolean mFar;
 
     private final Runnable mPoll = new Runnable() {
         @Override
         public void run() {
             if (mPresentation == null) return;
-            if (mPresentation.view != null) mPresentation.view.setSnapshot(Companion.snapshot());
+            if (mPresentation.view != null) {
+                mPresentation.view.setSnapshot(Companion.snapshot());
+                mPresentation.view.tick();
+            }
             mHandler.postDelayed(this, 100);
         }
     };
@@ -44,9 +49,19 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         mDisplays = (DisplayManager) activity.getSystemService(Context.DISPLAY_SERVICE);
         mPrefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         mEnabled = mPrefs.getBoolean(KEY_ON, false);
+        mFar = mPrefs.getBoolean(KEY_FAR, false);
     }
 
     boolean isEnabled() { return mEnabled; }
+
+    /** The map's zoom: near (false) or far (true), remembered. */
+    boolean isZoomFar() { return mFar; }
+
+    void setZoomFar(boolean far) {
+        mFar = far;
+        mPrefs.edit().putBoolean(KEY_FAR, far).apply();
+        if (mPresentation != null && mPresentation.view != null) mPresentation.view.setZoomFar(far);
+    }
 
     boolean hasSecondDisplay() { return findDisplay() != null; }
 
@@ -88,7 +103,7 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     }
 
     private void show(Display d) {
-        PanelPresentation p = new PanelPresentation(mActivity, d);
+        PanelPresentation p = new PanelPresentation(mActivity, d, mFar);
         try {
             p.show();
         } catch (WindowManager.InvalidDisplayException | IllegalStateException e) {
@@ -118,9 +133,11 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     /** The Presentation window: one full-size CompanionView, never focused or touched. */
     static final class PanelPresentation extends Presentation {
         CompanionView view;
+        private final boolean mFar;
 
-        PanelPresentation(Context outer, Display display) {
+        PanelPresentation(Context outer, Display display, boolean far) {
             super(outer, display);
+            mFar = far;
         }
 
         @Override
@@ -130,6 +147,11 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
                     | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                     | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             view = new CompanionView(getContext());
+            view.setZoomFar(mFar);
+            view.setSource(new CompanionView.Source() {
+                @Override public int[] map() { return Companion.map(); }
+                @Override public int[] icon(int id) { return Companion.icon(id); }
+            });
             setContentView(view);
         }
     }

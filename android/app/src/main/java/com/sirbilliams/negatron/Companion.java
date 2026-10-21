@@ -12,12 +12,36 @@ final class Companion {
 
     private static native String nativeSnapshot();
     private static native void nativeSetEnabled(boolean on);
+    private static native int[] nativeMap();
+    private static native int[] nativeIcon(int id);
 
     /** The latest snapshot as JSON, or null when the game library is not there. */
     static String snapshot() {
         if (sBroken) return null;
         try {
             return nativeSnapshot();
+        } catch (UnsatisfiedLinkError e) {
+            sBroken = true;
+            return null;
+        }
+    }
+
+    /** The level map: [gen, w, h, ARGB pixels...], or null. */
+    static int[] map() {
+        if (sBroken) return null;
+        try {
+            return nativeMap();
+        } catch (UnsatisfiedLinkError e) {
+            sBroken = true;
+            return null;
+        }
+    }
+
+    /** An icon the snapshot names: [w, h, ARGB pixels...], or null. */
+    static int[] icon(int id) {
+        if (sBroken) return null;
+        try {
+            return nativeIcon(id);
         } catch (UnsatisfiedLinkError e) {
             sBroken = true;
             return null;

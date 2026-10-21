@@ -139,14 +139,17 @@ public class NegatronActivity extends SDLActivity {
     private void showPortMenu() {
         if (mPanel == null || isFinishing()) return;
         final boolean on = mPanel.isEnabled();
+        final boolean far = mPanel.isZoomFar();
         String panel = "Bottom screen panel: " + (on ? "ON" : "OFF")
                 + (mPanel.hasSecondDisplay() ? "" : " (no second screen found)");
+        String zoom = "Panel map zoom: " + (far ? "FAR" : "NEAR");
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
-                .setItems(new String[] { panel, "Close" }, new DialogInterface.OnClickListener() {
+                .setItems(new String[] { panel, zoom, "Close" }, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) mPanel.setEnabled(!on);
+                        else if (which == 1) mPanel.setZoomFar(!far);
                     }
                 })
                 .show();
