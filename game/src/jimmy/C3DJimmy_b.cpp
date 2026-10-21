@@ -15,6 +15,7 @@
     methods of the original (v133, v220, v261, v270, v271, Read/WriteState) used offsets 0xc0
     lower, translated here.                                                                    */
 #include "../C3DJimmy.h"
+#include "../level3c/C3DHoverCycle.h"
 #include "../C3DGrannyObj.h"
 #include "../C3DPermanentSprite.h"
 #include "../C3DShadow.h"
@@ -1061,12 +1062,14 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 		{
 			CGameObject *h = FindObjectByTag("C3DHOVERCYCLE");
 			if (!h) break;
-			NEG_TODO(0x44ae1f, "C3DHoverCycle +0x1ae4 (cgo) = Jimmy (driver)");
+			C3DHoverCycle *hc = dynamic_cast<C3DHoverCycle *>(h);
+			if (hc) hc->f_1ba4 = this;							// the rider
 			h->v132(1);
 			ev58((char *)"DRIVE", 1);
 			v136(0);
 			f_d5c->v136(0);
-			NEG_TODO(0x44ae65, "C3DHoverCycle +0x1af4 (cgo): if != -1, = PlayGameSound3D(Jimmy, -1, \"harley1\", true)");
+			if (hc && hc->f_1bb4 != -1)							// (sic: only when it is already playing)
+				hc->f_1bb4 = PlayGameSound3D(this, -1, std::string("harley1"), true);	// 0x48f200
 			save = true;
 			cam = h;
 			break;
@@ -1313,13 +1316,18 @@ void C3DJimmy::ev139(void)											// 0x449450
 		{
 			CGameObject *h = FindObjectByTag("C3DHOVERCYCLE");
 			if (!h) break;
-			NEG_TODO(0x449ca6, "C3DHoverCycle +0x1ae4 (cgo) = 0");
+			C3DHoverCycle *hc = dynamic_cast<C3DHoverCycle *>(h);
+			if (hc) hc->f_1ba4 = NULL;
 			h->v132(0);
 			ev58((char *)"STOP", 1);
 			v136(1);
 			v132(1);
 			f_d5c->v136(1);
-			NEG_TODO(0x449d02, "C3DHoverCycle +0x1af4 (cgo, channel): stopped, -1");
+			if (hc && hc->f_1bb4 != -1)
+			{
+				StopGameSound(hc->f_1bb4, false);				// 0x48f0d0
+				hc->f_1bb4 = -1;
+			}
 			break;
 		}
 
