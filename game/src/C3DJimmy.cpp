@@ -5,6 +5,7 @@
 #include "C3DRadar.h"
 #include "C3DShadow.h"
 #include "C3DJetpackFire.h"
+#include "C3DTargetCursor.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
@@ -27,7 +28,6 @@ CGameObject *New_C3DASEObj(void);			// 0x4207e0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
-static CGameObject *NewTargetCursor(void)	{ NEG_TODO(0x475b20, "new C3DTargetCursor (0x60c bytes)"); return NULL; }
 static CGameObject *NewPointCursor(void)	{ NEG_TODO(0x466a70, "new C3DPointCursor (0x92c bytes)"); return NULL; }
 static CGameObject *NewGraplingHook(void)	{ NEG_TODO(0x43cdb0, "new C3DGraplingHook (0x92c bytes)"); return NULL; }
 static CGameObject *NewMagicParticle(void)	{ NEG_TODO(0x451700, "new C3DMagicParticle (0x620 bytes)"); return NULL; }
@@ -145,7 +145,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 
 	f_4cfe = 0;
 	f_cc4 = new C3DShadow;									// 0x60c bytes
-	f_4c8c = As<C3DPermanentSprite>(NewTargetCursor());		// 0x60c bytes
+	f_4c8c = new C3DTargetCursor;							// 0x60c bytes
 	if (f_4c8c) f_4c8c->HideAgain();						// element +0xd8
 	f_d4c = As<C3DAnimated>(NewPointCursor());				// 0x92c bytes
 	if (f_d4c) f_d4c->HideAgain();							// element +0xdc

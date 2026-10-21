@@ -45,6 +45,7 @@ class C3DGrannyObj;
 class C3DPermanentSprite;
 class C3DRadar;
 class C3DShadow;
+class C3DTargetCursor;
 class OMediaStreamOperators;
 
 class C3DJimmy : public C3DPlayer
@@ -104,7 +105,7 @@ class C3DJimmy : public C3DPlayer
 	int					f_4c20;			// 0x4c20 footstep sound channel (-1)
 	int					f_4c24;			// 0x4c24 sound channel (-1) "not available"
 	char				f_4c28[100];	// 0x4c28 "none"; ev165: from the start point (the level music name)
-	C3DPermanentSprite	*f_4c8c;		// 0x4c8c C3DTargetCursor
+	C3DTargetCursor		*f_4c8c;		// 0x4c8c C3DTargetCursor
 	CTaskList			*f_4c90;		// 0x4c90 the task list
 	int					f_4c94;			// 0x4c94 0
 	int					f_4c98;			// 0x4c98 0
