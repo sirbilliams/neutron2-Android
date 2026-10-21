@@ -5,6 +5,7 @@
 #include "../CGameType.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
+#include "../C3DAnimated.h"
 #include "../CJimmyGame.h"
 #include "../DatabaseCache.h"
 #include "../InterfaceElement.h"
@@ -66,12 +67,12 @@ static bool CutsceneBypass(void)
 // C2DInGameMenu 0x40c0f0 (on g_menu): cut-scene letterbox in/out.
 static void CutsceneLetterbox(bool on)				{ (void)on; NEG_TODO(0x40c0f0, "cut scene letterbox"); }
 
-// C3DObject element slot 58 (+0xe8) of an animated target (C3DAnimated...): play animation
+// C3DAnimated element slot 58 (+0xe8) of an animated target: play animation
 // `name`, looping or not.
 static void TargetSetAnimation(CGameObject *target, const char *name, bool loop)
 {
-	(void)target; (void)name; (void)loop;
-	NEG_TODO(0x42a6a3, "C3DAnimated element slot 58 (set animation)");
+	C3DAnimated *a = target ? dynamic_cast<C3DAnimated *>(target) : NULL;	// port: only a C3DAnimated has the slot
+	if (a) a->ev58((char *)name, loop);
 }
 
 // C3DAI element +0xc38: its own animations are off while a cut scene animates it.
