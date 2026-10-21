@@ -564,7 +564,11 @@ unsigned char C3DJimmy::ev141(float dt)								// 0x449050
 		}
 		return 1;
 	}
-	NEG_TODO(0x449095, "C3DJetPack +0x9f4 (its sound channel): stopped, -1");
+	if (f_ccc->f_9f4 != -1)
+	{
+		StopGameSound(f_ccc->f_9f4, false);					// 0x48f0d0
+		f_ccc->f_9f4 = -1;
+	}
 	CGameObject *self = this;
 	const OMedia3DVector pos = Position(self);
 	const OMedia3DVector up = self->v224(0.0f, 2400.0f, 2400.0f);	// +0x380
@@ -878,7 +882,7 @@ void C3DJimmy::ActivateMenuItem(CGameObject *o, CGameObject *who, short item, fl
 			v132(1);
 			f_4d7c = 0;
 			g_flag_545e54 = 1;
-			if (f_ccc) f_ccc->ShowAgain();						// port: NULL until C3DJetPack exists
+			f_ccc->ShowAgain();
 			break;
 
 		case 4:

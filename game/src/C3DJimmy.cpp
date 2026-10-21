@@ -4,6 +4,7 @@
 #include "C3DPermanentSprite.h"
 #include "C3DRadar.h"
 #include "C3DShadow.h"
+#include "C3DJetpackFire.h"
 #include "C2DInGameMenu.h"
 #include "CTaskList.h"
 #include "C3DFish.h"
@@ -26,7 +27,6 @@ CGameObject *New_C3DASEObj(void);			// 0x4207e0
 }
 
 // Helper classes without a factory ID: not reconstructed yet.
-static CGameObject *NewJetPack(void)		{ NEG_TODO(0x442f10, "new C3DJetPack (0xa04 bytes)"); return NULL; }
 static CGameObject *NewTargetCursor(void)	{ NEG_TODO(0x475b20, "new C3DTargetCursor (0x60c bytes)"); return NULL; }
 static CGameObject *NewPointCursor(void)	{ NEG_TODO(0x466a70, "new C3DPointCursor (0x92c bytes)"); return NULL; }
 static CGameObject *NewGraplingHook(void)	{ NEG_TODO(0x43cdb0, "new C3DGraplingHook (0x92c bytes)"); return NULL; }
@@ -140,7 +140,7 @@ C3DJimmy::C3DJimmy()										// 0x443830
 
 	f_cc8 = As<C3DPlayerObject>(New_C3DRocketShip());		// 0x1284 bytes
 	ParkVehicle(f_cc8);
-	f_ccc = As<C3DPlayerObject>(NewJetPack());				// 0xa04 bytes
+	f_ccc = new C3DJetPack;									// 0xa04 bytes
 	ParkVehicle(f_ccc);
 
 	f_4cfe = 0;
@@ -314,27 +314,21 @@ C3DJimmy *neg::Jimmy(void)
 // its own (+0x9f0 -> +0x928) to 0, stop its sound (+0x9f4).
 void neg::JimmyJetpackOff(CGameObject *jimmy)
 {
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: the original always has a jet pack
-	NEG_TODO(0x443370, "C3DJetPack: flames (+0x9f0 -> +0x928) 0, stop the sound (+0x9f4)");
+	dynamic_cast<C3DJimmy *>(jimmy)->f_ccc->Off();
 }
 
 // 0x4433f0 (C3DJetPack, `a` unused): loop "jetpack" on its channel +0x9f4 unless it plays.
 void neg::JimmyJetpackSound(CGameObject *jimmy, int a)
 {
 	(void)a;
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: as above
-	NEG_TODO(0x4433f0, "C3DJetPack: loop \"jetpack\" (+0x9f4)");
+	dynamic_cast<C3DJimmy *>(jimmy)->f_ccc->Sound();
 }
 
 // C3DPlayer 0x4613a0 inline: jet pack (+0xccc) -> fire (+0x9f0, if any) -> size (+0x928).
 void neg::JimmyJetpackFlame(CGameObject *jimmy, float size)
 {
-	(void)size;
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (!j || !j->f_ccc) return;							// port: as above
-	NEG_TODO(0x4613a0, "C3DJetPack fire (+0x9f0) size (+0x928)");
+	C3DJetPack *p = dynamic_cast<C3DJimmy *>(jimmy)->f_ccc;
+	if (p->f_9f0) p->f_9f0->f_928 = size;
 }
 
 // Element slot 138 (+0x228) of g_jimmy.

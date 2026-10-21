@@ -36,6 +36,7 @@
     JimmyActivateMenuItem weak; C3DJimmy.cpp defines them.                                    */
 #pragma once
 #include "C3DPlayer.h"
+#include "C3DJetPack.h"
 #include "OMedia3DPoint.h"
 #include "OMedia3DVector.h"
 
@@ -63,7 +64,7 @@ class C3DJimmy : public C3DPlayer
 	CGameObject			*f_cc0;			// 0xcc0  0 (ev118 calls an empty function on it)
 	C3DShadow			*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
 	C3DPlayerObject		*f_cc8;			// 0xcc8  C3DRocketShip he can fly (a C3DFlyingObject)
-	C3DPlayerObject		*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
+	C3DJetPack			*f_ccc;			// 0xccc  C3DJetPack (a C3DFlyingObject; +0x9f0 its fire, +0x9f4 its sound)
 	C3DPermanentSprite	*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool
 	C3DAnimated			*f_d20;			// 0xd20  C3DGraplingHook (ev163)
 	// 0xd24 never used

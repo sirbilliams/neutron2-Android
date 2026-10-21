@@ -941,14 +941,14 @@ void C3DJimmy::Slide(float dt)								// 0x4479b0
 			ev58((char *)"SLIDE", 1);
 			f_4d98 = PlayGameSound(-1, std::string("slide"), true);
 		}
-		if (g_flag_545e54 && f_ccc) f_ccc->HideAgain();		// +0xdc
+		if (g_flag_545e54) f_ccc->HideAgain();				// +0xdc
 	}
 	else
 	{
 		StopSound(&f_4d98);
 		f_96c = f_96c - 10.0f;
 		if (f_96c < 0) f_96c = 0;
-		if (g_flag_545e54 && f_ccc) f_ccc->ShowAgain();		// +0xd8
+		if (g_flag_545e54) f_ccc->ShowAgain();				// +0xd8
 	}
 	const float top = f_968 * 2.7f;
 	// (debug text "%d" of f_96c)
