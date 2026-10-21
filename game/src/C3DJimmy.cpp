@@ -359,6 +359,32 @@ void neg::JimmySetHurtFlag(CGameObject *jimmy, unsigned char v)
 
 // --------------------------------------------------------------------------- hooks (C3DRocketShip.h)
 
+// Jimmy's element slot 130 (+0x208): "SPLASH" + "pain agh ahh".
+void neg::JimmyPain(CGameObject *jimmy)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->ev130();
+}
+
+// Jimmy's element slot 146 (+0x248): his bubble follows the vehicle (pos) while its time lasts.
+void neg::JimmyRocketAim(CGameObject *jimmy, float dt, OMedia3DVector pos)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->ev146(dt, pos);
+}
+
+// Jimmy's +0x4d94, the rocket ship's shots left.
+int neg::JimmyAmmo(CGameObject *jimmy)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	return j ? j->f_4d94 : 0;
+}
+void neg::JimmySetAmmo(CGameObject *jimmy, int n)
+{
+	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
+	if (j) j->f_4d94 = n;
+}
+
 // Jimmy's element slot 148 (+0x250): the next water balloon (the rocket ship's shots).
 void neg::JimmyRocketShoot(CGameObject *jimmy, float x, float y, float z, float side, float speed,
 						   CGameObject *target, int a7, float a8)
