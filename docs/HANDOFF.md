@@ -158,11 +158,21 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
 
 ## Next, for a playable level1d
 
-1. **Integration:** the opening cut scene plays as in the original (cut scene cameras, the logo fish,
-   `ERROR: Invalid SoundIndex <garbage> for cam4` from C3DCutSceneCamera), then the camera passes to
-   Jimmy; Jimmy controllable and colliding (he sat partly in the floor in one test); C3DRocketShip loses
-   its level position in v260 -> InitPhysics (C3DObject::InitPhysics 0x49acb0 takes the element position,
-   still 0 at load) - check against the original.
+1. **The story opening (checked against the original running under Wine, `tools/wine/run_original.sh`):**
+   level1d is only the logo intro (THQ, AWE, Nick: the C3DFish letters, cut scene cameras cam4 / cam6 /
+   nickcam2 timed by their voice clips). It ends with the LOAD trigger `startgame`, which loads
+   **level5.gam** (the museum: Fowl, the friends, a flying camera); that level's exit `tolab` loads
+   **level3.gam** (Negatron's lab), and only there, about 6 minutes in, does the player get Jimmy (HUD on).
+   The port now plays the logo intro as the original and loads level5.gam; level5's LoadGame stops at
+   its first missing class (3FOW), so its opening never starts and the game sits in mode 1 (Loading).
+   Needed next, in file order: level5 - C3DFowl 3FOW, C3DSheen 3SHE, C3DLibby 3LIB, C3DCarl 3CAR,
+   C3DCindy 3CIN, C3DNick 3NIC, C3DBenny 3BEN, C3DFlyingCamera 3FLY, C3DAIJimmy 3AIJ,
+   C3DMultiCutSceneCamera 3MCA, C3DTree 3TRE, C3DFog 3FOG (3ASE exists now); level3 - 3GRO, 3FAD,
+   3NEU, 3CHK, 3TSP, 3PIC, 3HEL, 3BOT, 3TEX, 3TES, 3SPH, 3SWN, 3SCR, 3NUM, 3MUS, 3HER, 3BUT, 3ARR.
+   `NEG_TEST_PLAY=level5.gam` (desktop) skips a level's opening and gives Jimmy the camera in mode 5:
+   he walks, turns, jumps and stops at the museum walls. Under Wine the voice clips play fast (ALSA
+   null device), so its timing is not a reference; the port's shots last as long as their clips.
+   C3DRocketShip::v260 -> InitPhysics taking the element position is as in the original (0x46a852).
 2. **Jimmy's helper objects** (created in his constructor, NULL until written; every use is NULL-checked):
    C3DShadow 0x46e9f0, C3DRadar (the HUD) 0x468180, C3DJetPack 0x442f10, C3DTargetCursor 0x475b20,
    C3DPointCursor 0x466a70, C3DASEObj 0x4207e0 (bubble), C3DMagicParticle 0x451700, C3DWaterBalloon
@@ -187,6 +197,10 @@ Loose ends:
 - Granny: not yet checked against Android's libm (acos/sin/sqrt/fmod).
 
 ## Working method that worked
+
+- **The original as a reference:** `tools/wine/run_original.sh <game dir> <out dir> <seconds>` runs the
+  retail Neutron2.exe under Wine on a private Xvfb (640x480x16, fake CD-ROM drive, ALSA null sound) and
+  screenshots it. Compare with the port's `OMT_SHOTS` frames.
 
 - Run several sub-agents in parallel, each in a git worktree with its own build dir and its own game
   install, each on one class or system. Give each one this file, the guide, the inputs, and the test
