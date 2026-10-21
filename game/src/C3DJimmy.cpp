@@ -392,32 +392,6 @@ void neg::JimmyRocketShoot(CGameObject *jimmy, float x, float y, float z, float 
 	dynamic_cast<C3DJimmy *>(jimmy)->ev148(x, y, z, side, speed, target, (float)a7, a8);
 }
 
-// Jimmy's element slot 146 (+0x248, 0x446100): the bubble at the rocket ship's position.
-void neg::JimmyRocketAim(CGameObject *jimmy, float dt, OMedia3DVector pos)
-{
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (j) j->ev146(dt, pos);
-}
-
-// Jimmy's element slot 130 (+0x208, 0x44bfe0): the pain sounds.
-void neg::JimmyPain(CGameObject *jimmy)
-{
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (j) j->ev130();
-}
-
-// Jimmy's +0x4d94: the rocket ship's shots left (0x46bf02 / 0x46c10e).
-int neg::JimmyAmmo(CGameObject *jimmy)
-{
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	return j ? j->f_4d94 : 0;
-}
-void neg::JimmySetAmmo(CGameObject *jimmy, int n)
-{
-	C3DJimmy *j = jimmy ? dynamic_cast<C3DJimmy *>(jimmy) : NULL;
-	if (j) j->f_4d94 = n;
-}
-
 // C3DRocketShip 0x46bf95 inline: the next water balloon of g_jimmy aims 1300 above and 550 in
 // front of its target (+0x63c..+0x644), if there is one.
 void neg::JimmyGadgetShot(CGameObject *jimmy)
