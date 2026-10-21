@@ -1,7 +1,6 @@
 package com.sirbilliams.negatron;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -90,80 +89,269 @@ public class SetupActivity extends Activity {
     }
 
     private void launch(String lib) {
-        launch(lib, null);
+        launch(lib, null, null);
     }
 
-    private void launch(String lib, String testPlay) {
+    /** Starts the engine: lib "negatron" (the game) or "main" (the model viewer); testPlay = a level
+     *  to play straight away (NEG_TEST_PLAY); start = where the game starts (NEG_START: menu, new,
+     *  continue, load:<slot>). */
+    private void launch(String lib, String testPlay, String start) {
+        hideBottom();
         Intent i = new Intent(this, NegatronActivity.class);
         i.putExtra(NegatronActivity.EXTRA_LIB, lib);
         if (testPlay != null) i.putExtra(NegatronActivity.EXTRA_TEST_PLAY, testPlay);
+        if (start != null) i.putExtra(NegatronActivity.EXTRA_START, start);
         startActivity(i);
         finish();
     }
 
-    /** Game files present: play the reconstructed game (work in progress) or open the model viewer. */
-    private void buildChooser() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
-        root.setBackgroundColor(Color.rgb(20, 24, 40));
-        int pad = dp(32);
-        root.setPadding(pad, pad, pad, pad);
+    // ------------------------------------------------------------------ port: the launcher menu
 
-        TextView title = new TextView(this);
-        title.setText("Jimmy Neutron vs. Jimmy Negatron");
-        title.setTextColor(Color.rgb(255, 210, 90));
-        title.setTextSize(26);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        title.setGravity(Gravity.CENTER);
-        root.addView(title, wrap());
+    /** port: the menu style, "new" (the launcher, default) or "original" (the game's own title menu). */
+    static final String PREF_MENU_ORIGINAL = "menu_original";
+    /** Intent extra: show the launcher even when the original menu is chosen. */
+    static final String EXTRA_LAUNCHER = "launcher";
 
-        TextView note = new TextView(this);
-        note.setTextColor(Color.rgb(220, 225, 235));
-        note.setTextSize(15);
-        note.setGravity(Gravity.CENTER);
-        note.setPadding(0, dp(12), 0, dp(20));
-        note.setText("The game is being rebuilt from the original; level 1 is in progress.");
-        root.addView(note, wrap());
+    private LauncherModel mMenu;
+    private LauncherView mTop;
+    private LauncherPresentation mBottom;
+    private boolean mTestShown;
+    private int mTouchItem = -1;
 
-        Button play = new Button(this);
-        play.setText("Play (work in progress)");
-        play.setTextSize(18);
-        play.setOnClickListener(v -> launch("negatron"));
-        root.addView(play, wrap());
+    private final Runnable mTick = new Runnable() {
+        @Override
+        public void run() {
+            if (mTop == null) return;
+            mTop.tick();
+            if (mBottom != null && mBottom.view != null) mBottom.view.tick();
+            ui.postDelayed(this, 50);
+        }
+    };
 
-        Button jump = new Button(this);
-        jump.setText("Jump to a level (test)");
-        jump.setTextSize(18);
-        jump.setOnClickListener(v -> pickTestLevel());                      // skips the openings
-        LinearLayout.LayoutParams jl = wrap();
-        jl.topMargin = dp(12);
-        root.addView(jump, jl);
+    private final Runnable mRevealTest = new Runnable() {
+        @Override
+        public void run() { revealTest(); }
+    };
 
-        Button viewer = new Button(this);
-        viewer.setText("Model viewer");
-        viewer.setTextSize(18);
-        viewer.setOnClickListener(v -> launch("main"));
-        LinearLayout.LayoutParams vl = wrap();
-        vl.topMargin = dp(12);
-        root.addView(viewer, vl);
-
-        addWidescreenOption(root);
-
-        Button log = new Button(this);
-        log.setText("Share log");
-        log.setTextSize(15);
-        log.setOnClickListener(v -> shareLog());
-        LinearLayout.LayoutParams ll = wrap();
-        ll.topMargin = dp(12);
-        root.addView(log, ll);
-
-        setContentView(root);
-        play.requestFocus();        // the Thor's A button works without touching the screen
+    private android.content.SharedPreferences prefs() {
+        return getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
     }
 
-    /** Test: lists the installed gam/*.gam files and plays the chosen one (NEG_TEST_PLAY), Level5.gam preselected. */
-    private void pickTestLevel() {
+    /** Game files present: the launcher menu, or straight into the game's own title menu. */
+    private void buildChooser() {
+        boolean launcher = getIntent() != null && getIntent().getBooleanExtra(EXTRA_LAUNCHER, false);
+        if (prefs().getBoolean(PREF_MENU_ORIGINAL, false) && !launcher) {
+            launch("negatron", null, "menu");
+            return;
+        }
+        mMenu = new LauncherModel();
+        mMenu.reset(mainPage());
+        mTop = new LauncherView(this, mMenu, false);
+        mTop.setFocusable(true);
+        mTop.setFocusableInTouchMode(true);
+        mTop.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, android.view.MotionEvent e) { return touch(e); }
+        });
+        setContentView(mTop);
+        mTop.requestFocus();
+        showBottom();
+        ui.removeCallbacks(mTick);
+        ui.post(mTick);
+    }
+
+    private File saveDir() {
+        File data = findReadableData();
+        return new File(data != null ? data : getExternalFilesDir(null), "save");
+    }
+
+    private LauncherModel.Page mainPage() {
+        return LauncherPages.main(LauncherPages.readSlot(saveDir(), 0), mTestShown);
+    }
+
+    private LauncherModel.Page settingsPage() {
+        android.content.SharedPreferences p = prefs();
+        boolean second = CompanionPanel.findDisplay(displays()) != null;
+        return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), CompanionPanel.wanted(p, second), second,
+                p.getBoolean(PREF_MENU_ORIGINAL, false));
+    }
+
+    private android.hardware.display.DisplayManager displays() {
+        return (android.hardware.display.DisplayManager) getSystemService(DISPLAY_SERVICE);
+    }
+
+    /** The hidden test item (Select / Y on the pad, or a long press on the title). */
+    private void revealTest() {
+        if (mMenu == null || mTestShown) return;
+        mTestShown = true;
+        if (mMenu.depth() == 1) mMenu.replace(mainPage());
+        else mMenu.changed();
+    }
+
+    private void choose() {
+        LauncherModel.Item it = mMenu.selected();
+        if (it == null || !it.enabled || it.hint) return;
+        String id = it.id;
+        android.content.SharedPreferences p = prefs();
+        if (id.equals("continue")) launch("negatron", null, "continue");
+        else if (id.equals("new")) mMenu.push(LauncherPages.newGame());
+        else if (id.equals("new_yes")) launch("negatron", null, "new");
+        else if (id.equals("load")) mMenu.push(LauncherPages.load(LauncherPages.slots(saveDir())));
+        else if (id.startsWith("slot:")) launch("negatron", null, "load:" + id.substring(5));
+        else if (id.equals("settings")) mMenu.push(settingsPage());
+        else if (id.equals("test")) mMenu.push(LauncherPages.test());
+        else if (id.equals("quit")) finish();
+        else if (id.equals("wide")) {
+            p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).apply();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("panel")) {
+            boolean second = CompanionPanel.findDisplay(displays()) != null;
+            p.edit().putBoolean(CompanionPanel.KEY_ON, !CompanionPanel.wanted(p, second)).apply();
+            mMenu.replace(settingsPage());
+            showBottom();
+        } else if (id.equals("style")) {
+            p.edit().putBoolean(PREF_MENU_ORIGINAL, !p.getBoolean(PREF_MENU_ORIGINAL, false)).apply();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("levels")) mMenu.push(LauncherPages.levels(levelFiles()));
+        else if (id.startsWith("level:")) launch("negatron", id.substring(6), null);
+        else if (id.equals("viewer")) launch("main");
+        else if (id.equals("log")) shareLog();
+        else if (id.equals("back")) back();
+    }
+
+    private void back() {
+        if (!mMenu.pop()) return;
+        if (mMenu.depth() == 1) mMenu.replace(mainPage());       // the autosave may have changed
+    }
+
+    /** The pad (d-pad / stick, A, B, Select / Y) and the keyboard drive the launcher. */
+    @Override
+    public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+        if (mMenu == null || mTop == null) return super.dispatchKeyEvent(e);
+        int k = e.getKeyCode();
+        int act;
+        switch (k) {
+            case android.view.KeyEvent.KEYCODE_DPAD_UP: act = 1; break;
+            case android.view.KeyEvent.KEYCODE_DPAD_DOWN: act = 2; break;
+            case android.view.KeyEvent.KEYCODE_DPAD_LEFT:
+            case android.view.KeyEvent.KEYCODE_DPAD_RIGHT: act = 3; break;
+            case android.view.KeyEvent.KEYCODE_DPAD_CENTER:
+            case android.view.KeyEvent.KEYCODE_ENTER:
+            case android.view.KeyEvent.KEYCODE_NUMPAD_ENTER:
+            case android.view.KeyEvent.KEYCODE_BUTTON_A:
+            case android.view.KeyEvent.KEYCODE_BUTTON_START: act = 4; break;
+            case android.view.KeyEvent.KEYCODE_BUTTON_B:
+            case android.view.KeyEvent.KEYCODE_ESCAPE: act = 5; break;
+            case android.view.KeyEvent.KEYCODE_BACK: act = 6; break;
+            case android.view.KeyEvent.KEYCODE_BUTTON_SELECT:
+            case android.view.KeyEvent.KEYCODE_BUTTON_Y: act = 7; break;
+            default: return super.dispatchKeyEvent(e);
+        }
+        if (e.getAction() != android.view.KeyEvent.ACTION_DOWN) return true;    // act on the press only
+        boolean repeat = e.getRepeatCount() > 0;
+        if (act == 1) mMenu.move(-1);
+        else if (act == 2) mMenu.move(1);
+        else if (repeat) return true;
+        else if (act == 3) {                                    // left / right flip a setting
+            LauncherModel.Item it = mMenu.selected();
+            if (it != null && it.value != null) choose();
+        } else if (act == 4) choose();
+        else if (act == 5) back();
+        else if (act == 6) {
+            if (mMenu.depth() > 1) back();
+            else finish();
+        } else revealTest();
+        return true;
+    }
+
+    /** Touch: tap a button to choose it; a long press on the title shows the test item. */
+    private boolean touch(android.view.MotionEvent e) {
+        float x = e.getX(), y = e.getY();
+        switch (e.getActionMasked()) {
+            case android.view.MotionEvent.ACTION_DOWN:
+                mTouchItem = mTop.itemAt(x, y);
+                if (mTouchItem >= 0) mMenu.select(mTouchItem);
+                if (mTop.onHeader(x, y)) ui.postDelayed(mRevealTest, 800);
+                return true;
+            case android.view.MotionEvent.ACTION_UP:
+                ui.removeCallbacks(mRevealTest);
+                if (mTouchItem >= 0 && mTop.itemAt(x, y) == mTouchItem && mMenu.select(mTouchItem)) choose();
+                mTouchItem = -1;
+                return true;
+            case android.view.MotionEvent.ACTION_CANCEL:
+                ui.removeCallbacks(mRevealTest);
+                mTouchItem = -1;
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mTop != null) {
+            showBottom();
+            ui.removeCallbacks(mTick);
+            ui.post(mTick);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        ui.removeCallbacks(mTick);
+        hideBottom();
+        super.onPause();
+    }
+
+    /** On a dual-screen device (and the dual screen setting on) the bottom screen shows the page's
+     *  options and the selected item's details / save-slot preview. */
+    private void showBottom() {
+        android.view.Display d = CompanionPanel.findDisplay(displays());
+        boolean want = mMenu != null && d != null && CompanionPanel.wanted(prefs(), true);
+        if (!want) { hideBottom(); return; }
+        if (mBottom != null) return;
+        LauncherPresentation b = new LauncherPresentation(this, d, mMenu);
+        try {
+            b.show();
+        } catch (android.view.WindowManager.InvalidDisplayException | IllegalStateException ex) {
+            return;
+        }
+        mBottom = b;
+    }
+
+    private void hideBottom() {
+        if (mBottom == null) return;
+        try {
+            mBottom.dismiss();
+        } catch (RuntimeException ex) {
+            // the display went away
+        }
+        mBottom = null;
+    }
+
+    /** The bottom screen's window: one LauncherView, never focused or touched (the pad stays here). */
+    static final class LauncherPresentation extends android.app.Presentation {
+        LauncherView view;
+        private final LauncherModel mModel;
+
+        LauncherPresentation(android.content.Context outer, android.view.Display display, LauncherModel model) {
+            super(outer, display);
+            mModel = model;
+        }
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                    | android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE);
+            view = new LauncherView(getContext(), mModel, true);
+            setContentView(view);
+        }
+    }
+
+    /** Test: the installed gam/*.gam files, sorted. */
+    private List<String> levelFiles() {
         File data = findReadableData();
         File[] gams = data != null ? new File(data, "gam").listFiles() : null;
         List<String> names = new ArrayList<>();
@@ -175,14 +363,7 @@ public class SetupActivity extends Activity {
         }
         Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
         if (names.isEmpty()) names.add("Level5.gam");
-        int def = 0;
-        for (int k = 0; k < names.size(); k++) if (names.get(k).equalsIgnoreCase("Level5.gam")) def = k;
-        final String[] items = names.toArray(new String[0]);
-        new AlertDialog.Builder(this)
-                .setTitle("Jump to a level (test)")
-                .setSingleChoiceItems(items, def, (d, which) -> { d.dismiss(); launch("negatron", items[which]); })
-                .setNegativeButton("Cancel", null)
-                .show();
+        return names;
     }
 
     /** Sends the last run's omt-log.txt (written by the engine next to the game folder) as text. */
@@ -468,20 +649,6 @@ public class SetupActivity extends Activity {
 
     /** port: the 16:9 widescreen setting (on by default; NegatronActivity passes it as NEG_WIDESCREEN). */
     static final String PREF_WIDESCREEN = "widescreen";
-
-    private void addWidescreenOption(LinearLayout root) {
-        final android.content.SharedPreferences prefs =
-                getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
-        android.widget.CheckBox wide = new android.widget.CheckBox(this);
-        wide.setText("Widescreen (16:9)");
-        wide.setTextColor(Color.rgb(220, 225, 235));
-        wide.setTextSize(16);
-        wide.setChecked(prefs.getBoolean(PREF_WIDESCREEN, true));
-        wide.setOnCheckedChangeListener((b, on) -> prefs.edit().putBoolean(PREF_WIDESCREEN, on).apply());
-        LinearLayout.LayoutParams wl = wrap();
-        wl.topMargin = dp(12);
-        root.addView(wide, wl);
-    }
 
     private static void deleteTree(File f) {
         if (f == null || !f.exists()) return;

@@ -23,6 +23,8 @@ public class NegatronActivity extends SDLActivity {
     static final String EXTRA_LIB = "lib";
     /** Intent extra: a level to play straight away without its opening (the NEG_TEST_PLAY test hook). */
     static final String EXTRA_TEST_PLAY = "test_play";
+    /** Intent extra: where the game starts (NEG_START: menu, new, continue, load:<slot>; the launcher). */
+    static final String EXTRA_START = "start";
 
     @Override
     protected String[] getLibraries() {
@@ -37,6 +39,9 @@ public class NegatronActivity extends SDLActivity {
         try {
             if (test != null) Os.setenv("NEG_TEST_PLAY", test, true);
             else Os.unsetenv("NEG_TEST_PLAY");
+            String start = getIntent() != null ? getIntent().getStringExtra(EXTRA_START) : null;
+            if (start != null) Os.setenv("NEG_START", start, true);
+            else Os.unsetenv("NEG_START");
             // port: 16:9 widescreen (game/src/port/Widescreen.h), the setup screen's option
             boolean wide = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getBoolean(SetupActivity.PREF_WIDESCREEN, true);
