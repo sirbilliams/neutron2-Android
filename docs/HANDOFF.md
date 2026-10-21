@@ -148,8 +148,7 @@ STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoint
 
 ## In progress when this was written (check `git log`; merge if they landed, otherwise redo)
 
-- **Animated character bases:** C3DAnimated, C3DPlayerObject, C3DPlayer, C3DGrannyObj, plus C3DObject's
-  TODO slots (FitToShape 0x49ab50, ev51 0x49afd0, Process 0x49ae00, v248 0x49add0).
+- **Animated character bases:** merged (C3DAnimated, C3DGrannyObj, C3DPlayerObject, C3DPlayer; layout notes in their headers).
 
 ## Next, for level1d
 
