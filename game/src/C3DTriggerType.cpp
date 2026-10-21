@@ -1,6 +1,8 @@
 /*  C3DTriggerType - see C3DTriggerType.h. */
 #include "DatabaseCache.h"
 #include "C3DTriggerType.h"
+#include "CJimmyGame.h"
+#include "C3DJimmy.h"
 #include "objects/C3DAITrigger.h"
 #include "objects/C3DCutSceneCamera.h"
 #pragma GCC diagnostic push
@@ -131,7 +133,9 @@ static int JeepField9c4(CGameObject *jeep)			{ (void)jeep; NEG_TODO(0x4791dd, "C
 // (The original reads those even when there is no JIM1: a crash.)
 static void JimmyGameRestore(CGameObject *jim)
 {
-	(void)jim; NEG_TODO(0x485d00, "CJimmyGame element slot 102 (Jimmy +0x4c28, +0x4c18)");
+	C3DJimmy *j = jim ? dynamic_cast<C3DJimmy *>(jim) : NULL;
+	CJimmyGame *g = g_gametype ? dynamic_cast<CJimmyGame *>(g_gametype) : NULL;
+	if (j && g) g->PlayLevelMusic(j->f_4c28, j->f_4c18);	// port: no call without them
 }
 
 // --------------------------------------------------------------------------- construction

@@ -64,32 +64,57 @@ static void HudHide(OMediaElement *hud)			{ static_cast<C3DRadar *>(hud)->Hide()
 // g_camera's element slot 105 (+0x1a4): called once when the health has run out.
 static void CameraPlayerDead(CGameObject *camera) { (void)camera; NEG_TODO(0x4843d9, "camera element slot 105 (health ran out)"); }
 
-// C3DJimmy's level-music members: +0x4c14 channel, +0x4c18 a value given to PlayMusic, +0x4c28
-// the music .omt name (21 chars). Until C3DJimmy exists they live here (its constructor's values).
-struct PlayerMusicState { int channel; int param; char name[21]; };
-static PlayerMusicState &PlayerMusic(void)
+// C3DJimmy's level-music members (g_player - 0xc0): +0x4c14 channel, +0x4c18 a value given to
+// PlayMusic, +0x4c28 the music .omt name. port: without a Jimmy the original writes through
+// NULL; a spare set is used then.
+struct PlayerMusicState { int &channel; int &param; char *name; };
+static PlayerMusicState PlayerMusic(void)
 {
-	NEG_TODO(0x4c14, "C3DJimmy music members +0x4c14 / +0x4c18 / +0x4c28");
-	static PlayerMusicState m = { -1, 0, "none" };
-	return m;
+	static int spare_channel = -1, spare_param = 0;
+	static char spare_name[100] = "none";
+	if (C3DJimmy *j = Jimmy()) return PlayerMusicState{ j->f_4c14, j->f_4c18, j->f_4c28 };
+	return PlayerMusicState{ spare_channel, spare_param, spare_name };
 }
 
 // C3DJimmy members and slots TouchSurface uses (on the player's element).
-static bool PlayerFlag(OMediaElement *p, int off)			{ (void)p; (void)off; NEG_TODO(0x4848ba, "C3DJimmy surface flags +0x4ca6 / +0x4ca7 / +0x4cb8"); return false; }
-static void SetPlayerFlag(OMediaElement *p, int off, bool v)	{ (void)p; (void)off; (void)v; }
-static void SetPlayerFloat(OMediaElement *p, int off, float v)	{ (void)p; (void)off; (void)v; NEG_TODO(0x48491b, "C3DJimmy +0xc08 = 0.5"); }
-static void PlayerSlot(OMediaElement *p, int slot)			{ (void)p; (void)slot; NEG_TODO(0x4848ce, "C3DJimmy element slots 120 / 127..131"); }
+static C3DJimmy *JimmyOf(OMediaElement *p)					{ return p ? dynamic_cast<C3DJimmy *>(p) : NULL; }
+static unsigned char *PlayerFlagPtr(C3DJimmy *j, int off)
+{
+	switch (off)
+	{
+		case 0x4ca6: return &j->f_4ca6;						// in water
+		case 0x4ca7: return &j->f_4ca7;						// on a 110..119 floor
+		case 0x4cb8: return &j->f_4cb8;						// hurt
+		default:     return &j->f_4db4;						// 0x4db4: falling fast
+	}
+}
+static bool PlayerFlag(OMediaElement *p, int off)			{ C3DJimmy *j = JimmyOf(p); return j && *PlayerFlagPtr(j, off); }
+static void SetPlayerFlag(OMediaElement *p, int off, bool v)	{ if (C3DJimmy *j = JimmyOf(p)) *PlayerFlagPtr(j, off) = v; }
+static void SetPlayerFloat(OMediaElement *p, int off, float v)	{ (void)off; if (C3DJimmy *j = JimmyOf(p)) j->f_c08 = v; }	// +0xc08
+static void PlayerSlot(OMediaElement *p, int slot)
+{
+	C3DJimmy *j = JimmyOf(p);
+	if (!j) return;
+	switch (slot)
+	{
+		case 120: j->ev120(); break;						// +0x1e0
+		case 127: j->ev127(); break;						// +0x1fc
+		case 128: j->EnterWater(); break;					// +0x200
+		case 129: j->LeaveWater(); break;					// +0x204
+		case 130: j->ev130(); break;						// +0x208
+		case 131: j->ev131(); break;						// +0x20c
+	}
+}
 static void PlayerSlot119(OMediaElement *p, float a, float b, float c, float d)
 {
-	(void)p; (void)a; (void)b; (void)c; (void)d;
-	NEG_TODO(0x484aa2, "C3DJimmy element slot 119");
+	if (C3DJimmy *j = JimmyOf(p)) j->ev119(OMedia3DVector(a, b, c, d));	// +0x1dc
 }
-static void PlayerHurt(void *p, float a, int b, float c, bool d)	// slot 134 (+0x218) of the player (or what a '3COR' carries)
+// Slot 134 (+0x218) of the player, or of what a '3COR' carries (not reconstructed yet).
+static void PlayerHurt(void *p, float a, int b, float c, bool d)
 {
-	(void)p; (void)a; (void)b; (void)c; (void)d;
-	NEG_TODO(0x4847eb, "slot 134 (+0x218): hurt");
+	if (C3DJimmy *j = JimmyOf(static_cast<OMediaElement *>(p))) j->ev134(a, b, c, d);
 }
-static void SetPlayerSurfaceSound(OMediaElement *p, int set)	{ (void)p; (void)set; NEG_TODO(0x484b32, "C3DJimmy element slot 153 (surface sound)"); }
+static void SetPlayerSurfaceSound(OMediaElement *p, int set)	{ if (C3DJimmy *j = JimmyOf(p)) j->ev153(set); }	// +0x264
 // A '3COR' object: what it carries (+0x934) and its hit state (+0x1138 / +0x113c / +0x1178 / +0x1188).
 static void *CorCarried(CGameObject *o)						{ (void)o; NEG_TODO(0x4847c1, "'3COR' +0x934"); return NULL; }
 static void CorStartHit(CGameObject *o)						{ (void)o; NEG_TODO(0x4847f1, "'3COR' hit state"); }
@@ -269,7 +294,7 @@ void CJimmyGame::WriteState(OMediaStreamOperators &s)
 	s << m_fog_start << m_fog_end << m_far_clip;
 	s << m_fog_restore[0] << m_fog_restore[1] << m_fog_restore[2];
 	s << m_fog_color[0] << m_fog_color[1] << m_fog_color[2];				// (alpha is not saved)
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	s << pm.param;
 	s << pm.name;
 	for (int i = 0; i < 10; i++) s << g_power_timers[i];
@@ -286,7 +311,7 @@ void CJimmyGame::ReadState(OMediaStreamOperators &s)						// 0x485ef0
 	s >> m_fog_color[0] >> m_fog_color[1] >> m_fog_color[2];
 	SetFog(m_fog_color[0], m_fog_color[1], m_fog_color[2], m_fog_color[3],
 		   m_fog_restore[0], m_fog_restore[1], m_fog_restore[2], true);		// element +0x194
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	s >> pm.param;
 	s >> pm.name;
 	if (strcasecmp(pm.name, "none") != 0) PlayLevelMusic(pm.name, pm.param);	// element +0x198
@@ -824,7 +849,7 @@ void CJimmyGame::SetFog(float r, float g, float b, float a, float start, float e
 // 0x485d00: stop the level music, then load and play `name` ("none": no music).
 void CJimmyGame::PlayLevelMusic(const char *name, int a)
 {
-	PlayerMusicState &pm = PlayerMusic();									// (g_player - 0xc0)->+0x4c14..
+	PlayerMusicState pm = PlayerMusic();									// (g_player - 0xc0)->+0x4c14..
 	if (g_level_music)
 	{
 		StopChannel(pm.channel, 0);											// 0x4b88e0
@@ -837,7 +862,7 @@ void CJimmyGame::PlayLevelMusic(const char *name, int a)
 	}
 	if (strcasecmp(name, "none") != 0)
 	{
-		strcpy(pm.name, name);
+		if (pm.name != name) strcpy(pm.name, name);						// (name may be Jimmy's own +0x4c28)
 		g_level_music = LoadMusic(name);									// 0x4a4180
 		if (g_level_music && pm.channel == -1 && a != -1)
 		{
@@ -851,7 +876,7 @@ void CJimmyGame::PlayLevelMusic(const char *name, int a)
 void CJimmyGame::StopLevelMusic(void)
 {
 	if (!g_level_music) return;
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	StopChannel(pm.channel, 0);
 	pm.channel = -1;
 	if (strcasecmp(pm.name, "none") != 0)
@@ -866,7 +891,7 @@ void CJimmyGame::StopLevelMusic(void)
 void CJimmyGame::StopLevelMusicKeepName(void)
 {
 	if (!g_level_music) return;
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	StopChannel(pm.channel, 0);
 	pm.channel = -1;
 	if (strcasecmp(pm.name, "none") != 0) CloseDatabaseByName(pm.name);
