@@ -86,8 +86,13 @@ public class SetupActivity extends Activity {
     }
 
     private void launch(String lib) {
+        launch(lib, null);
+    }
+
+    private void launch(String lib, String testPlay) {
         Intent i = new Intent(this, NegatronActivity.class);
         i.putExtra(NegatronActivity.EXTRA_LIB, lib);
+        if (testPlay != null) i.putExtra(NegatronActivity.EXTRA_TEST_PLAY, testPlay);
         startActivity(i);
         finish();
     }
@@ -122,6 +127,14 @@ public class SetupActivity extends Activity {
         play.setTextSize(18);
         play.setOnClickListener(v -> launch("negatron"));
         root.addView(play, wrap());
+
+        Button jump = new Button(this);
+        jump.setText("Jump to Jimmy (test)");
+        jump.setTextSize(18);
+        jump.setOnClickListener(v -> launch("negatron", "Level5.gam"));     // skips the openings
+        LinearLayout.LayoutParams jl = wrap();
+        jl.topMargin = dp(12);
+        root.addView(jump, jl);
 
         Button viewer = new Button(this);
         viewer.setText("Model viewer");
