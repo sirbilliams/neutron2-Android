@@ -67,13 +67,14 @@ static void HudHide(OMediaElement *hud)			{ static_cast<C3DRadar *>(hud)->Hide()
 static void CameraPlayerDead(CGameObject *camera) { (void)camera; NEG_TODO(0x4843d9, "camera element slot 105 (health ran out)"); }
 
 // C3DJimmy's level-music members: +0x4c14 channel, +0x4c18 a value given to PlayMusic, +0x4c28
-// the music .omt name (21 chars). Until C3DJimmy exists they live here (its constructor's values).
-struct PlayerMusicState { int channel; int param; char name[21]; };
-static PlayerMusicState &PlayerMusic(void)
+// the music .omt name. (port: without a C3DJimmy yet, a stand-in with its constructor's values.)
+struct PlayerMusicState { int &channel; int &param; char *name; };
+static PlayerMusicState PlayerMusic(void)
 {
-	NEG_TODO(0x4c14, "C3DJimmy music members +0x4c14 / +0x4c18 / +0x4c28");
-	static PlayerMusicState m = { -1, 0, "none" };
-	return m;
+	if (C3DJimmy *j = Jimmy()) return PlayerMusicState{ j->f_4c14, j->f_4c18, j->f_4c28 };	// (g_player - 0xc0)
+	static int channel = -1, param = 0;
+	static char name[100] = "none";
+	return PlayerMusicState{ channel, param, name };
 }
 
 // C3DJimmy members and slots TouchSurface uses (on the player's element).
@@ -271,7 +272,7 @@ void CJimmyGame::WriteState(OMediaStreamOperators &s)
 	s << m_fog_start << m_fog_end << m_far_clip;
 	s << m_fog_restore[0] << m_fog_restore[1] << m_fog_restore[2];
 	s << m_fog_color[0] << m_fog_color[1] << m_fog_color[2];				// (alpha is not saved)
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	s << pm.param;
 	s << pm.name;
 	for (int i = 0; i < 10; i++) s << g_power_timers[i];
@@ -288,7 +289,7 @@ void CJimmyGame::ReadState(OMediaStreamOperators &s)						// 0x485ef0
 	s >> m_fog_color[0] >> m_fog_color[1] >> m_fog_color[2];
 	SetFog(m_fog_color[0], m_fog_color[1], m_fog_color[2], m_fog_color[3],
 		   m_fog_restore[0], m_fog_restore[1], m_fog_restore[2], true);		// element +0x194
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	s >> pm.param;
 	s >> pm.name;
 	if (strcasecmp(pm.name, "none") != 0) PlayLevelMusic(pm.name, pm.param);	// element +0x198
@@ -826,7 +827,7 @@ void CJimmyGame::SetFog(float r, float g, float b, float a, float start, float e
 // 0x485d00: stop the level music, then load and play `name` ("none": no music).
 void CJimmyGame::PlayLevelMusic(const char *name, int a)
 {
-	PlayerMusicState &pm = PlayerMusic();									// (g_player - 0xc0)->+0x4c14..
+	PlayerMusicState pm = PlayerMusic();									// (g_player - 0xc0)->+0x4c14..
 	if (g_level_music)
 	{
 		StopChannel(pm.channel, 0);											// 0x4b88e0
@@ -853,7 +854,7 @@ void CJimmyGame::PlayLevelMusic(const char *name, int a)
 void CJimmyGame::StopLevelMusic(void)
 {
 	if (!g_level_music) return;
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	StopChannel(pm.channel, 0);
 	pm.channel = -1;
 	if (strcasecmp(pm.name, "none") != 0)
@@ -868,7 +869,7 @@ void CJimmyGame::StopLevelMusic(void)
 void CJimmyGame::StopLevelMusicKeepName(void)
 {
 	if (!g_level_music) return;
-	PlayerMusicState &pm = PlayerMusic();
+	PlayerMusicState pm = PlayerMusic();
 	StopChannel(pm.channel, 0);
 	pm.channel = -1;
 	if (strcasecmp(pm.name, "none") != 0) CloseDatabaseByName(pm.name);

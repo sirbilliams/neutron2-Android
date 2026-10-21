@@ -9,6 +9,8 @@
 #pragma GCC diagnostic pop
 #include "levels/CLoadLevel.h"
 #include "C3DPlayer.h"
+#include "C3DJimmy.h"
+#include "CJimmyGame.h"
 #include "CGameType.h"
 #include "CEditor.h"
 #include "C2DInGameMenu.h"
@@ -44,11 +46,12 @@ using neg::GetDatabase;
 using neg::CutsceneLetterbox;
 
 // CGameObject slot 224 (+0x380, 0x4ad800): a point relative to the object (struct return).
-// Until it exists the caller skips the camera move (the original always has a point).
 static float *ObjectRelativePoint(CGameObject *o, float *out, float a, float b, float c)
 {
-	(void)o; (void)out; (void)a; (void)b; (void)c;
-	NEG_TODO(0x4ad800, "CGameObject slot 224 (point relative to the object)"); return NULL;
+	if (!o) return NULL;									// port: the original reads through NULL
+	const OMedia3DVector p = o->v224(a, b, c);
+	out[0] = p.x; out[1] = p.y; out[2] = p.z; out[3] = p.w;
+	return out;
 }
 
 // The next trigger's own entry points. Each is a virtual its class introduces (the element
@@ -126,11 +129,13 @@ static void LoadLevelHandOver(CGameObject *loadlevel, CGameObject *jim)
 // C3DJeep +0x9c4 (CGameObject-relative): the jeep can take the camera.
 static int JeepField9c4(CGameObject *jeep)			{ (void)jeep; NEG_TODO(0x4791dd, "C3DJeep +0x9c4"); return 0; }
 
-// CJimmyGame element slot 102 (+0x198)(jim element + 0x4c28, *(jim element + 0x4c18)).
+// CJimmyGame element slot 102 (+0x198): PlayLevelMusic(jim element + 0x4c28, *(jim element + 0x4c18)).
 // (The original reads those even when there is no JIM1: a crash.)
 static void JimmyGameRestore(CGameObject *jim)
 {
-	(void)jim; NEG_TODO(0x485d00, "CJimmyGame element slot 102 (Jimmy +0x4c28, +0x4c18)");
+	C3DJimmy *j = dynamic_cast<C3DJimmy *>(jim);			// (jim - 0xc0)
+	CJimmyGame *g = g_gametype ? dynamic_cast<CJimmyGame *>(g_gametype) : NULL;
+	if (j && g) g->PlayLevelMusic(j->f_4c28, j->f_4c18);	// port: checked
 }
 
 // --------------------------------------------------------------------------- construction
