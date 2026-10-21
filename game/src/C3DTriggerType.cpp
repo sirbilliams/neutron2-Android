@@ -1,6 +1,8 @@
 /*  C3DTriggerType - see C3DTriggerType.h. */
 #include "DatabaseCache.h"
 #include "C3DTriggerType.h"
+#include "objects/C3DAITrigger.h"
+#include "objects/C3DCutSceneCamera.h"
 #include "CGameType.h"
 #include "CEditor.h"
 #include "C2DInGameMenu.h"
@@ -50,7 +52,7 @@ static void MusicTriggerFire(CGameObject *next)		{ (void)next; NEG_TODO(0x4590d0
 static void FadeObjectFire(CGameObject *next)		{ (void)next; NEG_TODO(0x431420, "C3DFadeObject element slot 56"); }
 static void AITriggerFire(CGameObject *next, CGameObject *caller, unsigned char flag)
 {
-	(void)next; (void)caller; (void)flag; NEG_TODO(0x418b80, "C3DAITrigger element slot 57 (caller, flag)");
+	static_cast<C3DAITrigger *>(next)->Trigger(caller, flag);			// element +0xe4
 }
 static void MultiCutSceneFire(CGameObject *next, CGameObject *caller, unsigned char flag)
 {
@@ -58,7 +60,7 @@ static void MultiCutSceneFire(CGameObject *next, CGameObject *caller, unsigned c
 }
 static void CutSceneCameraFire(CGameObject *next, unsigned char flag)
 {
-	(void)next; (void)flag; NEG_TODO(0x42abd0, "C3DCutSceneCamera element slot 56 (flag)");
+	static_cast<C3DCutSceneCamera *>(next)->TriggerCamera(flag);		// element +0xe0
 }
 // C3DFlyingCamera is a C3DObject (CGameObject at +0xc0): element slot 144 (+0x240).
 static void FlyingCameraFire(CGameObject *next)	{ (void)next; NEG_TODO(0x433f50, "C3DFlyingCamera element slot 144"); }
