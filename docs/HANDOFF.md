@@ -169,7 +169,7 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
    C3DCindy 3CIN, C3DNick 3NIC, C3DBenny 3BEN, C3DFlyingCamera 3FLY, C3DAIJimmy 3AIJ,
    C3DMultiCutSceneCamera 3MCA, C3DTree 3TRE, C3DFog 3FOG (3ASE exists now); level3 - 3GRO, 3FAD,
    3NEU, 3CHK, 3TSP, 3PIC, 3HEL, 3BOT, 3TEX, 3TES, 3SPH, 3SWN, 3SCR, 3NUM, 3MUS, 3HER, 3BUT, 3ARR.
-   `NEG_TEST_PLAY=level5.gam` (desktop) skips a level's opening and gives Jimmy the camera in mode 5:
+   `NEG_TEST_PLAY=level5.gam` (environment, desktop or Android) starts the game in that level, skips its opening and gives Jimmy the camera in mode 5:
    he walks, turns, jumps and stops at the museum walls. Under Wine the voice clips play fast (ALSA
    null device), so its timing is not a reference; the port's shots last as long as their clips.
    C3DRocketShip::v260 -> InitPhysics taking the element position is as in the original (0x46a852).
