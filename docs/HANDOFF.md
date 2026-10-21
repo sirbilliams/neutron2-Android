@@ -164,7 +164,45 @@ STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoint
 The 10 "fish" are the intro logo letters (T, H, Q, AWE games...): level1d opens with the logo cut scene.
 LoadGame stops at the first NULL object, so every class in the file must exist or nothing after it loads.
 
-## Status at the end of the Oct 21 session 2 (read this first)
+## Status at the end of session 3 (Oct 21, phase 2) — READ THIS FIRST
+
+- **The whole story chain plays through** (main 8b7cee9, Android CI green, Bill has this APK):
+  level1d (logos) -> Level5 (museum) -> Level3 (lab: 3 parts -> water gun -> button pad -> bots hunt ->
+  PDA exit) -> Level3c (ravine, hover cycle vs the tidal wave) -> Level3d (dock, crane drops 4 sub parts)
+  -> Level3a (sub) -> Level3e ... and the level1 run (level1b -> level1_b -> level1_a (scooter/jeep) ->
+  level1_c -> Level1) -> level1c -> level5b -> level5b1 -> Level4b -> level5f / level5d / level5c / Level5a
+  -> Level3e (lab escape; the game's ending reaches the "YOU WIN" score box). 20 levels.
+  "Plays through" was checked per objective with temporary teleport/force hacks, not by a full manual run.
+- **Not reached / not done:**
+  - **VR01** (bonus level): C3DVRTank, C3DFlyingBug, C3DGiantWasp not written. Agent D's unfinished,
+    UNVERIFIED work on them (plus C3DBub, a Thor button for the sub's headlight = the L key today,
+    docs/controls.md) is saved only as branch `backup/wip-d` (18df796). Check/finish it, don't trust it.
+  - **C3DBub** (the sub's trail bubbles / water-gun bubbles; hook `neg::MiniSubBubSet670` in
+    level3a/C3DMiniSub.cpp) — needed for the lab fight in Level3e.
+  - **level4a**: C3DUltraLord is written, but the game files have no Ultra Lord art (ultra*.ase,
+    ultralord.png), so the level can't load its textures; no level leads to it. Nothing to do.
+  - Untested real play (hacks were used): shooting the dinos/pteros in Level5f, Level4b's 25-hit win,
+    the dock crane's manual controls, the lab's bot2 sometimes gets stuck, a soft lunar-lander landing.
+  - Smaller TODOs still logged: score pop-up not placed for widescreen, frame-rate overlay 0x4b2d90,
+    menu phone-booth teleport 0x4648a0, C3DVehicle::ev110 (unused), surface hurt on '3COR' 0x4847c1,
+    the missing sun billboard behind the Nick logo (not texture animations; still unknown).
+  - Runs with NEG_TEST_PLAY print CLEAN EXIT and then hang until `timeout` (rc 124); pre-existing.
+- **Port features on main:** 16:9 widescreen (on by default on Android, setup checkbox; HUD at the
+  edges, full-width letterbox, touch mapping; the bottom-left mouse help icon didn't move outward);
+  the level picker ("Jump to a level (test)"); the bottom-screen panel (hold Back 0.6 s or double-tap ->
+  menu: panel on/off, map zoom near/far): stainless steel / green LED theme, real top-down level map
+  from the level geometry, the game's own icons read at run time, tasks lit when active (no "done" state
+  found). Desktop preview: `NEG_COMPANION_DUMP=<dir>` + `tools/companion/render.sh <dir> <Level> out.png`.
+  Untested on a real second screen. HD image pack: on hold (Bill), see "Next" 3.
+- **Bill's open checks:** play the full chain on the Thor; the dual-screen panel on the real bottom screen.
+- **Method notes from this session:** the census can't see classes created at run time (projectiles,
+  effects): play the level and grep the log for TODO. Android's clang enforces C++98 (no `T{...}`,
+  `auto`, `nullptr`); check CI on each backup branch. Agents often wrote the same shared helpers in
+  C3DJimmy*/CJimmyGame.cpp: tell agents to `git merge backup/integ` before touching those. Five agents hit
+  the account's session usage limit after ~3 h; four is safer. Resumed agents with very long histories cost
+  more than fresh agents with a short brief (the phase-2 brief used this session: `docs/agent-brief-p2.md`; update its paths/commit first).
+
+## Status at the end of the Oct 21 session 2
 
 - **Reached:** a normal Play (no test hooks) runs level1d.gam (THQ/AWE logos) -> LOAD `startgame` ->
   Level5.gam (museum cut scene) -> Level3.gam (the underwater fly-in `labflyin1`, then several minutes of
