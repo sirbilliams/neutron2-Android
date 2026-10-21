@@ -993,7 +993,7 @@ bool LoadExeData(char *why, int why_size);	// ExeData.cpp: fill g_data/g_ptrs fr
 #define g_54a448 (*(float *)&neg::g_data[0x18448])
 #define g_54a44c (*(short *)&neg::g_data[0x1844c])
 #define g_lives (*(short *)&neg::g_data[0x1844c])
-#define g_54a450 (neg::g_ptrs[0x6114])		// pointer
+#define g_54a450 (*(int *)&neg::g_data[0x18450])
 #define g_54a454 (*(int *)&neg::g_data[0x18454])
 #define g_54a464 (*(int *)&neg::g_data[0x18464])
 #define g_promotion_rank (*(int *)&neg::g_data[0x18464])

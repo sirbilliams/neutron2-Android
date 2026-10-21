@@ -1,6 +1,7 @@
 /*  C3DJimmy, part A: the slots below 0x448b40 (see C3DJimmy.h). */
 #include "../C3DJimmy.h"
 #include "../C3DPermanentSprite.h"
+#include "../C3DGrannyObj.h"
 #include "../C2DInGameMenu.h"
 #include "../CJimmyGame.h"
 #include "../CTaskList.h"
@@ -209,59 +210,6 @@ static C3DObject *GoddardPointer(C3DPlayerObject *goddard)	// C3DGoddard +0x1b84
 	(void)goddard;
 	NEG_TODO(0x4488f9, "C3DGoddard +0x1b84");
 	return NULL;
-}
-
-// --------------------------------------------------------------------------- PART B
-// Slots of part B (jimmy/C3DJimmy_b.cpp) this part calls: weak stand-ins until it is merged.
-__attribute__((weak)) void C3DJimmy::ev138(CGameObject *o, CGameObject *who, int item, float value)
-{
-	(void)o; (void)who; (void)item; (void)value;
-	NEG_TODO(0x449df0, "C3DJimmy::ActivateMenuItem (ESLOT 138, part B)");
-}
-__attribute__((weak)) void C3DJimmy::ev129(void)
-{
-	NEG_TODO(0x44bfa0, "C3DJimmy ESLOT 129 (part B)");
-}
-__attribute__((weak)) void C3DJimmy::ev134(float a, int b, float c, unsigned char d)
-{
-	(void)a; (void)b; (void)c; (void)d;
-	NEG_TODO(0x44bd90, "C3DJimmy ESLOT 134 hurt (part B)");
-}
-__attribute__((weak)) unsigned char C3DJimmy::ev140(float dt)
-{
-	(void)dt;
-	NEG_TODO(0x44b490, "C3DJimmy ESLOT 140 (part B)");
-	return 0;
-}
-__attribute__((weak)) void C3DJimmy::ev144(void)
-{
-	NEG_TODO(0x448b40, "C3DJimmy ESLOT 144 (part B)");
-}
-__attribute__((weak)) void C3DJimmy::ev149(float dt, CGameObject *target, C3DObject *pointer)
-{
-	(void)dt; (void)target; (void)pointer;
-	NEG_TODO(0x44e420, "C3DJimmy ESLOT 149 Goddard shows the target (part B)");
-}
-__attribute__((weak)) unsigned char C3DJimmy::ev158(float dt)
-{
-	(void)dt;
-	NEG_TODO(0x448de0, "C3DJimmy ESLOT 158 (part B)");
-	return 0;
-}
-__attribute__((weak)) void C3DJimmy::ev159(float dt)
-{
-	(void)dt;
-	NEG_TODO(0x449420, "C3DJimmy ESLOT 159 (part B)");
-}
-__attribute__((weak)) void C3DJimmy::ev152(int which)
-{
-	(void)which;
-	NEG_TODO(0x44d9e0, "C3DJimmy ESLOT 152 (part B)");
-}
-__attribute__((weak)) void C3DJimmy::ev153(int set)
-{
-	(void)set;
-	NEG_TODO(0x44c080, "C3DJimmy ESLOT 153 surface sound (part B)");
 }
 
 // --------------------------------------------------------------------------- element family
@@ -566,7 +514,7 @@ void C3DJimmy::v260(void)									// 0x445740
 	f_4ef0 = NULL;
 	if (f_d5c) f_d5c->ev79(0);
 	// drop the props on Jimmy's bones
-	C3DAnimated *props[5] = { f_d28, f_d2c, f_d30, f_d38, f_d34 };
+	C3DObject *props[5] = { f_d28, f_d2c, f_d30, f_d38, f_d34 };
 	for (int i = 0; i < 5; i++)
 		if (props[i])
 		{

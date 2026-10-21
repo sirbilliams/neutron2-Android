@@ -2,8 +2,6 @@
 
 	// ---- element-family slots
 	virtual void ev60(void);												// ESLOT 60  0x4369f0 (no animation of that name) ev58("IDLE", 1)
-	virtual void ev127(void) {}												// ESLOT 127 0x463890 (empty)
-	virtual void ev131(void) {}												// ESLOT 131 0x463890 (empty)
 	virtual void ev132(void);												// ESLOT 132 0x446b40 jetpack (state 1) / glide (5) over: FALL
 	virtual void ev133(float dt);											// ESLOT 133 0x4473f0 hurt / stunned flashes (f_4cb8, f_4ca4), the knock-back (f_4ca5)
 	virtual void ev135(float dt);											// ESLOT 135 0x446bc0 rising into a ceiling: bounce down, "HitHead"
@@ -34,16 +32,3 @@
 	virtual void v266(void);												// SLOT 266 0x4455a0 task states changed: ev152 by level; "water stream"
 	virtual void v277(void);												// SLOT 277 0x447660 pause: stop the music and the loops
 	virtual void v278(void);												// SLOT 278 0x447780 resume: music and loops again
-
-	// ---- PART B: slots of part B that part A calls, declared here until part B is merged
-	// (weak stand-ins in C3DJimmy_a.cpp). Remove these when C3DJimmy_b.inc declares them.
-	virtual void ev129(void);												// PART B ESLOT 129 0x44bfa0
-	virtual void ev134(float a, int b, float c, unsigned char d);			// PART B ESLOT 134 0x44bd90 hurt (AddTouching: -10, -10, 5, 1)
-	virtual void ev138(CGameObject *o, CGameObject *who, int item, float value);	// PART B ESLOT 138 0x449df0 "ActivateMenuItem"
-	virtual unsigned char ev140(float dt);									// PART B ESLOT 140 0x44b490 (v243 stops when it answers yes)
-	virtual void ev144(void);												// PART B ESLOT 144 0x448b40
-	virtual void ev149(float dt, CGameObject *target, C3DObject *pointer);	// PART B ESLOT 149 0x44e420 Goddard shows `target` (pointer: Goddard +0x1b84's element)
-	virtual unsigned char ev158(float dt);									// PART B ESLOT 158 0x448de0
-	virtual void ev159(float dt);											// PART B ESLOT 159 0x449420
-	virtual void ev152(int which);											// PART B ESLOT 152 0x44d9e0
-	virtual void ev153(int set);											// PART B ESLOT 153 0x44c080 surface sound set

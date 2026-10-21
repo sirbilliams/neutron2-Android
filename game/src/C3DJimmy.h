@@ -40,6 +40,7 @@
 #include "OMedia3DVector.h"
 
 class CTaskList;
+class C3DGrannyObj;
 class C3DPermanentSprite;
 class OMediaStreamOperators;
 
@@ -53,9 +54,10 @@ class C3DJimmy : public C3DPlayer
 #include "jimmy/C3DJimmy_b.inc"
 
 	// ---- data members (object offsets). Names say what is known; "?" = not established.
+	char				f_938[40];		// 0x938  (C3DPlayerObject's unused range) animation to go back to after a cut scene (v270)
 	int					f_cac;			// 0xcac  0
 	// 0xcb0..0xcbb never used
-	C3DObject			*f_cbc;			// 0xcbc  effect object hidden when the shrink ray stops (0; set elsewhere)
+	C3DObject			*f_cbc;			// 0xcbc  shrink-ray effect: hidden when the ray stops / out of energy (0; set elsewhere)
 	CGameObject			*f_cc0;			// 0xcc0  0 (ev118 calls an empty function on it)
 	C3DPermanentSprite	*f_cc4;			// 0xcc4  C3DShadow: the blob shadow under Jimmy (ev136)
 	C3DPlayerObject		*f_cc8;			// 0xcc8  C3DRocketShip he can fly (a C3DFlyingObject)
@@ -63,22 +65,23 @@ class C3DJimmy : public C3DPlayer
 	C3DPermanentSprite	*f_cd0[20];		// 0xcd0  C3DWaterBalloon pool
 	C3DAnimated			*f_d20;			// 0xd20  C3DGraplingHook (ev163)
 	// 0xd24 never used
-	C3DAnimated			*f_d28;			// 0xd28  props attached to Jimmy's bones (ev88), dropped by v260
-	C3DAnimated			*f_d2c;			// 0xd2c
-	C3DAnimated			*f_d30;			// 0xd30
-	C3DAnimated			*f_d34;			// 0xd34  (detached first of the five? see v260's order: d28 d2c d30 d38 d34)
-	C3DAnimated			*f_d38;			// 0xd38
+	// props on Jimmy's bones (ev88), dropped by v260 (in the order d28 d2c d30 d38 d34)
+	C3DGrannyObj		*f_d28;			// 0xd28  water gun in the right hand ("newgunbase.grn")
+	C3DGrannyObj		*f_d2c;			// 0xd2c  burp gun ("megaburpgun.grn")
+	C3DGrannyObj		*f_d30;			// 0xd30  shades on the head ("Shades.grn")
+	C3DGrannyObj		*f_d34;			// 0xd34  the PDA ("PDA.grn"; Process hides it outside cut scenes)
+	C3DObject			*f_d38;			// 0xd38  held object (the HOLD animations; ReadState clears it)
 	int					f_d3c;			// 0xd3c  0
 	C3DPermanentSprite	*f_d40;			// 0xd40  C3DRadar: the HUD panel (the original keeps its CGameObject part)
 	C3DAnimated			*f_d44;			// 0xd44  C3DASEObj: the bubble (energybubble.ase; the original keeps its CGameObject part)
 	int					f_d48;			// 0xd48  0
 	C3DAnimated			*f_d4c;			// 0xd4c  C3DPointCursor (the original keeps its CGameObject part)
-	short				f_d50;			// 0xd50  0
-	int					f_d54;			// 0xd54  0
+	short				f_d50;			// 0xd50  next water balloon (0..19)
+	int					f_d54;			// 0xd54  0 after a shot
 	short				f_d58;			// 0xd58  0
 	C3DPlayerObject		*f_d5c;			// 0xd5c  C3DGoddard, Jimmy's dog (a C3DAI)
 	float				f_d60;			// 0xd60  health, 0..100 (50; ev160 adds)
-	int					f_d64;			// 0xd64  0
+	float				f_d64;			// 0xd64  0; 0.5 after leaving the jeep
 	short				f_d68;			// 0xd68  -1
 	short				f_d6a;			// 0xd6a  4
 	unsigned char		f_d6c;			// 0xd6c  0; Process shows the "SCENE" task state when set (debug)
@@ -89,13 +92,13 @@ class C3DJimmy : public C3DPlayer
 	OMedia3DPoint		f_4bf0;			// 0x4bf0 position saved by ev150 / ev151
 	int					f_4c00;			// 0x4c00 the level (g_gametype ID) of f_4bf0
 	int					f_4c04;			// 0x4c04 0
-	int					f_4c08;			// 0x4c08 sound channel (-1)
+	int					f_4c08;			// 0x4c08 sound channel (-1) "ropeswing" / "ropeclimb"
 	int					f_4c0c;			// 0x4c0c sound channel (-1) "water stream"
 	int					f_4c10;			// 0x4c10 sound channel (-1) "shrinkray"
 	int					f_4c14;			// 0x4c14 sound channel (-1)
 	int					f_4c18;			// 0x4c18 0 (ev165: copied from the start point)
 	int					f_4c1c;			// 0x4c1c sound channel (-1)
-	int					f_4c20;			// 0x4c20 sound channel / level music (-1)
+	int					f_4c20;			// 0x4c20 footstep sound channel (-1)
 	int					f_4c24;			// 0x4c24 sound channel (-1) "not available"
 	char				f_4c28[100];	// 0x4c28 "none"; ev165: from the start point (the level music name)
 	C3DPermanentSprite	*f_4c8c;		// 0x4c8c C3DTargetCursor
@@ -103,28 +106,28 @@ class C3DJimmy : public C3DPlayer
 	int					f_4c94;			// 0x4c94 0
 	int					f_4c98;			// 0x4c98 0
 	float				f_4c9c;			// 0x4c9c 0
-	int					f_4ca0;			// 0x4ca0 0
-	unsigned char		f_4ca4;			// 0x4ca4 0
-	unsigned char		f_4ca5;			// 0x4ca5 0 (ev133: an animation playing out, see there)
-	unsigned char		f_4ca6;			// 0x4ca6 0 (surface flag, CJimmyGame)
+	int					f_4ca0;			// 0x4ca0 0: gesture to do when the pickup animation ends (ev137)
+	unsigned char		f_4ca4;			// 0x4ca4 0: hurt by a 110..119 wall (ev120; ev133 flashes)
+	unsigned char		f_4ca5;			// 0x4ca5 0: shocked (ev119; ev133 holds him for 1 s)
+	unsigned char		f_4ca6;			// 0x4ca6 0: in water (CJimmyGame)
 	unsigned char		f_4ca7;			// 0x4ca7 0 (surface flag, CJimmyGame)
 	OMedia3DVector		f_4ca8;			// 0x4ca8
-	unsigned char		f_4cb8;			// 0x4cb8 0: AddTouching ignores missiles / bots / plants while set
+	unsigned char		f_4cb8;			// 0x4cb8 0: hurt (ev134; flashing, AddTouching ignores missiles / bots / plants)
 	OMedia3DPoint		f_4cbc;			// 0x4cbc position of the start point he came in at (ev165)
-	float				f_4ccc;			// 0x4ccc 0
-	float				f_4cd0;			// 0x4cd0 0
-	unsigned char		f_4cd4;			// 0x4cd4 0
-	float				f_4cd8;			// 0x4cd8 0 (ev163: the camera pitch when the hook was aimed)
-	float				f_4cdc;			// 0x4cdc 5
+	float				f_4ccc;			// 0x4ccc 0: gadget 2 time left (20)
+	float				f_4cd0;			// 0x4cd0 0: power bar / burp gun charge (full at 20)
+	unsigned char		f_4cd4;			// 0x4cd4 0: gun pointed (cleared by a shot)
+	float				f_4cd8;			// 0x4cd8 0: aim pitch of the shots (ev163)
+	float				f_4cdc;			// 0x4cdc 5: invulnerable time after a hurt
 	int					f_4ce0;			// 0x4ce0 0
-	float				f_4ce4;			// 0x4ce4 0
-	float				f_4ce8;			// 0x4ce8 0
-	unsigned char		f_4cec;			// 0x4cec 1
-	float				f_4cf0;			// 0x4cf0 0
+	float				f_4ce4;			// 0x4ce4 0: time since the head last hit a ceiling
+	float				f_4ce8;			// 0x4ce8 0: no shock while > 0
+	unsigned char		f_4cec;			// 0x4cec 1: flying (the jet pack started by itself, v243)
+	float				f_4cf0;			// 0x4cf0 0: its time left
 	int					f_4cf4;			// 0x4cf4 0
-	int					f_4cf8;			// 0x4cf8 1
-	unsigned char		f_4cfc;			// 0x4cfc 0
-	unsigned char		f_4cfd;			// 0x4cfd 0
+	int					f_4cf8;			// 0x4cf8 1: rope: 1 swing (keys move the swing), 0 hang still
+	unsigned char		f_4cfc;			// 0x4cfc 0: grappling hook gadget selected once (12 s help shown)
+	unsigned char		f_4cfd;			// 0x4cfd 0: on the scooter (jeep): no shadow
 	unsigned char		f_4cfe;			// 0x4cfe 1 (0 while the constructor builds the helpers)
 	C3DPermanentSprite	*f_4d00[20];	// 0x4d00 C3DMagicParticle pool (next: f_4d54)
 	C3DPermanentSprite	*f_4d50[1];		// 0x4d50 C3DMagicParticle (next: f_4d60)
@@ -135,32 +138,32 @@ class C3DJimmy : public C3DPlayer
 	float				f_4d64;			// 0x4d64 0; ev157 adds: sparkle time of f_4d50
 	float				f_4d68;			// 0x4d68 0
 	OMedia3DVector		f_4d6c;			// 0x4d6c ev157: sparkle position (of f_4d50)
-	unsigned char		f_4d7c;			// 0x4d7c 0 (ev165 clears it)
+	unsigned char		f_4d7c;			// 0x4d7c 0: "bNoPhysics" (driving the crane, saved; ev165 clears it)
 	OMedia3DPoint		f_4d80;			// 0x4d80 (0, 0, 0)
-	unsigned char		f_4d90;			// 0x4d90 0
-	int					f_4d94;			// 0x4d94 0 (v266: 0, 15)
+	unsigned char		f_4d90;			// 0x4d90 0: counts as on the floor (v133)
+	int					f_4d94;			// 0x4d94 0 (v266: 0, 15; saved)
 	int					f_4d98;			// 0x4d98 sound channel (-1) "slide"
 	float				f_4d9c;			// 0x4d9c 5000
-	float				f_4da0;			// 0x4da0 0 bubble: time it lasts (ev147)
-	float				f_4da4;			// 0x4da4 0 bubble: time left (ev146)
+	float				f_4da0;			// 0x4da0 0 bubble: time it lasts (ev147); 0 when a LADDER / FENCE climb starts
+	float				f_4da4;			// 0x4da4 0 bubble: time left (ev146); invulnerable while > 0 (saved)
 	float				f_4da8;			// 0x4da8 0.35 bubble alpha
-	int					f_4dac;			// 0x4dac 0
-	float				f_4db0;			// 0x4db0 -900
-	unsigned char		f_4db4;			// 0x4db4 0
-	unsigned char		f_4db8;			// 0x4db8 0: no shadow (ev136) / ...
-	OMedia3DPoint		f_4dbc[10];		// 0x4dbc (counted by f_4e78)
-	float				f_4e5c;			// 0x4e5c 0
-	float				f_4e60;			// 0x4e60 0
-	float				f_4e64;			// 0x4e64 0
-	float				f_4e68;			// 0x4e68 0
-	float				f_4e6c;			// 0x4e6c 0
-	float				f_4e70;			// 0x4e70
-	float				f_4e74;			// 0x4e74
-	short				f_4e78;			// 0x4e78 0: entries of f_4dbc
-	float				f_4e7c;			// 0x4e7c 0
-	char				f_4e80[100];	// 0x4e80 "" (an animation name ev133 / Process play when set)
-	float				f_4ee4;			// 0x4ee4 0
-	unsigned char		f_4ee8;			// 0x4ee8 0
+	int					f_4dac;			// 0x4dac 0: "ResetWhenDamaged" (saved)
+	float				f_4db0;			// 0x4db0 -900: "FallSpeedDamage" (saved)
+	unsigned char		f_4db4;			// 0x4db4 0: falling fast ("landing" sound)
+	unsigned char		f_4db8;			// 0x4db8 0: hanging on the rope (no shadow, no jet pack)
+	OMedia3DPoint		f_4dbc[10];		// 0x4dbc rope anchor points ([f_4e78])
+	float				f_4e5c;			// 0x4e5c 0: first rope length
+	float				f_4e60;			// 0x4e60 0: rope length now
+	float				f_4e64;			// 0x4e64 0: swing speed x
+	float				f_4e68;			// 0x4e68 0: swing speed z
+	float				f_4e6c;			// 0x4e6c 0: time on the rope
+	float				f_4e70;			// 0x4e70 anchor height above us - 100 / 200
+	float				f_4e74;			// 0x4e74 longest rope
+	short				f_4e78;			// 0x4e78 0: current rope anchor
+	float				f_4e7c;			// 0x4e7c 0: time the camera pitch holds after aiming (3)
+	char				f_4e80[100];	// 0x4e80 "": pickup animation waiting for the floor (ev58; Process plays it)
+	float				f_4ee4;			// 0x4ee4 0: shot repeat timer (0.15)
+	unsigned char		f_4ee8;			// 0x4ee8 0: action ignored until released
 	CGameObject			*f_4ef0;		// 0x4ef0 the target Goddard shows (C3DAITrigger "ShowTarget")
 };
 
