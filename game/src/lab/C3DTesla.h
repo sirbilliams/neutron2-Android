@@ -28,7 +28,7 @@ class C3DTesla : public C3DAnimated
 
 	// ---- CGameObject-family overrides
 	virtual void InitObject(void);											// SLOT 7   0x4761e0 properties, animation, textures
-	virtual void ResetObject(void) {}										// SLOT 10  0x482a70 (empty)
+	virtual void ResetObject(void);											// SLOT 10  0x482a70 (a jump to CLocalGameObject's: the start position)
 	virtual void AddTouching(CGameObject *other);							// SLOT 16  0x476320 Jimmy: shock
 	virtual void RemoveTouching(CGameObject *other);						// SLOT 17  0x47fca0 (CGameObject's)
 	virtual void Process(float dt);											// SLOT 240 0x476420 texture cycle

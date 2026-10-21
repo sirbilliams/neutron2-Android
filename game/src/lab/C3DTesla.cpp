@@ -63,6 +63,11 @@ void C3DTesla::InitObject(void)								// 0x4761e0
 	// (then a call to the empty 0x463890)
 }
 
+void C3DTesla::ResetObject(void)							// 0x482a70 (jmp 0x48ee80)
+{
+	CLocalGameObject::ResetObject();
+}
+
 void C3DTesla::AddTouching(CGameObject *other)				// 0x476320
 {
 	CGameObject::AddTouching(other);						// 0x4ab970
