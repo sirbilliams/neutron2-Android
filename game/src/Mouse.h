@@ -1,7 +1,5 @@
 /*  The mouse pointer helpers of Neutron2.exe (CGfx 0x4b1d10..0x4b1dc0, CAweReal 0x4a3990), shared.
-    Defined in Input.cpp. Several modules still have private static TODO copies (C2DInGameMenu_b
-    GetMousePos / SetMousePos / CenterMouse; C3DPlayer, C3DFlyingObject and CEditor GetMouseDelta):
-    they can call these instead. On the Thor the right stick moves the pointer (engine/sdl), so
+    Defined in Input.cpp; the menu, C3DPlayer, C3DFlyingObject and CEditor use them. On the Thor the right stick moves the pointer (engine/sdl), so
     GetMouseDelta is also the right stick's camera turn.                                          */
 #pragma once
 

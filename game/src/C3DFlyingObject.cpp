@@ -1,5 +1,6 @@
 /*  C3DFlyingObject - see C3DFlyingObject.h. */
 #include "C3DFlyingObject.h"
+#include "Mouse.h"
 #include "C3DPlayer.h"										// the input tests (PlayerKey*)
 #include "Game.h"
 #include "Bridge.h"
@@ -20,11 +21,7 @@ static const float kDegToAngle = 45.511112213134766f;		// 0x4cb228: 16384 / 360
 
 // --------------------------------------------------------------------------- helpers
 
-// 0x4a3990: cursor offset from the window centre, then the cursor is put back (as CEditor's).
-static void GetMouseDelta(short *dx, short *dy)
-{
-	if (!g_56aed0) { NEG_TODO(0x4a3990, "GetMouseDelta"); (void)dx; (void)dy; }
-}
+using neg::GetMouseDelta;									// 0x4a3990 (Mouse.h)
 
 static OMedia3DVector Position(CGameObject *o)
 {

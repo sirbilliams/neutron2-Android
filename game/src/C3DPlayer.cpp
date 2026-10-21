@@ -1,5 +1,6 @@
 /*  C3DPlayer - see C3DPlayer.h. */
 #include "C3DPlayer.h"
+#include "Mouse.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -57,11 +58,7 @@ bool neg::PlayerKeyLeft(void)			{ return g_joy_x < -0.5f || KeyListDown(g_key_tu
 bool neg::PlayerKeyRight(void)			{ return g_joy_x > 0.5f || KeyListDown(g_key_turn_right); }		// 0x465a60
 bool neg::PlayerKeyCutsceneBypass(void)	{ return g_joy_button0 || KeyListDown(g_key_cutscene_bypass); }	// 0x465ad0
 
-// 0x4a3990: cursor offset from the window centre, then the cursor is put back (as CEditor's).
-static void GetMouseDelta(short *dx, short *dy)
-{
-	if (!g_56aed0) { NEG_TODO(0x4a3990, "GetMouseDelta"); (void)dx; (void)dy; }
-}
+using neg::GetMouseDelta;									// 0x4a3990 (Mouse.h)
 
 // --------------------------------------------------------------------------- C3DJimmy hooks
 

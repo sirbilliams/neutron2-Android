@@ -2,6 +2,7 @@
     helpers 0x4b2460..0x4b2c80 it uses).                                                        */
 
 #include "CGameType.h"
+#include "Mouse.h"
 #include "Game.h"
 #include "Bridge.h"
 #include "Todo.h"
@@ -46,7 +47,13 @@ using namespace neg;
 
 static void ResetParticles(void)			{ NEG_TODO(0x49b260, "C3DParticle::Reset"); }
 static void ResetTextureAnims(void)			{ NEG_TODO(0x4a2270, "Reset() texture animation list 0x56ad7c"); }
-static void CaptureMouse(bool capture)		{ (void)capture; NEG_TODO(0x4a3930, "CaptureMouse"); }
+// 0x4a3930 (as in CEditor.cpp): capture centres the pointer (hiding the Windows cursor has no
+// equivalent on the Thor); release only clears the flag.
+static void CaptureMouse(bool capture)
+{
+	if (capture && !g_56aed0) { neg::CenterMouse(); g_mouse_captured = 1; return; }
+	g_mouse_captured = 0;
+}
 // OMediaMouseCursor::hide() (OMT2.dll); the SDL build of OMT has no OMediaMouseCursor.
 static void HideMouseCursor(void)			{ SDL_ShowCursor(SDL_DISABLE); }
 static void SetupShapeMaterials(OMediaDataBase *db, OMedia3DShape *shape)

@@ -10,6 +10,7 @@
     every game object): 0 Starting, 1 Loading, 2 Saving, 3 In CutScene, 4 In Menu, 5 Playing,
     6 Paused, 9 None.                                                                           */
 #include "../C2DInGameMenu.h"
+#include "../Mouse.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
 #include "../SaveGame.h"
@@ -76,9 +77,9 @@ static bool PlayerFireButton(void)		{ NEG_TODO(0x465650, "C3DPlayerObject slot 1
 // (g_56af7c - 0xc0)->slot 121("VR01.gam", "PHONEBOOTH", +0xb89, +0x9c8, 0x21b): go to the phone booth.
 static void PhoneBoothTeleport(void)	{ NEG_TODO(0x4648a0, "phone booth teleport (g_56af7c slot 121)"); }
 
-static void GetMousePos(short *x, short *y)	{ *x = 0; *y = 0; NEG_TODO(0x4b1d10, "get mouse position"); }
-static void SetMousePos(int x, int y)		{ (void)x; (void)y; NEG_TODO(0x4b1d30, "set mouse position"); }
-static void CenterMouse(void)				{ NEG_TODO(0x4b1d50, "centre the mouse in the viewport"); }
+static void SetMousePos(int x, int y)		{ neg::SetMousePos((short)x, (short)y); }	// 0x4b1d30
+using neg::GetMousePos;						// 0x4b1d10 (Mouse.h)
+using neg::CenterMouse;						// 0x4b1d50
 
 // CJimmyGame (ecx = g_gametype): score and "+N" pop-up text.
 static void DrawScoreHud(float dt)		{ (void)dt; NEG_TODO(0x4859b0, "CJimmyGame score / pop-up text"); }

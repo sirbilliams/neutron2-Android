@@ -7,6 +7,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "DatabaseCache.h"
+#include "Mouse.h"
 #include "CEditor.h"
 #include "CDefaultGame.h"
 #include "CViewPort.h"
@@ -234,17 +235,16 @@ static void CaptureMouse(bool capture)			// 0x4a3930
 {
 	if (capture && !g_56aed0)
 	{
-		NEG_TODO(0x4a3930, "hide the cursor, remember and centre it");
+		// (the original also hides the Windows cursor and remembers its position; the SDL layer
+		// has no visible cursor on the Thor)
+		neg::CenterMouse();
 		g_mouse_captured = 1;
 		return;
 	}
 	// (restore the cursor position, OMediaMouseCursor::force_show)
 	g_mouse_captured = 0;
 }
-static void GetMouseDelta(short *dx, short *dy)	// 0x4a3990: cursor offset from the centre, then re-centre
-{
-	if (!g_56aed0) { NEG_TODO(0x4a3990, "GetMouseDelta"); (void)dx; (void)dy; }
-}
+using neg::GetMouseDelta;							// 0x4a3990 (Mouse.h)
 
 // CLocalGameObject slot 283 takes a float (the frame time); the generator typed it as unsigned int,
 // so the bits are passed through unchanged.

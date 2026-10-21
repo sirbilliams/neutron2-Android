@@ -52,17 +52,13 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 - **Mapped controllers first:** the game takes the first joystick, so SDL game controllers come
   before other joystick devices.
 
-## Still to wire (outside the SDL layer)
+## Pointer helpers
 
 `game/src/Mouse.h` has the shared pointer helpers: `GetMousePos` 0x4b1d10, `SetMousePos`
-0x4b1d30, `CenterMouse` 0x4b1d50 and `GetMouseDelta` 0x4a3990. Several modules still use private
-TODO copies:
-
-- `C2DInGameMenu_b.cpp`: `GetMousePos`, `SetMousePos` and `CenterMouse`. Until these are wired,
-  the left stick doesn't move the menu pointer, and the right stick and touch do.
-- `C3DPlayer.cpp`, `C3DFlyingObject.cpp` and `CEditor.cpp`: `GetMouseDelta`. Until this is wired,
-  the right stick doesn't turn the camera.
-- `LevelHelpers.h` / `CEditor.cpp`: mouse capture, 0x4a3930.
+0x4b1d30, `CenterMouse` 0x4b1d50 and `GetMouseDelta` 0x4a3990. The menu, C3DPlayer,
+C3DFlyingObject and CEditor use them, so the right stick turns the camera in play and the left
+stick moves the menu pointer as in the original. Mouse capture (0x4a3930) centres the pointer;
+hiding and restoring the Windows cursor has no equivalent on the Thor.
 
 ## Test hooks (desktop)
 
