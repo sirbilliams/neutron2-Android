@@ -22,6 +22,7 @@
 #include "OMediaFilePath.h"
 #include "OMediaFileStream.h"
 #include "OMediaInputEngine.h"
+#include "../port/Widescreen.h"
 #include "OMediaSDLRetarget.h"				// omf_SDLResolvePath (DOS paths -> files)
 #include <SDL.h>
 #include <stdint.h>
@@ -179,6 +180,7 @@ static void GetMousePos(short &x, short &y)
 {
 	x = y = 0;
 	if (g_input_engine) g_input_engine->get_mouse_position(x, y);
+	x = (short)(x - (int)WideMargin());			// port: widescreen, window -> the 4:3 area
 }
 
 // The player's "action pressed" test: the object at 0x545fd0 (a CGameObject subobject at +0xc0)
