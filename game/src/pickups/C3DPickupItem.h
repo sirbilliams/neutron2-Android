@@ -63,7 +63,7 @@ class C3DPickupItem : public CPickupType
 	char		m_sound_name[100];		// 0x8a8  "SoundName" (= "none")
 	int			f_90c;					// 0x90c  0 (not used)
 	int			m_pass_thru;			// 0x910  "PassThru" (= 1; not used)
-	int			m_show_arrow;			// 0x914  "ShowArrow" (= 0; not used)
+	int			m_show_arrow;			// 0x914  "ShowArrow": Jimmy's point cursor over it (C3DJimmy 0x4489ac)
 	C3DCorona	*m_corona;				// 0x918  the glow (the original keeps its CGameObject part)
 	int			m_show_corona;			// 0x91c  "ShowCorona" (= 0)
 	float		m_red;					// 0x920  "Red" (= 1)
