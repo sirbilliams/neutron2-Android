@@ -65,6 +65,9 @@ final class LauncherView extends View {
     private String mPicKey, mPrevKey;       // the info window's picture and the one fading out
     private long mFadeStart;
     private static final float FADE_MS = 280;
+    /** Bill's choice: the options always show the drawn illustrations (LauncherArt), not the game's
+     *  own pictures (LauncherModel.pics), which stay available behind this switch. */
+    static final boolean GAME_PICTURES = false;
     private final java.util.HashMap<String, Bitmap> mDrawn = new java.util.HashMap<>();
     private Object mCoverArt;               // ... for this picture
 
@@ -222,7 +225,7 @@ final class LauncherView extends View {
     /** The picture for key in r with alpha a: the game's own (with scanlines), else the drawing. */
     private void picture(Canvas c, String key, RectF r, float a) {
         if (key == null || a <= 0) return;
-        Object o = mModel.pics.get(key);
+        Object o = GAME_PICTURES ? mModel.pics.get(key) : null;
         boolean game = o instanceof Bitmap;
         Bitmap b = game ? (Bitmap) o : drawn(key);
         if (b == null) return;

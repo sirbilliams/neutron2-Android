@@ -85,7 +85,9 @@ The game starts with `NEG_START` set (see "How the game starts" below): `new`, `
 `load:<slot>`. (The "original menu" style was removed at Bill's request: the app always shows the launcher;
 the game's own Main Menu is the PDA, Esc / Start in play.)
 The slots come from the game's `save/slots.txt` (before the game first wrote it: the .tsk headers).
-The info window shows a picture for the highlighted option, cross-faded on change: the game's own
+The info window shows a drawing for the highlighted option, cross-faded on change
+(`LauncherArt.java`: play dial, atom, floppy disk, floppy + PDA, gears + gauge, flask, rocket;
+Bill's choice). The game's own pictures can be switched back on (`LauncherView.GAME_PICTURES`):
 full-screen pictures (screens.omt, read from the player's files at run time; game/src/port/
 LauncherArt.cpp saves them once into the app's files folder `launcher/`, `NEG_LAUNCHER_ART`, so
 they appear from the second start): Continue = the autosave level's loading picture (saved as

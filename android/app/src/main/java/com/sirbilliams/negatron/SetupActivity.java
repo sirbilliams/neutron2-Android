@@ -196,6 +196,11 @@ public class SetupActivity extends Activity {
     private void loadPictures() {
         File dir = new File(getExternalFilesDir(null), ART_DIR);
         mMenu.pics.clear();
+        if (!LauncherView.GAME_PICTURES) {                  // the options show the drawings only
+            android.graphics.Bitmap pda = android.graphics.BitmapFactory.decodeFile(new File(dir, "menu.png").getPath());
+            mMenu.art = pda;                                // the bottom screen's fallback
+            return;
+        }
         for (String[] k : PICS) putPicture(k[0], new File(dir, k[1]));
         // Continue: the autosave's level (its loading picture), else the general loading screen
         LauncherPages.Slot auto = LauncherPages.slots(saveDir())[0];
