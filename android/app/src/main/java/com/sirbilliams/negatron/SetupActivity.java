@@ -109,6 +109,18 @@ public class SetupActivity extends Activity {
         finish();
     }
 
+    /** port: the Asset Viewer: the game exploring a level, or its model viewer when gam is null
+     *  (NEG_ASSET_VIEW=<gam> / models); the launcher comes back on the Asset Viewer's page afterwards. */
+    private void launchAssetView(String gam) {
+        hideBottom();
+        Intent i = new Intent(this, NegatronActivity.class);
+        i.putExtra(NegatronActivity.EXTRA_LIB, "negatron");
+        i.putExtra(NegatronActivity.EXTRA_ASSET_VIEW, gam != null ? gam : "models");
+        i.putExtra(EXTRA_RETURN, gam != null ? "explore:" + gam : "models");
+        startActivity(i, onTopScreen());
+        finish();
+    }
+
     /** port: the game always opens on the default (top) display, never a TV / cast display, so
      *  screen mirroring sends the game view to the TV (docs/controls.md "Casting / TV"). */
     static Bundle onTopScreen() {
@@ -127,6 +139,8 @@ public class SetupActivity extends Activity {
     static final String EXTRA_LAUNCHER = "launcher";
     /** Intent extra: the game has just ended (NegatronActivity); the launcher shows its main menu. */
     static final String EXTRA_FROM_GAME = "from_game";
+    /** Intent extra, passed through the game: the Asset Viewer page to come back to ("models", "explore:<gam>"). */
+    static final String EXTRA_RETURN = "return_to";
     /** The player's box art picture, copied into the app's private files (never shipped in the repo). */
     static final String BOX_ART = "boxart.img";
 
@@ -267,6 +281,15 @@ public class SetupActivity extends Activity {
         mMenu.boxArt = decodeScaled(boxArtFile());
         mMenu.background = decodeScaled(backgroundFile());
         mMenu.reset(mainPage());
+        String ret = getIntent() != null ? getIntent().getStringExtra(EXTRA_RETURN) : null;
+        if (ret != null) {                                  // back from the Asset Viewer: its page again
+            mMenu.page().sel = Math.max(0, mMenu.page().items.indexOf(findItem(mMenu.page(), "assets")));
+            mMenu.push(LauncherPages.assets());
+            if (ret.startsWith("explore:")) {
+                mMenu.page().sel = 0;
+                mMenu.push(LauncherPages.explore(saveDir(), levelFiles(), ret.substring(8)));
+            } else mMenu.page().sel = 1;
+        }
         mTop = new LauncherView(this, mMenu, false);
         mTop.setFocusable(true);
         mTop.setFocusableInTouchMode(true);
@@ -279,6 +302,11 @@ public class SetupActivity extends Activity {
         showBottom();
         ui.removeCallbacks(mTick);
         ui.post(mTick);
+    }
+
+    private static LauncherModel.Item findItem(LauncherModel.Page p, String id) {
+        for (LauncherModel.Item i : p.items) if (i.id.equals(id)) return i;
+        return null;
     }
 
     private File saveDir() {
@@ -436,6 +464,10 @@ public class SetupActivity extends Activity {
         } else if (id.equals("levels")) mMenu.push(LauncherPages.levels(levelFiles()));
         else if (id.startsWith("level:")) launch("negatron", id.substring(6), null);
         else if (id.equals("viewer")) launch("main");
+        else if (id.equals("assets")) mMenu.push(LauncherPages.assets());           // port: the Asset Viewer
+        else if (id.equals("explore")) mMenu.push(LauncherPages.explore(saveDir(), levelFiles(), null));
+        else if (id.startsWith("explore:")) launchAssetView(id.substring(8));
+        else if (id.equals("models")) launchAssetView(null);
         else if (id.equals("log")) shareLog();
         else if (id.equals("back")) back();
     }

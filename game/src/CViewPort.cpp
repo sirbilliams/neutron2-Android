@@ -3,6 +3,7 @@
 
 #include "CViewPort.h"
 #include "port/Companion.h"
+#include "port/AssetView.h"
 #include "CGameObject.h"
 #include "Game.h"
 #include "Bridge.h"
@@ -92,16 +93,20 @@ void CViewPort::render_viewport(OMediaRendererInterface *rdr_i)				// 0x4b96a0
 	g_frame_time = GetFrameTime();			// vtable +0xd4
 	if (g_frame_time > 0.0f && g_frame_time < 1.0f)
 	{
-		if (GameIsRunning() && g_editor && !EditorIsEditing())
+		const bool explorer = AssetViewFrame(g_frame_time);	// port: the Asset Viewer's explorer: the level stays frozen
+		if (!explorer && GameIsRunning() && g_editor && !EditorIsEditing())
 		{
 			PhysicsProcess(g_frame_time);	// 0x4b4c60
 			UpdateTextureAnims(g_frame_time);	// 0x4a28c0
 		}
 		UpdateInput();						// 0x4b35d0 joystick poll (Input.cpp)
 		UpdateSounds();						// 0x4b8a30
-		PreUpdateObjects();					// 0x4ae5b0
-		UpdateObjects();					// 0x4ae580
-		PostUpdateObjects();				// 0x4ae5e0
+		if (!explorer)						// port: (always, in the original)
+		{
+			PreUpdateObjects();				// 0x4ae5b0
+			UpdateObjects();				// 0x4ae580
+			PostUpdateObjects();			// 0x4ae5e0
+		}
 		CompanionTick(g_frame_time);		// port: the dual-screen companion snapshot (port/Companion.h; read-only)
 		if (g_layer_clear) SetClearLayerViewMatrix();
 		UpdateFrameRate(g_frame_time);		// 0x4b2d90

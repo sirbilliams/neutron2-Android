@@ -8,6 +8,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "TestHooks.h"
 #include "port/StartMode.h"
+#include "port/AssetView.h"
 #include "DatabaseCache.h"
 #include "Mouse.h"
 #include "CEditor.h"
@@ -224,6 +225,7 @@ static void SetLevel1cLoaded(unsigned char v)	{ neg::SetFlag545e54(v != 0); }	//
 
 static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 {
+	if (neg::AssetViewLevel()) return;		// port: the Asset Viewer keeps the saves (level1d.gam wipes the autosaves)
 	remove(omf_SDLResolvePath(dos_path).c_str());
 }
 
@@ -607,6 +609,7 @@ countdown:
 			}
 			const char *task = neg::StartModeChoose(m_level_name);	// port: NEG_START (the original: "autosave.tsk")
 			if (const char *t = TestPlayLevel()) strcpy(m_level_name, t);	// port: test-only (NEG_TEST_PLAY)
+			if (const char *a = neg::AssetViewLevel()) strcpy(m_level_name, a);	// port: Asset Viewer (NEG_ASSET_VIEW)
 			if (strcasecmp(m_level_name, "autosave") == 0)
 			{
 				if (!ReadTaskFile(task))
@@ -774,6 +777,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	Trace("File closed, Calling ResetLevel 2");
 	g_splash->hide(true);
 	TestPlayHook(name);										// port: test-only (NEG_TEST_PLAY)
+	neg::AssetViewLevelLoaded(name);						// port: Asset Viewer (NEG_ASSET_VIEW)
 	neg::StartModeLevelLoaded();							// port: NEG_START
 }
 

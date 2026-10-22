@@ -227,6 +227,7 @@ final class LauncherPages {
                 : "The game's save slots: coming with the game's save / load.");
         i.enabled = GAME_LOADS;
         p.add("saves", "Saves", "Export the game's saves to a file, or import them.");
+        p.add("assets", "Asset viewer", "Fly freely through any level, or look at the game's models.");
         p.add("settings", "Settings", "Widescreen, the bottom screen, box art and background.");
         if (test) p.add("test", "Test", "Jump to a level, the model viewer, share the log.");
         p.add("quit", "Quit", "Close the game.");
@@ -352,9 +353,64 @@ final class LauncherPages {
         LauncherModel.Page p = new LauncherModel.Page("test", "Test");
         p.pic = "test";
         p.add("levels", "Jump to a level", "Play one level straight away, without its opening (NEG_TEST_PLAY).");
-        p.add("viewer", "Model viewer", "Look at the game's models.");
+        p.add("viewer", "Level viewer (OMT)", "The engine's own viewer: fly through the level .omt files.");
         p.add("log", "Share log", "Send the last run's log (omt-log.txt) as text.");
         p.add("back", "Back", "Back to the main menu.");
+        return p;
+    }
+
+    // ------------------------------------------------------------------ port: the Asset Viewer
+
+    static LauncherModel.Page assets() {
+        LauncherModel.Page p = new LauncherModel.Page("assets", "Asset viewer");
+        p.pic = "assets";
+        p.add("explore", "Explore a level", "Fly freely through any level with a noclip camera: "
+                + "nothing moves, no story, no enemies, nothing is saved.");
+        LauncherModel.Item m = p.add("models", "Model viewer", null);
+        m.detail = new String[] { "Models: .grn .ase .omt", "Up/down model  L1/R1 jump 10  Sticks turn",
+            "L2/R2 zoom  A auto-turn  B leave" };
+        p.add("back", "Back", "Back to the main menu.");
+        return p;
+    }
+
+    /** The explorer's controls (NEG_ASSET_VIEW, game/src/port/AssetView.h). */
+    static final String[] EXPLORE_HELP = {
+        "L stick move  R stick look  L2/R2 down/up",
+        "A speed  Y fog  X Jimmy  Start reset  B leave" };
+
+    /** Explore a level: the installed gam files, named as the bottom-screen panel names them (save/levels.txt,
+     *  written by the game at every start; before that, the file names). */
+    static LauncherModel.Page explore(File saveDir, List<String> gams, String select) {
+        java.util.HashMap<String, String> names = new java.util.HashMap<>();
+        File list = new File(saveDir, "levels.txt");
+        if (list.isFile()) {
+            try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(list), "ISO-8859-1"))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    if (line.startsWith("#")) continue;
+                    String[] f = line.split("\t", -1);
+                    if (f.length >= 2 && f[1].trim().length() > 0) names.put(f[0].toLowerCase(Locale.ROOT), f[1].trim());
+                }
+            } catch (IOException e) {
+                // the file names then
+            }
+        }
+        java.util.HashMap<String, Integer> uses = new java.util.HashMap<>();
+        for (String g : gams) {
+            String n = names.get(g.toLowerCase(Locale.ROOT));
+            if (n != null) uses.put(n, uses.containsKey(n) ? uses.get(n) + 1 : 1);
+        }
+        LauncherModel.Page p = new LauncherModel.Page("explore", "Explore a level");
+        p.pic = "assets";
+        for (String g : gams) {
+            String base = g.toLowerCase(Locale.ROOT).endsWith(".gam") ? g.substring(0, g.length() - 4) : g;
+            String n = names.get(g.toLowerCase(Locale.ROOT));
+            String label = n == null ? base : uses.get(n) > 1 ? n + " (" + base + ")" : n;
+            LauncherModel.Item i = p.add("explore:" + g, label, null);
+            i.detail = new String[] { label + "   " + g, EXPLORE_HELP[0], EXPLORE_HELP[1] };
+            if (g.equalsIgnoreCase(select != null ? select : "Level5.gam")) p.sel = p.items.size() - 1;
+        }
+        p.add("back", "Back", "Back to the Asset viewer.");
         return p;
     }
 

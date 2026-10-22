@@ -9,6 +9,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "SaveGame.h"
 #include "port/StartMode.h"
+#include "port/AssetView.h"
 #include "CGameObject.h"
 #include "CLocalGameObject.h"
 #include "CGameType.h"
@@ -464,6 +465,7 @@ bool neg::RestoreTask(const char *name)
 
 void neg::WriteTaskFile(const char *name)
 {
+	if (AssetViewLevel()) return;							// port: the Asset Viewer never saves
 	int score = g_score;									// (taken before the state change)
 	SetGameState(2);
 	char path[STR_MAX];

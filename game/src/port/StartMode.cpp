@@ -1,5 +1,6 @@
 /*  port: NEG_START and save\slots.txt - see StartMode.h. Not in the original.             */
 #include "StartMode.h"
+#include "AssetView.h"
 #include "../C2DInGameMenu.h"
 #include "../CGameType.h"
 #include "../Globals.h"
@@ -72,6 +73,7 @@ const char *neg::StartModeChoose(char *level_name)
 		}
 	}
 	WriteSaveSlotList();
+	WriteLevelList();									// save\levels.txt (AssetView.h)
 	switch (s_mode)
 	{
 		case MODE_NEW:		strcpy(level_name, "level1d.gam"); break;
@@ -91,7 +93,7 @@ const char *neg::StartModeChoose(char *level_name)
 	char gam[256];
 	// NEG_TEST_PLAY (the level picker) replaces the level later in CEditor: no menu then.
 	const char *test = getenv("NEG_TEST_PLAY");
-	s_menu_pending = s_mode == MODE_MENU && !(test && *test) && strcasecmp(level_name, "autosave") == 0
+	s_menu_pending = s_mode == MODE_MENU && !(test && *test) && !AssetViewLevel() && strcasecmp(level_name, "autosave") == 0
 					 && ReadHeader(s_task, level, gam, score);
 	SDL_Log("NEG_START: %s -> %s%s%s", s && *s ? s : "(menu)", level_name,
 			strcasecmp(level_name, "autosave") == 0 ? " " : "",
