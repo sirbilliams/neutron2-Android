@@ -1,6 +1,7 @@
 package com.sirbilliams.negatron;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -128,11 +129,24 @@ public class NegatronActivity extends SDLActivity {
         super.onPause();
     }
 
+    /* port: back to the launcher when the game ends. When the game quits (the PDA menu's Exit, or
+     * any normal end of SDL_main), SDLActivity finishes this activity; SDL and the game keep
+     * static state that a second start in the same process would inherit, so the game runs in its
+     * own process (AndroidManifest: android:process=":game"), which ends here once SDL has shut
+     * down (the game saved what it saves, audio and GL closed). The launcher, in the app's main
+     * process, then reads the save slots afresh. */
     @Override
     protected void onDestroy() {
         if (mDisplays != null) mDisplays.unregisterDisplayListener(mScreenWatch);
         mDisplays = null;
-        super.onDestroy();
+        boolean ending = isFinishing() && !isChangingConfigurations();
+        super.onDestroy();                              // SDL: quits and joins the game thread
+        if (ending) {
+            Intent i = new Intent(this, SetupActivity.class);
+            i.putExtra(SetupActivity.EXTRA_FROM_GAME, true);
+            startActivity(i);
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }
     }
 
     /** Back held for 0.6 s, or pressed twice within 0.35 s, opens the port menu. A single back

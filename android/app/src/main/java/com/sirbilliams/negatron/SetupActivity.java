@@ -112,6 +112,8 @@ public class SetupActivity extends Activity {
 
     /** Intent extra: show the launcher even when the original menu is chosen. */
     static final String EXTRA_LAUNCHER = "launcher";
+    /** Intent extra: the game has just ended (NegatronActivity); the launcher shows its main menu. */
+    static final String EXTRA_FROM_GAME = "from_game";
     /** The player's box art picture, copied into the app's private files (never shipped in the repo). */
     static final String BOX_ART = "boxart.img";
 
@@ -239,7 +241,8 @@ public class SetupActivity extends Activity {
     };
 
     private android.content.SharedPreferences prefs() {
-        return getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
+        // the game (its own process) changes some of them too: read the file afresh
+        return getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE | MODE_MULTI_PROCESS);
     }
 
     /** Game files present: the launcher menu, or straight into the game's own title menu. */
@@ -308,11 +311,11 @@ public class SetupActivity extends Activity {
         else if (id.equals("test")) mMenu.push(LauncherPages.test());
         else if (id.equals("quit")) finish();
         else if (id.equals("wide")) {
-            p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).apply();
+            p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).commit();
             mMenu.replace(settingsPage());
         } else if (id.equals("panel")) {
             boolean second = CompanionPanel.findDisplay(displays()) != null;
-            p.edit().putBoolean(CompanionPanel.KEY_ON, !CompanionPanel.wanted(p, second)).apply();
+            p.edit().putBoolean(CompanionPanel.KEY_ON, !CompanionPanel.wanted(p, second)).commit();
             mMenu.replace(settingsPage());
             showBottom();
         } else if (id.equals("saves")) mMenu.push(LauncherPages.saves());

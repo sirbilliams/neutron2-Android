@@ -72,6 +72,12 @@ choose image..." / "clear" work the same way (`background.img`): the picture fil
 screen behind the plates (cover-fit, dimmed); without one, brushed steel. Without one the
 game's own PDA menu picture (below) is shown, or a drawn atom before the game has saved it.
 
+When the game ends (the PDA menu's Exit, or any normal end of the game), the app goes back to
+the launcher's main menu, whose slot list and Continue then show what was just saved; the
+launcher's Quit, or Back on its main menu, leaves the app. The game runs in its own process
+(`android:process=":game"`), which ends after SDL has shut down: SDL and the game keep static
+state that a second start in one process would inherit.
+
 **Saves** (main menu): **Export saves** writes the save folder's files (`autosave*.tsk`,
 `JimmyGame1..10.tsk`, `StartLevel.txt`; not `slots.txt`, which the game rewrites) to a .zip where
 the player chooses (Android's file picker: Downloads, Drive...; suggested `negatron-saves-<date>.zip`).
