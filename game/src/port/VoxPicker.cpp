@@ -226,7 +226,7 @@ bool neg::VoxPickerFrame(C2DInGameMenu *m)
 		const bool lit = !s_pointer && k == s_sel;
 		Label((short)(it.x + w / 2), (short)(it.y + h + 26), 'MED', lit, name);
 	}
-	Label(320, 236, 'SMAL', false, "LEFT RIGHT  CHOOSE    A  GO    B  BACK");	// (below the info box)
+	Label(320, 241, 'SMAL', false, "LEFT RIGHT  CHOOSE    A  GO    B  BACK");	// (between the info box and the pictures)
 	return false;
 }
 
