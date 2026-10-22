@@ -157,7 +157,7 @@ final class CompanionView extends View {
         int dot = level.lastIndexOf('.');
         // the game's own level name (its Load/Save page's), else the file name
         String name = d.optString("name", "");
-        mLevel = (!name.isEmpty() ? name : dot > 0 ? level.substring(0, dot) : level).toUpperCase();
+        mLevel = !name.isEmpty() ? name : (dot > 0 ? level.substring(0, dot) : level).toUpperCase();
         int mode = d.optInt("mode", -1);
         mMode = modeName(mode);
         mCut = d.optInt("cut", 0) == 1;
@@ -289,7 +289,7 @@ final class CompanionView extends View {
             if (extra instanceof String) {
                 String s = (String) extra;
                 int dt = s.lastIndexOf('.');
-                mPtLabel[i] = (dt > 0 ? s.substring(0, dt) : s).toUpperCase();
+                mPtLabel[i] = dt > 0 ? s.substring(0, dt).toUpperCase() : s;   // a level name as it is, a file name in caps
             }
             if (mPtIcon[i] >= 0) fetchIcon(mPtIcon[i]);
         }
