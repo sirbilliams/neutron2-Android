@@ -31,6 +31,7 @@ final class LauncherModel {
         final List<Item> items = new ArrayList<>();
         int sel;
         String warning;             // a page with a warning shows it above the items (New Game)
+        String footer;              // the pad hint under the buttons, or null for the usual one
 
         Page(String id, String title) {
             this.id = id;

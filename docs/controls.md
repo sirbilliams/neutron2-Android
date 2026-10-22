@@ -72,6 +72,15 @@ choose image..." / "clear" work the same way (`background.img`): the picture fil
 screen behind the plates (cover-fit, dimmed); without one, brushed steel. Without one the
 game's own menu picture (below) is shown, or a drawn atom before the game has saved it.
 
+**Saves** (main menu): **Export saves** writes the save folder's files (`autosave*.tsk`,
+`JimmyGame1..10.tsk`, `StartLevel.txt`; not `slots.txt`, which the game rewrites) to a .zip where
+the player chooses (Android's file picker: Downloads, Drive...; suggested `negatron-saves-<date>.zip`).
+On the Load Game page, Y (or holding a slot) exports that one slot as `JimmyGame<n>.tsk`. **Import
+saves** takes such a .zip (or one .tsk), lists what it holds (level, score, NEW / REPLACES) and
+asks before replacing anything (Cancel is preselected); a lone .tsk with another name asks which
+slot it goes into. Paths inside the zip are ignored (only known save names are taken). The files
+are the original game's own format: they work in the PC game's `save` folder and back.
+
 The game starts with `NEG_START` set (see "How the game starts" below): `new`, `continue`,
 `load:<slot>`, or `menu` when Settings -> Menu style is ORIGINAL (the app then skips the launcher:
 the original start, with the game's own Main Menu, the PDA; the port menu below switches back).

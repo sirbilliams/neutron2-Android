@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -94,9 +95,19 @@ final class LauncherPages {
     /** The game has not written slots.txt yet: the .tsk header (big-endian: version string,
      *  "DUMMY   " = empty; int level 4cc; gam string; task string; float health; short lives; int score). */
     private static void readTsk(File saveDir, Slot s) {
-        File f = new File(saveDir, s.number == 0 ? "autosave.tsk" : "JimmyGame" + s.number + ".tsk");
+        File f = new File(saveDir, fileName(s.number));
         if (!f.isFile()) return;
-        try (DataInputStream in = new DataInputStream(new FileInputStream(f))) {
+        try (InputStream in = new FileInputStream(f)) {
+            readTsk(in, s);
+            if (s.present) s.time = f.lastModified();
+        } catch (IOException e) {
+            s.present = false;
+        }
+    }
+
+    static void readTsk(InputStream raw, Slot s) {
+        try {
+            DataInputStream in = new DataInputStream(raw);
             if (pascal(in).trim().equalsIgnoreCase("DUMMY")) return;
             in.readInt();
             s.gam = pascal(in);
@@ -104,11 +115,91 @@ final class LauncherPages {
             in.readFloat();
             in.readShort();
             s.score = in.readInt();
-            s.time = f.lastModified();
             s.present = true;
         } catch (IOException e) {
             s.present = false;
         }
+    }
+
+    /** The save file of slot n (0 = the autosave). */
+    static String fileName(int n) {
+        return n == 0 ? "autosave.tsk" : "JimmyGame" + n + ".tsk";
+    }
+
+    // ------------------------------------------------------------------ export / import
+
+    /** The save folder's files that travel (the game's own .tsk format, as the PC game's save
+     *  folder): everything but slots.txt, which the game rewrites at each start. */
+    static boolean exported(String name) {
+        return !name.equalsIgnoreCase("slots.txt") && !name.endsWith(".tmp");
+    }
+
+    /** The slot a save file's name stands for: 0 autosave.tsk, 1..10 JimmyGame<n>.tsk, -2 another
+     *  save file the game keeps (autosave01..17.tsk), -1 not a save file. */
+    static int slotOf(String name) {
+        String n = name.toLowerCase(Locale.ROOT);
+        if (n.equals("autosave.tsk")) return 0;
+        if (n.matches("jimmygame([1-9]|10)\\.tsk")) return Integer.parseInt(n.substring(9, n.length() - 4));
+        if (n.matches("autosave[0-9]{1,2}\\.tsk")) return -2;
+        return -1;
+    }
+
+    /** A save file found in an import: its name in the save folder, its bytes and what it holds. */
+    static final class Incoming {
+        String name;
+        byte[] data;
+        Slot info = new Slot();
+        boolean replaces;           // a save of that name is already there
+    }
+
+    static LauncherModel.Page saves() {
+        LauncherModel.Page p = new LauncherModel.Page("saves", "Saves");
+        p.add("export_all", "Export saves", "Write all the game's saves (the autosave and slots 1-10) to one "
+                + ".zip: Downloads, Drive... They are the original game's own files, usable in the PC game's "
+                + "save folder too. One slot: Load Game, then Y.");
+        p.add("import", "Import saves", "Bring saves back from a .zip (or one .tsk file). You see what is in it "
+                + "and confirm before any save is replaced.");
+        p.add("back", "Back", "Back to the main menu.");
+        return p;
+    }
+
+    /** What an import holds: Cancel first (the default), Import, then one row per file. */
+    static LauncherModel.Page importPage(List<Incoming> files) {
+        LauncherModel.Page p = new LauncherModel.Page("import", "Import saves");
+        int replaced = 0;
+        StringBuilder which = new StringBuilder();
+        for (Incoming f : files) {
+            if (!f.replaces) continue;
+            replaced++;
+            if (which.length() > 0) which.append(", ");
+            which.append(f.info.number == 0 ? "autosave" : f.info.number > 0 ? "slot " + f.info.number : f.name);
+        }
+        p.warning = replaced == 0 ? "Nothing you have is replaced."
+                : "Replaces " + replaced + " save" + (replaced == 1 ? "" : "s") + " you have: " + which + ".";
+        p.add("back", "Cancel", "Keep your saves as they are.");
+        p.add("import_yes", replaced > 0 ? "Import and replace" : "Import",
+                "Copy the " + files.size() + " file" + (files.size() == 1 ? "" : "s") + " into the game's save folder.");
+        for (Incoming f : files) {
+            int n = f.info.number;
+            LauncherModel.Item i = p.add("file", f.name, f.replaces ? "Replaces the save you have." : "New.");
+            i.value = f.replaces ? "REPLACES" : "NEW";
+            i.detail = n >= 0 ? f.info.detail() : new String[] { f.name.toUpperCase(Locale.ROOT) };
+        }
+        p.sel = 0;
+        return p;
+    }
+
+    /** A single .tsk whose name is no slot's: which slot it goes into. */
+    static LauncherModel.Page importTarget(Slot[] have) {
+        LauncherModel.Page p = new LauncherModel.Page("import_to", "Import into slot");
+        for (int n = 1; n <= SLOTS; n++) {
+            Slot s = have[n];
+            LauncherModel.Item i = p.add("to:" + n, n + "  " + (s.present ? s.level() : "---"),
+                    s.present ? "Put the save here (you confirm before this one is replaced)." : "Put the save here.");
+            i.detail = s.detail();
+        }
+        p.add("back", "Cancel", "Keep your saves as they are.");
+        return p;
     }
 
     private static String pascal(DataInputStream in) throws IOException {
@@ -132,6 +223,7 @@ final class LauncherPages {
         i = p.add("load", "Load game", GAME_LOADS ? "Pick one of the game's save slots."
                 : "The game's save slots: coming with the game's save / load.");
         i.enabled = GAME_LOADS;
+        p.add("saves", "Saves", "Export the game's saves to a file, or import them.");
         p.add("settings", "Settings", "Widescreen, the bottom screen, the menu style.");
         if (test) p.add("test", "Test", "Jump to a level, the model viewer, share the log.");
         p.add("quit", "Quit", "Close the game.");
@@ -152,12 +244,13 @@ final class LauncherPages {
         for (int n = 1; n < slots.length; n++) {
             Slot s = slots[n];
             LauncherModel.Item i = p.add("slot:" + n, n + "  " + (s.present ? s.level() : "---"),
-                    s.present ? "Load this game." : "Empty slot.");
+                    s.present ? "Load this game. Y (or hold): export this slot to a file." : "Empty slot.");
             i.value = s.present && s.score >= 0 ? String.valueOf(s.score) : null;
             i.enabled = s.present && GAME_LOADS;
             i.detail = s.detail();
         }
         p.add("back", "Back", "Back to the main menu.");
+        p.footer = "A  LOAD     Y  EXPORT THIS SLOT     B  BACK";
         return p;
     }
 

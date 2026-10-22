@@ -35,6 +35,23 @@ public final class RenderMenu {
         m.page().sel = 2;
         draw(m, out, "load");
         m.pop();
+        m.push(LauncherPages.saves());
+        draw(m, out, "saves");
+        java.util.List<LauncherPages.Incoming> in = new java.util.ArrayList<>();
+        for (int n : new int[] { 0, 1, 3, 7 }) {                 // an import of the folder's own saves
+            LauncherPages.Incoming f = new LauncherPages.Incoming();
+            f.name = LauncherPages.fileName(n);
+            f.info = LauncherPages.slots(save)[n];
+            f.replaces = f.info.present;
+            in.add(f);
+        }
+        m.push(LauncherPages.importPage(in));
+        m.page().sel = 3;
+        draw(m, out, "import");
+        m.page().sel = 0;
+        draw(m, out, "import_cancel");
+        m.pop();
+        m.pop();
         String[] gams = new File(game, "gam").list();
         Arrays.sort(gams, String.CASE_INSENSITIVE_ORDER);
         m.push(LauncherPages.test());

@@ -45,6 +45,7 @@ public class SetupActivity extends Activity {
     private static final int PICK_ZIP = 1;
     private static final int PICK_BOXART = 2;
     private static final int PICK_BACKGROUND = 3;
+    private static final int EXPORT_ALL = 4, EXPORT_SLOT = 5, IMPORT_SAVES = 6;
     private static final String[] GAME_DIRS = { "omt", "gam", "grn", "ase", "png", "dat", "save" };
 
     private TextView message;
@@ -292,6 +293,30 @@ public class SetupActivity extends Activity {
         } else if (id.equals("style")) {
             p.edit().putBoolean(PREF_MENU_ORIGINAL, !p.getBoolean(PREF_MENU_ORIGINAL, false)).apply();
             mMenu.replace(settingsPage());
+        } else if (id.equals("saves")) mMenu.push(LauncherPages.saves());
+        else if (id.equals("export_all")) {
+            String date = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new java.util.Date());
+            createDocument("application/zip", "negatron-saves-" + date + ".zip", EXPORT_ALL);
+        } else if (id.equals("import")) {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("*/*");
+            try {
+                startActivityForResult(i, IMPORT_SAVES);
+            } catch (android.content.ActivityNotFoundException e) {
+                toast("No file picker on this device.");
+            }
+        } else if (id.equals("import_yes")) importSaves();
+        else if (id.startsWith("to:")) {
+            int n = Integer.parseInt(id.substring(3));
+            LauncherPages.Incoming f = mIncoming.get(0);
+            f.name = LauncherPages.fileName(n);
+            f.info.number = n;
+            f.replaces = new File(saveDir(), f.name).isFile();
+            mMenu.pop();
+            mMenu.push(LauncherPages.importPage(mIncoming));
+        } else if (id.equals("file")) {
+            // a file of the import: its details are on show
         } else if (id.equals("boxart")) pickPicture(PICK_BOXART);
         else if (id.equals("bg")) pickPicture(PICK_BACKGROUND);
         else if (id.equals("bg_clear")) {
@@ -312,6 +337,196 @@ public class SetupActivity extends Activity {
     private void back() {
         if (!mMenu.pop()) return;
         if (mMenu.depth() == 1) mMenu.replace(mainPage());       // the autosave may have changed
+    }
+
+    // ------------------------------------------------------------------ saves: export / import
+
+    private List<LauncherPages.Incoming> mIncoming = new ArrayList<>();
+    private int mExportSlot = -1;
+    private boolean mTouchLong;
+
+    /** Touch: holding a save slot on the Load Game page exports it. */
+    private final Runnable mExportHold = new Runnable() {
+        @Override
+        public void run() {
+            if (exportSelectedSlot()) mTouchLong = true;
+        }
+    };
+
+    private void toast(String s) {
+        android.widget.Toast.makeText(this, s, android.widget.Toast.LENGTH_LONG).show();
+    }
+
+    private void createDocument(String type, String name, int request) {
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType(type);
+        i.putExtra(Intent.EXTRA_TITLE, name);
+        try {
+            startActivityForResult(i, request);
+        } catch (android.content.ActivityNotFoundException e) {
+            toast("No file picker on this device.");
+        }
+    }
+
+    /** Load Game page, a slot with a save selected: export it (Y, or a long touch). */
+    private boolean exportSelectedSlot() {
+        LauncherModel.Page p = mMenu.page();
+        LauncherModel.Item it = mMenu.selected();
+        if (p == null || !p.id.equals("load") || it == null || !it.id.startsWith("slot:")) return false;
+        int n = Integer.parseInt(it.id.substring(5));
+        if (!new File(saveDir(), LauncherPages.fileName(n)).isFile()) return false;
+        mExportSlot = n;
+        createDocument("application/octet-stream", LauncherPages.fileName(n), EXPORT_SLOT);
+        return true;
+    }
+
+    private void exportAll(Uri uri) {
+        File[] files = saveDir().listFiles();
+        int n = 0;
+        try (OutputStream raw = getContentResolver().openOutputStream(uri);
+             java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(raw)) {
+            if (raw == null) throw new IOException("can't write there");
+            byte[] buf = new byte[64 * 1024];
+            if (files != null) {
+                for (File f : files) {
+                    if (!f.isFile() || !LauncherPages.exported(f.getName())) continue;
+                    ZipEntry e = new ZipEntry(f.getName());
+                    e.setTime(f.lastModified());
+                    zip.putNextEntry(e);
+                    try (InputStream in = new FileInputStream(f)) {
+                        int r;
+                        while ((r = in.read(buf)) > 0) zip.write(buf, 0, r);
+                    }
+                    zip.closeEntry();
+                    n++;
+                }
+            }
+        } catch (IOException | SecurityException e) {
+            toast("Couldn't export the saves: " + e.getMessage());
+            return;
+        }
+        toast("Exported " + n + " file" + (n == 1 ? "" : "s") + ".");
+    }
+
+    private void exportSlot(Uri uri) {
+        File f = new File(saveDir(), LauncherPages.fileName(mExportSlot));
+        try (InputStream in = new FileInputStream(f); OutputStream out = getContentResolver().openOutputStream(uri)) {
+            if (out == null) throw new IOException("can't write there");
+            byte[] buf = new byte[64 * 1024];
+            int r;
+            while ((r = in.read(buf)) > 0) out.write(buf, 0, r);
+        } catch (IOException | SecurityException e) {
+            toast("Couldn't export the slot: " + e.getMessage());
+            return;
+        }
+        toast("Exported " + f.getName() + ".");
+    }
+
+    private static final int MAX_SAVE = 4 * 1024 * 1024;
+
+    private static byte[] readAll(InputStream in) throws IOException {
+        java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[64 * 1024];
+        int r;
+        while ((r = in.read(buf)) > 0) {
+            b.write(buf, 0, r);
+            if (b.size() > MAX_SAVE) throw new IOException("too big for a save");
+        }
+        return b.toByteArray();
+    }
+
+    /** Import: a .zip of save files (or one .tsk); shows what it holds before anything is written. */
+    private void readImport(Uri uri) {
+        List<LauncherPages.Incoming> found = new ArrayList<>();
+        String display = displayName(uri);
+        boolean single = false;
+        try {
+            byte[] head = new byte[4];
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) throw new IOException("can't open the file");
+                if (in.read(head) < 4) head[0] = 0;
+            }
+            if (head[0] == 'P' && head[1] == 'K' && head[2] == 3 && head[3] == 4) {
+                try (ZipInputStream zip = new ZipInputStream(getContentResolver().openInputStream(uri))) {
+                    ZipEntry e;
+                    while ((e = zip.getNextEntry()) != null) {
+                        if (e.isDirectory()) continue;
+                        String base = e.getName().replace('\\', '/');
+                        base = base.substring(base.lastIndexOf('/') + 1);   // never a path: no zip-slip
+                        int n = LauncherPages.slotOf(base);
+                        if (n == -1) continue;
+                        LauncherPages.Incoming f = new LauncherPages.Incoming();
+                        f.name = n >= 0 ? LauncherPages.fileName(n) : base.toLowerCase(Locale.ROOT);
+                        f.data = readAll(zip);
+                        f.info.number = n;
+                        found.add(f);
+                    }
+                }
+            } else {
+                single = true;
+                LauncherPages.Incoming f = new LauncherPages.Incoming();
+                try (InputStream in = getContentResolver().openInputStream(uri)) {
+                    f.data = readAll(in);
+                }
+                int n = display != null ? LauncherPages.slotOf(display) : -1;
+                f.info.number = n;
+                f.name = n >= 0 ? LauncherPages.fileName(n) : n == -2 ? display.toLowerCase(Locale.ROOT) : null;
+                LauncherPages.readTsk(new java.io.ByteArrayInputStream(f.data), f.info);
+                if (!f.info.present && !new String(f.data, 0, Math.min(9, f.data.length), "ISO-8859-1").startsWith("\bDUMMY")) {     // \b = the length byte 8
+                    toast("That isn't a save file (.tsk) or a .zip of them.");
+                    return;
+                }
+                found.add(f);
+            }
+        } catch (IOException | SecurityException e) {
+            toast("Couldn't read the file: " + e.getMessage());
+            return;
+        }
+        if (found.isEmpty()) {
+            toast("No saves in that file.");
+            return;
+        }
+        for (LauncherPages.Incoming f : found) {
+            int n = f.info.number;
+            LauncherPages.readTsk(new java.io.ByteArrayInputStream(f.data), f.info);
+            f.info.number = n;
+            if (f.name != null) f.replaces = new File(saveDir(), f.name).isFile();
+        }
+        mIncoming = found;
+        if (single && found.get(0).name == null) mMenu.push(LauncherPages.importTarget(LauncherPages.slots(saveDir())));
+        else mMenu.push(LauncherPages.importPage(found));
+    }
+
+    private String displayName(Uri uri) {
+        try (Cursor c = getContentResolver().query(uri, new String[] { OpenableColumns.DISPLAY_NAME }, null, null, null)) {
+            if (c != null && c.moveToFirst() && !c.isNull(0)) return c.getString(0);
+        } catch (RuntimeException ignored) { }
+        return null;
+    }
+
+    private void importSaves() {
+        File dir = saveDir();
+        dir.mkdirs();
+        int n = 0;
+        for (LauncherPages.Incoming f : mIncoming) {
+            if (f.name == null) continue;
+            File tmp = new File(dir, f.name + ".tmp"), out = new File(dir, f.name);
+            try (OutputStream o = new FileOutputStream(tmp)) {
+                o.write(f.data);
+            } catch (IOException | SecurityException e) {
+                tmp.delete();
+                continue;
+            }
+            out.delete();
+            if (tmp.renameTo(out)) n++;
+            else tmp.delete();
+        }
+        // the game rewrites slots.txt at its next start; until then the launcher reads the .tsk headers
+        new File(dir, "slots.txt").delete();
+        mIncoming = new ArrayList<>();
+        toast("Imported " + n + " save file" + (n == 1 ? "" : "s") + ".");
+        mMenu.reset(mainPage());
     }
 
     /** The pad (d-pad / stick, A, B, Select / Y) and the keyboard drive the launcher. */
@@ -350,7 +565,7 @@ public class SetupActivity extends Activity {
         else if (act == 6) {
             if (mMenu.depth() > 1) back();
             else finish();
-        } else revealTest();
+        } else if (!exportSelectedSlot()) revealTest();
         return true;
     }
 
@@ -362,14 +577,22 @@ public class SetupActivity extends Activity {
                 mTouchItem = mTop.itemAt(x, y);
                 if (mTouchItem >= 0) mMenu.select(mTouchItem);
                 if (mTop.onHeader(x, y)) ui.postDelayed(mRevealTest, 800);
+                mTouchLong = false;
+                if (mTouchItem >= 0) ui.postDelayed(mExportHold, 700);
                 return true;
             case android.view.MotionEvent.ACTION_UP:
                 ui.removeCallbacks(mRevealTest);
+                ui.removeCallbacks(mExportHold);
+                if (mTouchLong) {
+                    mTouchItem = -1;
+                    return true;
+                }
                 if (mTouchItem >= 0 && mTop.itemAt(x, y) == mTouchItem && mMenu.select(mTouchItem)) choose();
                 mTouchItem = -1;
                 return true;
             case android.view.MotionEvent.ACTION_CANCEL:
                 ui.removeCallbacks(mRevealTest);
+                ui.removeCallbacks(mExportHold);
                 mTouchItem = -1;
                 return true;
             default:
@@ -544,6 +767,11 @@ public class SetupActivity extends Activity {
         if (requestCode == PICK_BOXART && resultCode == RESULT_OK && data != null && data.getData() != null) {
             setPicture(data.getData(), BOX_ART);
             return;
+        }
+        if (resultCode == RESULT_OK && data != null && data.getData() != null && mMenu != null) {
+            if (requestCode == EXPORT_ALL) { exportAll(data.getData()); return; }
+            if (requestCode == EXPORT_SLOT && mExportSlot >= 0) { exportSlot(data.getData()); return; }
+            if (requestCode == IMPORT_SAVES) { readImport(data.getData()); return; }
         }
         if (requestCode == PICK_BACKGROUND && resultCode == RESULT_OK && data != null && data.getData() != null) {
             setPicture(data.getData(), BACKGROUND);
