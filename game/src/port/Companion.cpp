@@ -1106,6 +1106,8 @@ void Dump(const std::string &snap)
 
 } // namespace
 
+const char *neg::CompanionLevelName(const char *gam)	{ return LevelNameOfFile(gam); }
+
 void neg::CompanionSetEnabled(bool on)
 {
 	SDL_AtomicSet(&s_enabled, on ? 1 : 0);

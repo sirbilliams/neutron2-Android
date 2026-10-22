@@ -53,4 +53,5 @@ namespace neg {
 void CompanionTick(float dt);			// once a frame, game thread
 void CompanionSetEnabled(bool on);		// any thread
 int  CompanionCopy(char *buf, int size);	// any thread: the latest snapshot (length, 0 if none)
+const char *CompanionLevelName(const char *gam);	// game thread: the panel's name of a gam\ file (NULL: none)
 }
