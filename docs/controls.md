@@ -199,6 +199,11 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
 - **Rear-view mirror** (the scooter's backup camera while reversing, level1_a): framed on a
   green-hologram plate, 12 from the top (the original: 4) so the bezel shows. (Both modes: it is
   centred on the window in widescreen; it was centred on the window's left 640.)
+- **Hologram HUD** (mock-ups for Bill to pick; desktop selector `NEG_UI_HOLO=a|b|c`, unset = the
+  game's own bottom-left gadget picture): a hologram bay bottom left, b a curved wrist console
+  along the bottom with a slot per gadget, c a gadget wheel bottom left. The current gadget's
+  picture (screens.omt 80x70, `g_help_icons[g_cur_gadget]`) is recoloured into a hologram at run
+  time (scan lines, bright rim, slow bob and turn, flicker on change).
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
