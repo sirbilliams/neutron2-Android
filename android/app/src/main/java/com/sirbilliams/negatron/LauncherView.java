@@ -218,6 +218,11 @@ final class LauncherView extends View {
         if (it.value != null) {
             float vw = 210, vx = ROW_X + ROW_W - vw - 22;
             lcd(c, vx, y + 15, vw, ROW_H - 30);
+            if (it.progress >= 0) {                                 // port: an install's progress bar
+                mFill.setShader(null);
+                mFill.setColor(Color.argb(110, 110, 255, 140));
+                c.drawRect(vx + 6, y + 21, vx + 6 + (vw - 12) * Math.min(1f, it.progress), y + ROW_H - 21, mFill);
+            }
             text(c, it.value, vx + vw / 2, y + 55, 30, it.enabled ? LED_ON : LED_DIM, Paint.Align.CENTER, true);
         }
     }

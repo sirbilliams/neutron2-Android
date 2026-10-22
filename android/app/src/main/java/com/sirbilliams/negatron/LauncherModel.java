@@ -17,6 +17,7 @@ final class LauncherModel {
         String[] detail;            // a save slot's preview lines, or null
         boolean enabled = true;
         boolean hint;               // drawn as a note, not a button (e.g. "later")
+        float progress = -1;        // 0..1: a progress bar in the value's LCD (an install); -1 none
         String pic;                 // the info window's picture (LauncherView), else the page's
 
         Item(String id, String label, String help) {

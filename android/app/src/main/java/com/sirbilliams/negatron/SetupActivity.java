@@ -46,6 +46,7 @@ public class SetupActivity extends Activity {
     private static final int PICK_BOXART = 2;
     private static final int PICK_BACKGROUND = 3;
     private static final int EXPORT_ALL = 4, EXPORT_SLOT = 5, IMPORT_SAVES = 6;
+    private static final int PICK_HD = 7;
     private static final String[] GAME_DIRS = { "omt", "gam", "grn", "ase", "png", "dat", "save" };
 
     private TextView message;
@@ -292,10 +293,51 @@ public class SetupActivity extends Activity {
     private LauncherModel.Page settingsPage() {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(this, displays()) != null;
-        return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
+        return hdItems(LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
                 p.getString(PREF_ENERGY, "a"), p.getString(PREF_HOLO, "a"), CompanionPanel.wanted(p, second), second,
                 boxArtFile().isFile(),
-                backgroundFile().isFile());
+                backgroundFile().isFile()));
+    }
+
+    // ------------------------------------------------------------------ port: the HD texture pack (HdPack)
+
+    private int mHdProgress = -1;       // permille while a pack is being installed, else -1
+    private int mHdCount = -1;          // pictures installed (cached; -1 = count again)
+
+    /** The settings page's HD pack items: what is installed, the install's progress. */
+    private LauncherModel.Page hdItems(LauncherModel.Page p) {
+        if (mHdCount < 0 && mHdProgress < 0) mHdCount = HdPack.count(findReadableData());
+        for (LauncherModel.Item i : p.items) {
+            if (i.id.equals("hd")) {
+                i.progress = mHdProgress >= 0 ? mHdProgress / 1000f : -1;
+                i.value = mHdProgress >= 0 ? (mHdProgress / 10) + "%" : mHdCount > 0 ? mHdCount + " PICS" : "NONE";
+            } else if (i.id.equals("hd_remove")) i.enabled = mHdProgress < 0 && mHdCount > 0;
+        }
+        return p;
+    }
+
+    private void hdRefresh() {
+        LauncherModel.Page p = mMenu != null ? mMenu.page() : null;
+        if (p != null && p.id.equals("settings")) mMenu.replace(settingsPage());
+    }
+
+    private void installHd(final Uri uri) {
+        final File data = findReadableData();
+        if (data == null || mHdProgress >= 0) return;
+        mHdProgress = 0;
+        hdRefresh();
+        final long total = querySize(uri);
+        new Thread(() -> {
+            final HdPack.Result r = HdPack.install(this, uri, data, total, pm -> ui.post(() -> {
+                if (mHdProgress >= 0) { mHdProgress = pm; hdRefresh(); }
+            }));
+            ui.post(() -> {
+                mHdProgress = -1;
+                mHdCount = -1;
+                hdRefresh();
+                toast(r.message());
+            });
+        }).start();
     }
 
     private android.hardware.display.DisplayManager displays() {
@@ -364,6 +406,23 @@ public class SetupActivity extends Activity {
             mMenu.push(LauncherPages.importPage(mIncoming));
         } else if (id.equals("file")) {
             // a file of the import: its details are on show
+        } else if (id.equals("hd")) {
+            if (mHdProgress >= 0) return;
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("*/*");
+            i.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "application/zip", "application/x-zip-compressed",
+                    "application/octet-stream" });
+            try {
+                startActivityForResult(i, PICK_HD);
+            } catch (android.content.ActivityNotFoundException e) {
+                toast("No file picker on this device.");
+            }
+        } else if (id.equals("hd_remove")) {
+            HdPack.remove(findReadableData());
+            mHdCount = -1;
+            hdRefresh();
+            toast("HD texture pack removed.");
         } else if (id.equals("boxart")) pickPicture(PICK_BOXART);
         else if (id.equals("bg")) pickPicture(PICK_BACKGROUND);
         else if (id.equals("bg_clear")) {
@@ -873,6 +932,7 @@ public class SetupActivity extends Activity {
             if (requestCode == EXPORT_ALL) { exportAll(data.getData()); return; }
             if (requestCode == EXPORT_SLOT && mExportSlot >= 0) { exportSlot(data.getData()); return; }
             if (requestCode == IMPORT_SAVES) { readImport(data.getData()); return; }
+            if (requestCode == PICK_HD) { installHd(data.getData()); return; }
         }
         if (requestCode == PICK_BACKGROUND && resultCode == RESULT_OK && data != null && data.getData() != null) {
             setPicture(data.getData(), BACKGROUND);

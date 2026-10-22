@@ -339,9 +339,11 @@ final class LauncherPages {
                 + (background ? " Now: your picture." : " Now: brushed steel."));
         i = p.add("bg_clear", "Menu background: clear", "Back to the plain brushed steel.");
         i.enabled = background;
-        i = p.add("hd", "HD image pack", "Sharper pictures for the game: not available yet.");
-        i.enabled = false;
-        i.value = "LATER";
+        i = p.add("hd", "HD texture pack: install (.zip)", "Sharper pictures: a zip of upscaled copies of "
+                + "the game's own textures (omt/, png/ and grn/ folders, each picture 2x, 4x... its size). "
+                + "It is unpacked into the game's hd/ folder.");
+        i = p.add("hd_remove", "HD texture pack: remove", "Delete the installed HD pack (the game goes back to "
+                + "its own pictures).");
         p.add("back", "Back", "Back to the main menu.");
         return p;
     }
