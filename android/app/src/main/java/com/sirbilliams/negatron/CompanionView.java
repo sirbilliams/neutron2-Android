@@ -155,7 +155,9 @@ final class CompanionView extends View {
         mHave = true;
         String level = d.optString("level", "");
         int dot = level.lastIndexOf('.');
-        mLevel = (dot > 0 ? level.substring(0, dot) : level).toUpperCase();
+        // the game's own level name (its Load/Save page's), else the file name
+        String name = d.optString("name", "");
+        mLevel = (!name.isEmpty() ? name : dot > 0 ? level.substring(0, dot) : level).toUpperCase();
         int mode = d.optInt("mode", -1);
         mMode = modeName(mode);
         mCut = d.optInt("cut", 0) == 1;
@@ -382,7 +384,8 @@ final class CompanionView extends View {
     }
 
     private void drawHeader(Canvas c) {
-        lcdText(c, mLevel, R_HEAD.left + 32, R_HEAD.top + 54, 30, LED_ON);
+        float ts = Math.min(30, 160f / (0.62f * Math.max(1, mLevel.length())));   // long names smaller
+        lcdText(c, mLevel, R_HEAD.left + 30, R_HEAD.top + 44 + ts * 0.35f, ts, LED_ON);
         float lx = R_HEAD.right - 190;
         led(c, lx, R_HEAD.top + 32, 8, mCut ? 2 : 1, mCut ? WARN_YEL : LED_ON);
         lcdText(c, mMode, lx + 16, R_HEAD.top + 39, 18, mCut ? WARN_YEL : LED_ON);

@@ -25,6 +25,7 @@
 #include "../objects/C3DNeutron.h"
 #include "../objects/C3DCheckPoint.h"
 #include "VoxPicker.h"
+#include "StartMode.h"
 #include "OMediaElement.h"
 #include "OMedia3DShape.h"
 #include "OMedia3DPolygon.h"
@@ -46,6 +47,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <ctype.h>
+
+std::string omf_SDLResolvePath(const std::string &in);	// engine/sdl: a game path on this system
 
 using namespace neg;
 
@@ -714,6 +718,35 @@ void Caption(std::string &out)
 	}
 }
 
+// The game's own name of a level (the Load/Save page's, neg::SaveLevelName) from its 4cc, else
+// from a .gam file: its first four bytes are the level's 4cc (read once per file). NULL when the
+// level has no name (then the file name is shown).
+const char *LevelNameOf(int id)
+{
+	return id ? SaveLevelName(id) : NULL;
+}
+
+const char *LevelNameOfFile(const char *file)
+{
+	static std::map<std::string, int> s_ids;				// game thread
+	if (!file || !*file) return NULL;
+	std::string key(file);
+	for (size_t i = 0; i < key.size(); i++) key[i] = (char)tolower((unsigned char)key[i]);
+	std::map<std::string, int>::iterator it = s_ids.find(key);
+	if (it == s_ids.end())
+	{
+		int id = 0;
+		if (FILE *f = fopen(omf_SDLResolvePath(std::string("gam\\") + file).c_str(), "rb"))
+		{
+			unsigned char b[4];
+			if (fread(b, 1, 4, f) == 4) id = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+			fclose(f);
+		}
+		it = s_ids.insert(std::make_pair(key, id)).first;
+	}
+	return LevelNameOf(it->second);
+}
+
 // A map point: [kind, x, y, extra] (extra: an icon id, a label, or nothing).
 void Point(std::string &pts, char kind, CGameObject *g, int icon, const char *label)
 {
@@ -734,6 +767,8 @@ void Build(std::string &o)
 	o = "{";
 	Key(o, "t"); Num(o, s_clock);
 	Key(o, "level"); Str(o, g_game_file);
+	if (const char *nm = g_gametype ? LevelNameOf(static_cast<CGameObject *>(g_gametype)->m_object_id) : NULL)
+		{ Key(o, "name"); Str(o, nm); }
 	if (g_gametype)
 	{
 		char id[5];
@@ -863,7 +898,8 @@ void Build(std::string &o)
 		else if (CLoadLevel *l = dynamic_cast<CLoadLevel *>(g))
 		{
 			if (strcasecmp(l->m_level_name, "none") == 0) continue;
-			Point(pts, ExitOpen(l) ? 'x' : 'X', g, -1, l->m_level_name);
+			const char *nm = LevelNameOfFile(l->m_level_name);
+			Point(pts, ExitOpen(l) ? 'x' : 'X', g, -1, nm ? nm : l->m_level_name);
 		}
 	}
 	pts += ']';
