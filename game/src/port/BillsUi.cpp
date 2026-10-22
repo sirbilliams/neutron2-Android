@@ -9,6 +9,8 @@
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaLayer.h"
+#include "OMediaViewPort.h"
+#include "OMediaRect.h"
 #include "neg_version.h"				// NEG_GIT_COMMIT (engine/cmake/neg_version.cmake)
 #include <SDL.h>
 #include <math.h>
@@ -1012,6 +1014,47 @@ static void HelpPieceFrame(HelpPiece &h, InterfaceElt *e, int side, bool on)
 	h.moved = e;
 }
 
+// --------------------------------------------------------------------------- 4. the rear-view mirror
+
+// The scooter's backup camera (C3DVehicle::ev139: a viewport 0.3 x 0.2 of the screen, top centre,
+// while reversing). Bill's UI frames it on a plate a little larger than it: the viewport draws over
+// the plate's middle, so only the bezel shows round it.
+static OMediaViewPort *s_mirror;
+static Deco s_mirror_plate;
+
+void BillsMirror(void *viewport)		{ s_mirror = (OMediaViewPort *)viewport; }
+void BillsMirrorGone(void *viewport)	{ if (s_mirror == viewport) s_mirror = NULL; }
+
+static void MirrorFrame(bool on)
+{
+	if (s_mirror && !on)					// Vanilla: the original's place, 4 from the top
+	{
+		OMediaRect b;
+		s_mirror->getbounds(&b);
+		const int top = (int)(g_screen_h * (4.0f / 480.0f));
+		if (b.top != top) { b.bottom += top - b.top; b.top = top; s_mirror->setbounds(&b); }
+	}
+	if (!on || !s_mirror || g_game_mode != 5)
+	{
+		DecoHide(s_mirror_plate);
+		return;
+	}
+	OMediaRect b;
+	s_mirror->getbounds(&b);				// window units: 480 lines, the 4:3 area from WideMargin()
+	const int top = (int)(g_screen_h * (12.0f / 480.0f));	// 12 down (the original: 4) so the bezel shows
+	if (b.top != top)
+	{
+		b.bottom += top - b.top;
+		b.top = top;
+		s_mirror->setbounds(&b);
+	}
+	const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
+	const float x = (float)b.left / sx - WideMargin(), y = (float)b.top / sy;
+	const float w = (float)(b.right - b.left) / sx, h = (float)(b.bottom - b.top) / sy;
+	const float m = 5.0f;
+	ShowPlate(s_mirror_plate, 3 + (int)(w + 2 * m) * 1000 + (int)(h + 2 * m), x - m, y - m, w + 2 * m, h + 2 * m);
+}
+
 // --------------------------------------------------------------------------- per frame
 
 void BillsUiFrame(float dt)
@@ -1024,6 +1067,7 @@ void BillsUiFrame(float dt)
 	if (!on || s_frame - s_energy_frame > 2) DecoHide(s_energy);
 	if (!on && s_orig_hidden && (g_game_mode == 5 || g_game_mode == 6)) ShowOriginalBar(true);
 	ScopeFrame(dt, on && g_game_mode == 4 && g_menu && g_menu->f_4ce == 3);
+	MirrorFrame(on);
 	if (g_help_index >= 0 && g_help_index < 14) HelpPieceFrame(s_help[0], &g_elt_544908[g_help_index], WIDE_LEFT, on);
 	HelpPieceFrame(s_help[1], g_help_menu_elt, WIDE_RIGHT, on);
 	if (!on || (g_game_mode != 5 && g_game_mode != 6))
@@ -1040,6 +1084,7 @@ void BillsUiShutdown(void)
 	DecoFree(s_score_halo);
 	DecoFree(s_hb_halo);
 	DecoFree(s_energy);
+	DecoFree(s_mirror_plate);
 	s_orig_hidden = false;
 	s_hb = -1.0f;
 	for (int i = 0; i < 2; i++)

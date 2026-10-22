@@ -196,6 +196,9 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   smoothly, the original's colours (green from 70, yellow from 30, red below) eased, a white
   flash when energy is gained, a red flicker and a shake when hurt, a warning pulse below 30
   (the atoms' electrons speed up and flicker red).
+- **Rear-view mirror** (the scooter's backup camera while reversing, level1_a): framed on a
+  green-hologram plate, 12 from the top (the original: 4) so the bezel shows. (Both modes: it is
+  centred on the window in widescreen; it was centred on the window's left 640.)
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)

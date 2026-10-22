@@ -21,6 +21,8 @@ int TextWidth(int font, const char *s);
 void BillsSonarReadout(int range);	// C3DRadar: the range readout, centred under the disc on a plate
 void BillsScore(float dt, short x, short y);	// DrawScoreHud: the score, counting up, pop and glow
 void BillsHealthBar(float dt, float health);	// instead of SetHealthBar: smooth, glow, flash, flicker
+void BillsMirror(void *viewport);	// C3DVehicle::ev139: the rear-view mirror (an OMediaViewPort) is up
+void BillsMirrorGone(void *viewport);	// C3DVehicle::ev140: it is about to be deleted
 void BillsUiFrame(float dt);		// C2DInGameMenu::Process, at its end: shows / hides our pieces
 void BillsUiShutdown(void);			// C2DInGameMenu's destructor: frees them
 

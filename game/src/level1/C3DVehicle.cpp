@@ -13,6 +13,8 @@
 #include "../Physics.h"
 #include "../Todo.h"
 #include "../gen/globals.h"
+#include "../port/Widescreen.h"
+#include "../port/BillsUi.h"
 #pragma GCC diagnostic pop
 #include "OMedia3DPolygon.h"
 #include "OMediaTrigo.h"
@@ -117,7 +119,10 @@ C3DVehicle::C3DVehicle()									// 0x49d370
 	if (!g_54e844) new C3DCamera;							// 0x4b3aa0(0x598), 0x499420: sets g_54e844
 }
 
-C3DVehicle::~C3DVehicle() {}								// 0x49d630
+C3DVehicle::~C3DVehicle()									// 0x49d630
+{
+	if (f_a4c) neg::BillsMirrorGone(f_a4c);					// port: Bill's UI forgets the mirror
+}
 
 namespace neg {
 CGameObject *New_C3DVehicle(void) { return new C3DVehicle; }	// '3VEH' (0xa58 bytes)
@@ -441,16 +446,20 @@ void C3DVehicle::ev139(void)								// 0x4a06c0
 	vp->setbounds(&r);										// +0xac
 	OMediaRect b;
 	vp->getbounds(&b);										// 2002 +0xe4
-	const int dx = (int)((float)(short)g_screen_w * 0.5f - (float)(b.right - b.left) * 0.5f) - b.left;	// centred
+	const int dx = (int)((float)(short)g_screen_w * 0.5f - (float)(b.right - b.left) * 0.5f) - b.left	// centred
+				 + (int)neg::WideMargin();					// port: widescreen - centred on the window, not
+															// on its left 640 (window units; cf. the cut scenes)
 	const int dy = 4 - b.top;								// 4 from the top
 	b.left += dx; b.right += dx;
 	b.top += dy; b.bottom += dy;
 	vp->setbounds(&b);
+	neg::BillsMirror(vp);									// port: Bill's UI frames it (BillsUi.h)
 }
 
 void C3DVehicle::ev140(void)								// 0x4a0880
 {
 	if (!f_a4c) return;
+	neg::BillsMirrorGone(f_a4c);							// port: Bill's UI
 	delete f_a4c;											// (deleting destructor through the listener at +0x30)
 	f_a4c = NULL;
 }
