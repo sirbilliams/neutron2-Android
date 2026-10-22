@@ -128,8 +128,8 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   choice made here or in the launcher's Settings is remembered and wins. With no second screen
   the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
-- **Energy meter: TUBE / ORBIT / DIAL** (with Bill's UI on) - the next energy meter design, at once
-  (remembered; also in the launcher's Settings).
+- **Energy meter: TUBE / ORBIT / DIAL** and **Gadget hologram: BAY / CONSOLE / WHEEL / OFF** (with
+  Bill's UI on) - the next design, at once (remembered; also in the launcher's Settings).
 - **In-game UI: BILL'S UI / VANILLA** - switches the in-game UI polish at once (remembered; also
   the launcher's Settings item "In-game UI", passed to the game as `NEG_UI=bills|vanilla`, default
   Bill's UI; desktop: the environment variable). See "Bill's UI" below.
@@ -197,13 +197,18 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   flash when energy is gained, a red flicker and a shake when hurt, a warning pulse below 30
   (the atoms' electrons speed up and flicker red).
 - **Rear-view mirror** (the scooter's backup camera while reversing, level1_a): framed on a
-  green-hologram plate, 12 from the top (the original: 4) so the bezel shows. (Both modes: it is
+  green-hologram plate, 12 from the top (the original: 4) so the bezel shows, or just below the
+  energy meter where the two would overlap (4:3). (Both modes: it is
   centred on the window in widescreen; it was centred on the window's left 640.)
-- **Hologram HUD** (mock-ups for Bill to pick; desktop selector `NEG_UI_HOLO=a|b|c`, unset = the
-  game's own bottom-left gadget picture): a hologram bay bottom left, b a curved wrist console
-  along the bottom with a slot per gadget, c a gadget wheel bottom left. The current gadget's
-  picture (screens.omt 80x70, `g_help_icons[g_cur_gadget]`) is recoloured into a hologram at run
-  time (scan lines, bright rim, slow bob and turn, flicker on change).
+- **Gadget hologram** (the current gadget / vehicle picture, screens.omt 80x70,
+  `g_help_icons[g_cur_gadget]`, recoloured into a hologram at run time: scan lines, bright rim, slow
+  bob and turn, flicker on change), a setting: launcher Settings "Gadget hologram: BAY / CONSOLE /
+  WHEEL / OFF" (left / right cycle; default BAY) and the port menu (at once), passed as
+  `NEG_UI_HOLO=a|b|c|off`. BAY: a framed bay bottom left (projector, energy LEDs, the name).
+  CONSOLE: a curved steel console along the bottom, a slot per gadget Jimmy has (the current lit),
+  the hologram over a projector at its left end. WHEEL: a ring of his gadgets bottom left, turning
+  the current to the top. OFF: the game's own icon. "Has": the vehicles in the level, the water
+  gun / burp gun once collected, other gadgets once used in the level, and the current one.
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)

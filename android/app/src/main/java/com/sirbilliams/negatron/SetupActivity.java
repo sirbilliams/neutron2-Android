@@ -293,7 +293,7 @@ public class SetupActivity extends Activity {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(this, displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
-                p.getString(PREF_ENERGY, "a"), CompanionPanel.wanted(p, second), second,
+                p.getString(PREF_ENERGY, "a"), p.getString(PREF_HOLO, "a"), CompanionPanel.wanted(p, second), second,
                 boxArtFile().isFile(),
                 backgroundFile().isFile());
     }
@@ -328,6 +328,9 @@ public class SetupActivity extends Activity {
             mMenu.replace(settingsPage());
         } else if (id.equals("energy")) {
             p.edit().putString(PREF_ENERGY, LauncherPages.energyStep(p.getString(PREF_ENERGY, "a"), mStepDir)).commit();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("holo")) {
+            p.edit().putString(PREF_HOLO, LauncherPages.holoStep(p.getString(PREF_HOLO, "a"), mStepDir)).commit();
             mMenu.replace(settingsPage());
         } else if (id.equals("ui")) {
             p.edit().putBoolean(PREF_BILLS_UI, !p.getBoolean(PREF_BILLS_UI, true)).commit();
@@ -604,7 +607,7 @@ public class SetupActivity extends Activity {
         else if (repeat) return true;
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
-            if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("energy")
+            if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("energy") || it.id.equals("holo")
                     || it.id.equals("panel"))) {
                 mStepDir = k == android.view.KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
                 choose();
@@ -1077,6 +1080,8 @@ public class SetupActivity extends Activity {
     static final String PREF_BILLS_UI = "bills_ui";
     /** port: Bill's UI's energy meter, "a" TUBE (default) / "b" ORBIT / "c" DIAL (NEG_UI_ENERGY). */
     static final String PREF_ENERGY = "energy_meter";
+    /** port: Bill's UI's gadget hologram, "a" BAY (default) / "b" CONSOLE / "c" WHEEL / "off" (NEG_UI_HOLO). */
+    static final String PREF_HOLO = "gadget_hologram";
     /** Left / right on a cycling setting: -1 / 1. */
     private int mStepDir = 1;
 

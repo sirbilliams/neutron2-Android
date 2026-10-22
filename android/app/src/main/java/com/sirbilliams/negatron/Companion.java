@@ -16,6 +16,7 @@ final class Companion {
     private static native int[] nativeIcon(int id);
     private static native void nativeSetBillsUi(boolean on);
     private static native void nativeSetEnergyMeter(int design);
+    private static native void nativeSetGadgetHologram(int design);
 
     /** The latest snapshot as JSON, or null when the game library is not there. */
     static String snapshot() {
@@ -73,6 +74,15 @@ final class Companion {
     static void setEnergyMeter(int design) {
         try {
             nativeSetEnergyMeter(design);
+        } catch (UnsatisfiedLinkError e) {
+            // not the game
+        }
+    }
+
+    /** port: Bill's UI's gadget hologram, 0 OFF / 1 BAY / 2 CONSOLE / 3 WHEEL, switched while the game runs. */
+    static void setGadgetHologram(int design) {
+        try {
+            nativeSetGadgetHologram(design);
         } catch (UnsatisfiedLinkError e) {
             // not the game
         }

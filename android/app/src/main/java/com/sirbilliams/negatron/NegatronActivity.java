@@ -56,6 +56,8 @@ public class NegatronActivity extends SDLActivity {
             Os.setenv("NEG_UI", bills ? "bills" : "vanilla", true);
             Os.setenv("NEG_UI_ENERGY", getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getString(SetupActivity.PREF_ENERGY, "a"), true);
+            Os.setenv("NEG_UI_HOLO", getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
+                    .getString(SetupActivity.PREF_HOLO, "a"), true);
             // port: the app's version for the pause screen's credit line
             try {
                 android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -241,8 +243,10 @@ public class NegatronActivity extends SDLActivity {
         final boolean bills = prefs.getBoolean(SetupActivity.PREF_BILLS_UI, true);
         String ui = "In-game UI: " + (bills ? "BILL'S UI" : "VANILLA");
         final String energy = prefs.getString(SetupActivity.PREF_ENERGY, "a");
+        final String holo = prefs.getString(SetupActivity.PREF_HOLO, "a");
         final String[] items = bills
-                ? new String[] { panel, zoom, ui, "Energy meter: " + LauncherPages.energyName(energy), "Close" }
+                ? new String[] { panel, zoom, ui, "Energy meter: " + LauncherPages.energyName(energy),
+                        "Gadget hologram: " + LauncherPages.holoName(holo), "Close" }
                 : new String[] { panel, zoom, ui, "Close" };
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
@@ -258,6 +262,10 @@ public class NegatronActivity extends SDLActivity {
                             String next = LauncherPages.energyStep(energy, 1);
                             prefs.edit().putString(SetupActivity.PREF_ENERGY, next).apply();
                             Companion.setEnergyMeter(next.charAt(0) - 'a' + 1);
+                        } else if (which == 4 && bills) {   // port: the next gadget hologram, at once
+                            String next = LauncherPages.holoStep(holo, 1);
+                            prefs.edit().putString(SetupActivity.PREF_HOLO, next).apply();
+                            Companion.setGadgetHologram(LauncherPages.holoNumber(next));
                         }
                     }
                 })

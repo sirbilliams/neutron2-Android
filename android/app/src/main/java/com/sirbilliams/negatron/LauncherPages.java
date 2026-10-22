@@ -262,7 +262,31 @@ final class LauncherPages {
 
     static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen,
             boolean boxArt, boolean background) {
-        return settings(wide, true, "a", panel, secondScreen, boxArt, background);
+        return settings(wide, true, "a", "a", panel, secondScreen, boxArt, background);
+    }
+
+    /** port: Bill's UI's gadget hologram (NEG_UI_HOLO a / b / c / off, game/src/port/BillsUi.h). */
+    static final String[] HOLO_IDS = { "a", "b", "c", "off" };
+    static final String[] HOLO_NAMES = { "BAY", "CONSOLE", "WHEEL", "OFF" };
+
+    static String holoName(String id) {
+        for (int i = 0; i < HOLO_IDS.length; i++) if (HOLO_IDS[i].equals(id)) return HOLO_NAMES[i];
+        return HOLO_NAMES[0];
+    }
+
+    /** The next (dir 1) or previous (dir -1) gadget hologram after `id`. */
+    static String holoStep(String id, int dir) {
+        int n = HOLO_IDS.length, i = 0;
+        for (int k = 0; k < n; k++) if (HOLO_IDS[k].equals(id)) i = k;
+        return HOLO_IDS[((i + dir) % n + n) % n];
+    }
+
+    /** The game's number for a hologram id: 0 off, 1 BAY, 2 CONSOLE, 3 WHEEL. */
+    static int holoNumber(String id) {
+        if ("off".equals(id)) return 0;
+        if ("b".equals(id)) return 2;
+        if ("c".equals(id)) return 3;
+        return 1;
     }
 
     /** port: the energy meter designs of Bill's UI (NEG_UI_ENERGY a / b / c, game/src/port/BillsUi.h). */
@@ -281,7 +305,7 @@ final class LauncherPages {
         return ENERGY_IDS[((i + dir) % n + n) % n];
     }
 
-    static LauncherModel.Page settings(boolean wide, boolean billsUi, String energy, boolean panel,
+    static LauncherModel.Page settings(boolean wide, boolean billsUi, String energy, String holo, boolean panel,
             boolean secondScreen, boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         p.pic = "settings";
@@ -295,6 +319,10 @@ final class LauncherPages {
             i = p.add("energy", "Energy meter", "Bill's UI's energy meter: TUBE (a steel LED tube), ORBIT (an "
                     + "atom with an orbit gauge) or DIAL (the bottom screen's dial). Also in game: hold Back.");
             i.value = energyName(energy);
+            i = p.add("holo", "Gadget hologram", "Bill's UI's picture of the current gadget or vehicle: BAY (a "
+                    + "framed bay), CONSOLE (a wrist console with your gadgets), WHEEL (a gadget wheel) or OFF "
+                    + "(the game's own). Also in game: hold Back.");
+            i.value = holoName(holo);
         }
         i = p.add("panel", "Dual screen", (secondScreen ? "" : "No second screen found. ")
                 + "The bottom screen shows the level map, the tasks and the gadgets while you play "

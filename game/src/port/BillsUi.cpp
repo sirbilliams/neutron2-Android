@@ -638,6 +638,7 @@ static float SevenSeg(float u, float v, float x, float y, float w, float h, floa
 }
 
 static Deco s_energy;
+static float s_energy_right = 130.0f, s_energy_bottom = 122.0f;	// its extent (640x480 units, with the number)
 static float *s_energy_buf;
 static int s_energy_cap;
 
@@ -846,10 +847,20 @@ static void EnergyWidget(int design, float health, float fr, float fg, float fb,
 	const float x = -WideMargin() + 6.0f + shake, y = 6.0f;
 	DecoPlace(s_energy, x, y, W, H);
 	s_energy_frame = s_frame;
+	char num[16];
+	snprintf(num, sizeof num, "%d", (int)(short)(int)health);
+	s_energy_right = x - shake + W;
+	s_energy_bottom = y + H;
 	if (design == 1)		// A: the number in the game's font, after the tube
-		DrawText((short)(int)(x + W + 6.0f), (short)(int)(y + 24.0f + FontHeight('MED') * 0.5f), 'MED', "%d", (int)(short)(int)health);
+	{
+		DrawText((short)(int)(x + W + 6.0f), (short)(int)(y + 24.0f + FontHeight('MED') * 0.5f), 'MED', "%s", num);
+		s_energy_right += 6.0f + (float)TextWidth('MED', "100");
+	}
 	else if (design == 2)	// B: the game's big digits, beside the gauge
-		DrawText((short)(int)(x + W + 4.0f), (short)(int)(y + 58.0f + FontHeight('BIG') * 0.5f), 'BIG', "%d", (int)(short)(int)health);
+	{
+		DrawText((short)(int)(x + W + 4.0f), (short)(int)(y + 58.0f + FontHeight('BIG') * 0.5f), 'BIG', "%s", num);
+		s_energy_right += 4.0f + (float)TextWidth('BIG', "100");
+	}
 }
 
 void BillsHealthBar(float dt, float health)
@@ -888,6 +899,8 @@ void BillsHealthBar(float dt, float health)
 	}
 	ShowOriginalBar(true);
 	DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)health);
+	s_energy_right = -WideMargin() + 40.0f + (float)TextWidth('BIG', "100");
+	s_energy_bottom = 122.0f;
 	const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
 	bar->set_diffuse(OMediaFARGBColor(1.0f, r, g, b));
 	bar->set_size(sx * 20.0f, (float)((double)(sy * s_hb) * 1.044));
@@ -1041,7 +1054,15 @@ static void MirrorFrame(bool on)
 	}
 	OMediaRect b;
 	s_mirror->getbounds(&b);				// window units: 480 lines, the 4:3 area from WideMargin()
-	const int top = (int)(g_screen_h * (12.0f / 480.0f));	// 12 down (the original: 4) so the bezel shows
+	// 12 down (the original: 4) so the bezel shows, or just below the energy meter when they would
+	// overlap (4:3: the meter's number reaches under the mirror)
+	float top640 = 12.0f;
+	{
+		const float sx0 = g_screen_w * (1.0f / 640.0f);
+		const float mx = (float)b.left / sx0 - WideMargin();
+		if (s_energy_right + 6.0f > mx) top640 = s_energy_bottom + 8.0f;
+	}
+	const int top = (int)(g_screen_h * (top640 / 480.0f));
 	if (b.top != top)
 	{
 		b.bottom += top - b.top;
@@ -1055,35 +1076,74 @@ static void MirrorFrame(bool on)
 	ShowPlate(s_mirror_plate, 3 + (int)(w + 2 * m) * 1000 + (int)(h + 2 * m), x - m, y - m, w + 2 * m, h + 2 * m);
 }
 
-// --------------------------------------------------------------------------- 5. hologram HUD (mock-ups)
+// --------------------------------------------------------------------------- 5. the gadget hologram
 
 // The current gadget / vehicle picture (g_help_icons[g_cur_gadget], screens.omt 80x70, bottom left
 // at (0, 410) while the help is closed; drawn additively in full screen) is the game's "hologram".
-// Mock-ups of a HUD built round it, for Bill to pick (desktop selector NEG_UI_HOLO=a|b|c, Bill's UI
-// only; unset: the game's own icon):
-//   a "hologram bay": a framed bay bottom left, the hologram over a projector (scan lines, slow
-//     bob and turn, flicker on change), the energy in LEDs along its top, the gadget's name;
-//   b "wrist console": a curved steel console along the bottom with a slot per gadget (the current
-//     one lit), its hologram projected above the slot, energy LEDs at its ends;
-//   c "gadget wheel": a ring of gadget slots bottom left that turns the current one to the top,
-//     its hologram in the middle, the ring's rim filling with the energy.
+// Bill's UI builds on it (a setting: NEG_UI_HOLO=a|b|c|off, default a; the launcher's "Gadget
+// hologram" and the port menu set it):
+//   a BAY: a framed bay bottom left, the hologram over a projector (scan lines, slow bob and turn,
+//     flicker on change), the energy in LEDs along its top, the gadget's name;
+//   b CONSOLE: a curved steel console along the bottom, a slot per gadget Jimmy has (the current
+//     one lit), the hologram over a projector at its left end, energy LEDs beside it;
+//   c WHEEL: a ring of the gadgets Jimmy has, bottom left, turning the current one to the top,
+//     its hologram in the middle, energy LEDs above;
+//   off: the game's own icon (as Vanilla).
 // The holograms are the game's pictures recoloured at run time (green-cyan, scan lines, a bright
-// rim), never stored.
+// rim), never stored. "Has": the vehicles in this level, the water gun / burp gun once collected
+// (pickups page items 1 / 19), the other gadgets once used in this level, and the current one.
 static const char *const kGadgetName[14] = { "ON FOOT", "ROCKET", "INVISIBLE", "JETPACK", "SCOOTER", "VR TANK",
 	"WATER GUN", "GRAPPLE", "SWIM", "MINI SUB", "BURP GUN", "CRANE", "HOVER CYCLE", "LANDER" };
 
+static volatile int s_holo_design = -1;
+void SetHoloDesign(int design) { s_holo_design = design; }
+
 static int HoloDesign(void)
 {
-	static int d = -1;
+	int d = s_holo_design;
 	if (d < 0)
 	{
 		const char *e = getenv("NEG_UI_HOLO");
-		d = 0;
-		if (e && (e[0] == 'a' || e[0] == 'A')) d = 1;
-		else if (e && (e[0] == 'b' || e[0] == 'B')) d = 2;
+		d = 1;
+		if (e && (e[0] == 'b' || e[0] == 'B')) d = 2;
 		else if (e && (e[0] == 'c' || e[0] == 'C')) d = 3;
+		else if (e && (e[0] == 'o' || e[0] == 'O' || e[0] == '0')) d = 0;
+		s_holo_design = d;
 	}
 	return d;
+}
+
+// The gadgets Jimmy has (bits 1..13).
+static unsigned s_holo_level_mask, s_holo_seen, s_holo_scan_frame;
+static char s_holo_level[64];
+
+static unsigned OwnedGadgets(int g)
+{
+	if (strncmp(s_holo_level, g_game_file, sizeof s_holo_level - 1) != 0)	// a new level
+	{
+		strncpy(s_holo_level, g_game_file, sizeof s_holo_level - 1);
+		s_holo_seen = 0;
+		s_holo_scan_frame = 0;
+	}
+	if (s_holo_scan_frame == 0 || s_frame - s_holo_scan_frame > 120)	// the vehicles here (every 2 s)
+	{
+		static const struct { const char *tag; int g; } kVehicles[] = {
+			{ "C3DROCKETSHIP", 1 }, { "C3DJEEP", 4 }, { "C3DVRTANK", 5 }, { "C3DMINISUB", 9 },
+			{ "C3DCRANEBOOM", 11 }, { "C3DHOVERCYCLE", 12 }, { "C3DLUNARLANDER", 13 } };
+		unsigned m = 0;
+		for (std::list<CGameObject *>::iterator it = g_objects.begin(); it != g_objects.end(); ++it)
+			if (*it)
+				for (unsigned k = 0; k < sizeof kVehicles / sizeof kVehicles[0]; k++)
+					if (strcasecmp((*it)->m_tag, kVehicles[k].tag) == 0) m |= 1u << kVehicles[k].g;
+		s_holo_level_mask = m;
+		s_holo_scan_frame = s_frame ? s_frame : 1;
+	}
+	unsigned m = s_holo_level_mask;
+	C2DInGameMenu::MenuPage *p2 = C2DInGameMenu::GetPage(2);
+	if (p2 && p2->items[1].type) m |= 1u << 6;				// WATERGUN collected
+	if (p2 && p2->items[19].type) m |= 1u << 10;			// MEGABURP collected
+	if (g > 0 && g < 14) s_holo_seen |= 1u << g;
+	return (m | s_holo_seen) & 0x3ffeu;
 }
 
 static OMediaCanvas *s_holo_can[14], *s_holo_src[14];
@@ -1247,6 +1307,24 @@ static void HoloFigure(int g, float cx, float by, float w, float h)
 	PoolPut(c, cx - ww * 0.5f, by - hh + bob, ww, hh, a);
 }
 
+static void HoloText(float cx, float y, const char *text)
+{
+	const int keep = g_text_center;
+	g_text_center = 1;
+	const float rgb[3] = { g_text_rgb[0], g_text_rgb[1], g_text_rgb[2] };
+	g_text_rgb[0] = 0.62f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.68f;
+	DrawText((short)(int)cx, (short)(int)y, 'SMAL', "%s", text);
+	g_text_rgb[0] = rgb[0]; g_text_rgb[1] = rgb[1]; g_text_rgb[2] = rgb[2];
+	g_text_center = keep;
+}
+
+static void HoloHideAll(void)
+{
+	DecoHide(s_holo_bg); DecoHide(s_holo_fx); DecoHide(s_holo_led);
+	s_pool_used = 0;
+	PoolEnd();
+}
+
 static void HoloFrame(float dt, bool on)
 {
 	const int design = on ? HoloDesign() : 0;
@@ -1254,10 +1332,8 @@ static void HoloFrame(float dt, bool on)
 	const bool playing = g_game_mode == 5 && g_menu && g_menu->f_594 == 0;
 	if (design == 0 || !playing)
 	{
-		DecoHide(s_holo_bg); DecoHide(s_holo_fx); DecoHide(s_holo_led);
-		s_pool_used = 0;
-		PoolEnd();
-		if (design == 0 && s_icon_hidden)
+		HoloHideAll();
+		if (design == 0 && s_icon_hidden)						// the game's icon back
 		{
 			if (icon && playing && g_help_index != 0) icon->force_show();
 			s_icon_hidden = false;
@@ -1271,29 +1347,32 @@ static void HoloFrame(float dt, bool on)
 	if (g != s_holo_last) { s_holo_change = 1.0f; s_holo_last = g; }
 	s_holo_change -= dt * 2.5f;
 	if (s_holo_change < 0) s_holo_change = 0;
+	const bool any = g > 0 && g < 14 && HoloCanvas(g);
+	const unsigned owned = OwnedGadgets(g);
+	int list[14], n = 0;
+	for (int i = 1; i < 14; i++)
+		if ((owned >> i) & 1) list[n++] = i;
 	s_pool_used = 0;
 	const float L = -WideMargin();
-	const bool any = g > 0 && g < 14;
 
-	if (design == 1)											// a: the hologram bay
+	if (design == 1)											// a: the bay
 	{
+		if (!any) { HoloHideAll(); return; }
 		const float bw = 140.0f, bh = 128.0f, x0 = L + 8.0f, y0 = 480.0f - 8.0f - bh;
 		ShowPlate(s_holo_bg, 11, x0, y0, bw, bh);
 		HoloLeds(x0 + 10.0f, y0 + 6.0f, bw - 20.0f, 7.0f, 10, false);
 		HoloCone(s_holo_fx, x0 + 25.0f, y0 + 20.0f, bw - 50.0f, 92.0f);
-		if (any) HoloFigure(g, x0 + bw * 0.5f, y0 + 100.0f, 92.0f, 80.0f);
-		const int keep = g_text_center;
-		g_text_center = 1;
-		const float rgb[3] = { g_text_rgb[0], g_text_rgb[1], g_text_rgb[2] };
-		g_text_rgb[0] = 0.62f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.68f;
-		DrawText((short)(int)(x0 + bw * 0.5f), (short)(int)(y0 + bh - 5.0f), 'SMAL', "%s", any ? kGadgetName[g] : "NO GADGET");
-		g_text_rgb[0] = rgb[0]; g_text_rgb[1] = rgb[1]; g_text_rgb[2] = rgb[2];
-		g_text_center = keep;
+		HoloFigure(g, x0 + bw * 0.5f, y0 + 100.0f, 92.0f, 80.0f);
+		HoloText(x0 + bw * 0.5f, y0 + bh - 5.0f, kGadgetName[g]);
 	}
-	else if (design == 2)										// b: the wrist console
+	else if (design == 2)										// b: the console
 	{
-		const float cw = 420.0f, ch = 40.0f, x0 = 320.0f - cw * 0.5f, y0 = 480.0f - ch - 2.0f;
-		if (!s_holo_bg.elt || s_holo_bg.key != 22)
+		if (n == 0) { HoloHideAll(); return; }
+		// [LEDs][projector][slot][slot]... centred on the 4:3 area, its top curved
+		const float sp = 30.0f, pj = 56.0f;
+		const float cw = 14.0f + pj + n * sp + 10.0f, ch = 40.0f, x0 = 320.0f - cw * 0.5f, y0 = 480.0f - ch - 2.0f;
+		const int key = 2200 + n;
+		if (!s_holo_bg.elt || s_holo_bg.key != key)
 		{
 			const int k = 2, pw = (int)(cw * k), ph = (int)(ch * k);
 			unsigned int *px = DecoBegin(s_holo_bg, g_layer_hud2d, pw, ph, false);
@@ -1303,54 +1382,56 @@ static void HoloFrame(float dt, bool on)
 					{
 						const float u = (i + 0.5f) / k, v = (j + 0.5f) / k;
 						const float cu = (u - cw * 0.5f) / (cw * 0.5f);
-						const float top = 2.0f + 12.0f * cu * cu;				// the curved top edge
-						const float d = top - v;									// > 0 above it
-						if (d > 1.0f) continue;
+						const float top = 2.0f + 10.0f * cu * cu;				// the curved top edge
+						const float d = top - v;
+						const float side = SdBox(u, v, cw * 0.5f, ch * 0.5f + 6.0f, cw * 0.5f, ch * 0.5f + 6.0f, 10.0f);
+						if (d > 1.0f || side > 1.0f) continue;
 						float c[3];
 						Steel(Clamp01((v - top) / (ch - top)), j, c);
-						float a = Clamp01(1.0f - d * k);
+						const float a = Clamp01(1.0f - d * k) * Clamp01(0.5f - side * k);
 						const float edge = Clamp01(1.0f - fabsf(v - top - 1.0f) * 1.2f);	// a green rim
-						// the slots: 13 dark windows along the curve
-						const float sp = (cw - 40.0f) / 13.0f;
-						const int si = (int)((u - 20.0f) / sp);
-						const float su = u - 20.0f - si * sp;
-						const float sy0 = top + 6.0f;
-						bool win = si >= 0 && si < 13 && su > 2.0f && su < sp - 2.0f && v > sy0 && v < sy0 + 24.0f;
-						if (win) { c[0] = 0.02f; c[1] = 0.07f; c[2] = 0.05f; }
+						const float sy0 = top + 7.0f;
+						const float su = u - 14.0f - pj;
+						const int si = su >= 0 ? (int)(su / sp) : -1;
+						const float in = su - si * sp;
+						if (si >= 0 && si < n && in > 2.0f && in < sp - 2.0f && v > sy0 && v < sy0 + 25.0f)
+						{ c[0] = 0.02f; c[1] = 0.07f; c[2] = 0.05f; }
+						const float pd = SdCircle(u, v, 14.0f + pj * 0.5f, top + 18.0f, 16.0f);	// the projector
+						if (pd < 0) { const float q = Clamp01(-pd / 16.0f); c[0] = 0.05f + 0.2f * q; c[1] = 0.15f + 0.6f * q; c[2] = 0.1f + 0.35f * q; }
 						px[j * pw + i] = Rgba(c[0] + edge * 0.3f, c[1] + edge * 0.8f, c[2] + edge * 0.45f, a);
 					}
 			DecoDone(s_holo_bg);
-			s_holo_bg.key = 22;
+			s_holo_bg.key = key;
 		}
 		DecoPlace(s_holo_bg, x0, y0, cw, ch);
-		const float sp = (cw - 40.0f) / 13.0f;
-		float cur_x = 320.0f, cur_y = y0;
-		for (int i = 1; i <= 13; i++)
+		for (int q = 0; q < n; q++)
 		{
-			const float sx0 = x0 + 20.0f + (i - 1) * sp;
+			const int i = list[q];
+			const float sx0 = x0 + 14.0f + pj + q * sp;
 			const float cu = (sx0 + sp * 0.5f - 320.0f) / (cw * 0.5f);
-			const float sy0 = y0 + 2.0f + 12.0f * cu * cu + 6.0f;
-			if (i == g) { cur_x = sx0 + sp * 0.5f; cur_y = sy0; }
-			PoolPut(HoloCanvas(i), sx0 + 2.0f, sy0 + 1.0f, sp - 4.0f, 22.0f, i == g ? 1.0f : 0.28f);
+			const float sy0 = y0 + 2.0f + 10.0f * cu * cu + 7.0f;
+			PoolPut(HoloCanvas(i), sx0 + 2.0f, sy0 + 1.0f, sp - 4.0f, 23.0f, i == g ? 1.0f : 0.28f);
 		}
-		HoloLeds(x0 - 4.0f, y0 + 6.0f, 9.0f, 30.0f, 5, true);
+		HoloLeds(x0 + 3.0f, y0 + 12.0f, 8.0f, 24.0f, 5, true);
+		const float pcx = x0 + 14.0f + pj * 0.5f, pcu = (pcx - 320.0f) / (cw * 0.5f), ptop = y0 + 2.0f + 10.0f * pcu * pcu;
 		if (any)
 		{
-			HoloCone(s_holo_fx, cur_x - 30.0f, cur_y - 84.0f, 60.0f, 86.0f);
-			HoloFigure(g, cur_x, cur_y - 10.0f, 86.0f, 75.0f);
+			HoloCone(s_holo_fx, pcx - 28.0f, ptop - 62.0f, 56.0f, 80.0f);
+			HoloFigure(g, pcx, ptop + 6.0f, 72.0f, 63.0f);
 		}
 		else DecoHide(s_holo_fx);
 	}
-	else														// c: the gadget wheel
+	else														// c: the wheel
 	{
-		const float R = 74.0f, cx = L + 10.0f + R, cy = 480.0f - 10.0f - R;
+		if (n == 0) { HoloHideAll(); return; }
+		const float R = 70.0f, cx = L + 10.0f + R, cy = 480.0f - 8.0f - R;
 		if (!s_holo_bg.elt || s_holo_bg.key != 33)
 		{
-			const int k = 2, n = (int)(2 * R * k);
-			unsigned int *px = DecoBegin(s_holo_bg, g_layer_hud2d, n, n, false);
+			const int k = 2, nn = (int)(2 * R * k);
+			unsigned int *px = DecoBegin(s_holo_bg, g_layer_hud2d, nn, nn, false);
 			if (px)
-				for (int j = 0; j < n; j++)
-					for (int i = 0; i < n; i++)
+				for (int j = 0; j < nn; j++)
+					for (int i = 0; i < nn; i++)
 					{
 						const float u = (i + 0.5f) / k - R, v = (j + 0.5f) / k - R, r = sqrtf(u * u + v * v);
 						if (r > R) continue;
@@ -1358,33 +1439,37 @@ static void HoloFrame(float dt, bool on)
 						if (r > R - 7.0f) Steel(Clamp01((v + R) / (2 * R)), j, c);		// steel rim
 						else if (r > R - 30.0f) { c[0] = 0.03f; c[1] = 0.10f; c[2] = 0.06f; }	// the slot ring
 						else { c[0] = 0.01f; c[1] = 0.05f; c[2] = 0.03f; }					// the projector well
-						float a = Clamp01((R - r) * k) * (r > R - 30.0f ? 0.92f : 0.6f);
+						const float a = Clamp01((R - r) * k) * (r > R - 30.0f ? 0.92f : 0.6f);
 						const float line = Clamp01(1.0f - fabsf(r - (R - 30.0f)) * 1.5f) + Clamp01(1.0f - fabsf(r - (R - 7.0f)) * 1.5f);
-						px[j * n + i] = Rgba(c[0] + line * 0.3f, c[1] + line * 0.9f, c[2] + line * 0.5f, a + line * 0.3f);
+						// the pointer notch at the top
+						const float notch = (v < -(R - 34.0f) && fabsf(u) < (v + R - 26.0f) * -0.6f) ? 1.0f : 0.0f;
+						px[j * nn + i] = Rgba(c[0] + line * 0.3f + notch * 0.4f, c[1] + line * 0.9f + notch, c[2] + line * 0.5f + notch * 0.6f, a + line * 0.3f);
 					}
 			DecoDone(s_holo_bg);
 			s_holo_bg.key = 33;
 		}
 		DecoPlace(s_holo_bg, cx - R, cy - R, 2 * R, 2 * R);
 		// the ring turns so that the current gadget is at the top
-		const float step = 2.0f * 3.14159265f / 13.0f;
-		const float want = 3.14159265f * 0.5f + (any ? (g - 1) : 0) * step;
+		const float pi = 3.14159265f, step = 2.0f * pi / (float)(n < 3 ? 3 : n);
+		int cur = -1;
+		for (int q = 0; q < n; q++) if (list[q] == g) cur = q;
+		const float want = pi * 0.5f + (cur >= 0 ? cur : 0) * step;
 		if (s_wheel_angle < -100.0f) s_wheel_angle = want;
 		float diff = want - s_wheel_angle;
-		while (diff > 3.14159265f) diff -= 2 * 3.14159265f;
-		while (diff < -3.14159265f) diff += 2 * 3.14159265f;
+		while (diff > pi) diff -= 2 * pi;
+		while (diff < -pi) diff += 2 * pi;
 		s_wheel_angle += diff * (1.0f - expf(-dt * 6.0f));
-		for (int i = 1; i <= 13; i++)
+		for (int q = 0; q < n; q++)
 		{
-			const float an = s_wheel_angle - (i - 1) * step;
+			const float an = s_wheel_angle - q * step;
 			const float px = cx + cosf(an) * (R - 18.5f), py = cy - sinf(an) * (R - 18.5f);
-			const bool cur = i == g;
-			const float w = cur ? 30.0f : 22.0f, h = w * 0.875f;
-			PoolPut(HoloCanvas(i), px - w * 0.5f, py - h * 0.5f, w, h, cur ? 1.0f : 0.3f);
+			const bool lit = list[q] == g;
+			const float w = lit ? 28.0f : 22.0f, h = w * 0.875f;
+			PoolPut(HoloCanvas(list[q]), px - w * 0.5f, py - h * 0.5f, w, h, lit ? 1.0f : 0.3f);
 		}
 		HoloLeds(cx - 34.0f, cy - R - 10.0f, 68.0f, 6.0f, 10, false);	// the energy, above the wheel
 		DecoHide(s_holo_fx);
-		if (any) HoloFigure(g, cx, cy + 20.0f, 52.0f, 46.0f);
+		if (any) HoloFigure(g, cx, cy + 20.0f, 50.0f, 44.0f);
 	}
 	PoolEnd();
 }
@@ -1440,6 +1525,13 @@ void BillsUiShutdown(void)
 
 #ifdef __ANDROID__
 #include <jni.h>
+
+// Companion.setGadgetHologram (the port menu's "Gadget hologram" item): 0 off, 1 BAY, 2 CONSOLE, 3 WHEEL
+extern "C" JNIEXPORT void JNICALL
+Java_com_sirbilliams_negatron_Companion_nativeSetGadgetHologram(JNIEnv *, jclass, jint design)
+{
+	if (design >= 0 && design <= 3) neg::SetHoloDesign(design);
+}
 
 // Companion.setEnergyMeter (the port menu's "Energy meter" item): 1 TUBE, 2 ORBIT, 3 DIAL
 extern "C" JNIEXPORT void JNICALL

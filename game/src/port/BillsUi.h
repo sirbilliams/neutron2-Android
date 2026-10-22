@@ -11,6 +11,7 @@ namespace neg {
 
 bool BillsUi(void);					// the current setting
 void SetBillsUi(bool on);			// switch at run time (any thread; read once per frame)
+void SetHoloDesign(int design);		// Bill's UI's gadget hologram: 0 off, 1 BAY, 2 CONSOLE, 3 WHEEL
 void SetEnergyDesign(int design);	// Bill's UI's energy meter: 1 TUBE, 2 ORBIT, 3 DIAL (0 the original bar)
 
 // Text metrics of the game's bitmap fonts ('SMAL' 'MED' 'LARG' 'BIG' 'TIME'), in 640x480 units.
