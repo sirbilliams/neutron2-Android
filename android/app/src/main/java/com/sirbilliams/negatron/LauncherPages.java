@@ -351,7 +351,7 @@ final class LauncherPages {
         LauncherModel.Page p = new LauncherModel.Page("test", "Test");
         p.pic = "test";
         p.add("levels", "Jump to a level", "Play one level straight away, without its opening (NEG_TEST_PLAY).");
-        p.add("viewer", "Model viewer", "Look at the game's models.");
+        p.add("viewer", "Level viewer (OMT)", "The engine's own viewer: fly through the level .omt files.");
         p.add("log", "Share log", "Send the last run's log (omt-log.txt) as text.");
         p.add("back", "Back", "Back to the main menu.");
         return p;
@@ -364,7 +364,9 @@ final class LauncherPages {
         p.pic = "assets";
         p.add("explore", "Explore a level", "Fly freely through any level with a noclip camera: "
                 + "nothing moves, no story, no enemies, nothing is saved.");
-        p.add("models", "Model viewer", "Look at the game's 3D models and level files.");
+        LauncherModel.Item m = p.add("models", "Model viewer", null);
+        m.detail = new String[] { "Models: .grn .ase .omt", "Up/down model  L1/R1 jump 10  Sticks turn",
+            "L2/R2 zoom  A auto-turn  B leave" };
         p.add("back", "Back", "Back to the main menu.");
         return p;
     }

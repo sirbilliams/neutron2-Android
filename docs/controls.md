@@ -106,6 +106,23 @@ floppy + PDA, gears + gauge, flask, rocket). Desktop preview: `tools/companion/r
 stand-in]` draws every page, and the main menu with each option highlighted (`opt_<id>`), for both
 screens.
 
+## Asset Viewer (port)
+
+Main menu -> **Asset viewer** (drawn icon: a magnifier over a wireframe cube) -> **Explore a level** or
+**Model viewer**; leaving either (B) comes back to that page. Details: `game/src/port/AssetView.h`.
+
+- **Explore a level**: the installed levels by the bottom-screen panel's names (`save/levels.txt`,
+  written by the game at every start; file names before that). The game starts with
+  `NEG_ASSET_VIEW=<level.gam>`: its own loader loads the level, then nothing of it runs (no physics,
+  AI, cut scenes, triggers, exits or saves; texture animations and the sky's turn go on), the HUD
+  is hidden, and a free noclip camera flies: left stick move / strafe, right stick look, L2 / R2 or
+  L1 / R1 down / up, A speed (SLOW / NORMAL / FAST), Y the level's fog, X Jimmy shown / hidden,
+  Start back to the start, B leave. Desktop keys: W A S D, arrows, Q / E, Tab, F, J, Home, Esc.
+- **Model viewer** (`NEG_ASSET_VIEW=models`): every .grn, .ase and .omt shape by name on an empty
+  stage (Template.gam, its objects hidden), shown by the game's own loaders; up / down model, L1 /
+  R1 jump 10, left / right the shapes of an .omt, sticks turn, L2 / R2 zoom, A auto-turn, B leave.
+  The engine's older level viewer (libmain) is still under Test.
+
 ## Port menu and the bottom-screen panel (port)
 
 Hold the Android back button (or the back swipe from the screen edge) for 0.6 s, or give it two

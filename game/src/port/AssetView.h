@@ -17,6 +17,18 @@
     animations and the sky keep going. A small overlay shows the level's name, the position and
     the speed. Nothing changes when NEG_ASSET_VIEW is unset.
 
+    NEG_ASSET_VIEW=models: the model viewer. The small Template.gam level is loaded as the stage,
+    all its objects hidden, no sky or fog, a light of our own; one model at a time is shown by the
+    game's own loaders: .grn as a C3DGrannyObj (the bind pose), .ase as a C3DASEObj (the texture
+    its *BITMAP names, png\<name>.png), and each 3D shape of an .omt database. It turns slowly.
+        up / down       previous / next model (held: repeats)       (keys: arrows)
+        L1 / R1         10 back / on                                (keys: PageUp / PageDown)
+        left / right    previous / next shape of an .omt            (keys: arrows)
+        sticks          turn around it (stops the turning)          (keys: W A S D)
+        L2 / R2         zoom out / in                               (keys: Q / E)
+        A               turning on / off; Start: reset the view; B / Back: leave
+    NEG_MODEL=<file> (desktop tests): the model to start with.
+
     save\levels.txt (written by the game at every start, for the launcher's level list): one line
     per gam\*.gam, TAB-separated: <gam file> <display name> (the bottom-screen panel's names,
     Companion.cpp; empty when the level has none).                                            */

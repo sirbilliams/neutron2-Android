@@ -72,7 +72,9 @@ public final class RenderMenu {
         m.pop();
         m.pop();
         m.push(LauncherPages.assets());
+        m.page().sel = 1;
         draw(m, out, "assets");
+        m.page().sel = 0;
         m.push(LauncherPages.explore(save, Arrays.asList(gams), "Level3.gam"));
         draw(m, out, "explore");
     }

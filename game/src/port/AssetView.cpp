@@ -10,10 +10,19 @@
 #include "../Globals.h"
 #include "../SaveGame.h"
 #include "../TextureAnims.h"
+#include "../C3DASEObj.h"
+#include "../C3DGrannyObj.h"
+#include "../../granny/granny_compat.h"
 #include "../gen/globals.h"
 #include "OMediaViewPort.h"
 #include "OMediaLayer.h"
 #include "OMediaTrigo.h"
+#include "OMediaDataBase.h"
+#include "OMediaFileStream.h"
+#include "OMedia3DShape.h"
+#include "OMedia3DShapeElement.h"
+#include "OMediaError.h"
+#include "OMediaLight.h"
 #include <SDL.h>
 #include <dirent.h>
 #include <math.h>
@@ -114,12 +123,362 @@ void Text(short x, short y, const char *s)
 {
 	neg::DrawText(x, y, 'SMAL', "%s", s);
 }
+
+// --------------------------------------------------------------------------- the model viewer
+// NEG_ASSET_VIEW=models: the game's own loaders show one model at a time on an empty stage (the
+// small Template.gam level, every one of its objects hidden, no sky, no fog): .grn models as a
+// C3DGrannyObj makes them (InitModel: the bind pose), .ase as a C3DASEObj does (its first frame;
+// the texture named by the file's *BITMAP, from png\), and the 3D shapes of the .omt databases.
+
+struct Model { std::string file; char kind; };	// kind: 'g' .grn, 'a' .ase, 'o' .omt
+bool				s_models_mode = false;
+std::vector<Model>	s_models;
+int					s_mi = -1;					// the model shown
+CGameObject			*s_obj = NULL;				// its game object (.grn / .ase)
+OMedia3DShapeElement *s_elem = NULL;			// its element (.omt shape)
+OMediaFileStream	*s_db_fs = NULL;			// the .omt database shown
+OMediaDataBase		*s_db = NULL;
+std::vector<OMedia3DShape *> s_shapes;			// its 3D shapes (locked while listed)
+std::vector<std::string> s_shape_names;
+int					s_si = 0;
+float				s_yaw = 0.6f, s_pitch = 0.35f, s_dist = 300, s_radius = 100;
+float				s_center[3];
+bool				s_spin = true;
+char				s_info[96];
+float				s_repeat = 0;				// d-pad repeat
+const float			kStage[3] = { 0.0f, 20000.0f, 0.0f };
+
+bool HasExt(const char *n, const char *ext)
+{
+	size_t l = strlen(n), e = strlen(ext);
+	return l > e && strcasecmp(n + l - e, ext) == 0;
+}
+
+bool NoCaseLess(const Model &a, const Model &b)
+{
+	if (a.kind != b.kind) return a.kind == 'g' || (a.kind == 'a' && b.kind == 'o');
+	return strcasecmp(a.file.c_str(), b.file.c_str()) < 0;
+}
+
+void ListDir(const char *dir, const char *ext, char kind)
+{
+	DIR *d = opendir(omf_SDLResolvePath(dir).c_str());
+	if (!d) return;
+	while (struct dirent *e = readdir(d))
+	{
+		if (!HasExt(e->d_name, ext)) continue;
+		if (kind == 'o' && (!strncasecmp(e->d_name, "music", 5) || !strncasecmp(e->d_name, "sound", 5))) continue;
+		Model m;
+		m.file = e->d_name;
+		m.kind = kind;
+		s_models.push_back(m);
+	}
+	closedir(d);
+}
+
+// The texture an .ase names (*BITMAP "...\name.bmp") as png\name.png, if the game has it.
+bool AseTexture(const char *ase, char *png, size_t size)
+{
+	FILE *f = fopen(omf_SDLResolvePath(std::string("ase\\") + ase).c_str(), "rb");
+	if (!f) return false;
+	char line[512];
+	bool found = false;
+	while (!found && fgets(line, sizeof line, f))
+	{
+		char *b = strstr(line, "*BITMAP \"");
+		if (!b) continue;
+		b += 9;
+		char *q = strchr(b, '"');
+		if (q) *q = 0;
+		char *base = b;
+		for (char *c = b; *c; c++) if (*c == '\\' || *c == '/') base = c + 1;
+		char *dot = strrchr(base, '.');
+		if (dot) *dot = 0;
+		snprintf(png, size, "%s.png", base);
+		FILE *t = fopen(omf_SDLResolvePath(std::string("png\\") + png).c_str(), "rb");
+		if (t) { fclose(t); found = true; }
+	}
+	fclose(f);
+	return found;
+}
+
+void ShowShape(OMedia3DShape *sh)
+{
+	if (!s_elem)
+	{
+		s_elem = new OMedia3DShapeElement;
+		s_elem->link(g_world);
+		s_elem->link_layer(g_layer_world);
+		s_elem->place(kStage[0], kStage[1], kStage[2]);
+	}
+	s_elem->set_shape(sh);
+}
+
+// The view: around the shape's bounds (its vertices, at the stage).
+void Frame(OMedia3DShape *sh, float scale)
+{
+	s_center[0] = kStage[0]; s_center[1] = kStage[1]; s_center[2] = kStage[2];
+	s_radius = 100;
+	omt_VertexList *v = sh ? sh->get_vertices() : NULL;
+	if (!v || v->empty()) return;
+	float lo[3] = { 1e30f, 1e30f, 1e30f }, hi[3] = { -1e30f, -1e30f, -1e30f };
+	for (size_t i = 0; i < v->size(); i++)
+	{
+		const OMedia3DPoint &p = (*v)[i];
+		const float c[3] = { p.x, p.y, p.z };
+		for (int k = 0; k < 3; k++) { if (c[k] < lo[k]) lo[k] = c[k]; if (c[k] > hi[k]) hi[k] = c[k]; }
+	}
+	float r = 0;
+	for (int k = 0; k < 3; k++)
+	{
+		s_center[k] += (lo[k] + hi[k]) * 0.5f * scale;
+		r += (hi[k] - lo[k]) * (hi[k] - lo[k]);
+	}
+	s_radius = sqrtf(r) * 0.5f * scale;
+	if (s_radius < 1) s_radius = 1;
+	s_dist = s_radius * 2.6f;
+}
+
+void Unload(void)
+{
+	if (s_obj) { delete s_obj; s_obj = NULL; }
+	if (s_elem) { s_elem->set_shape(NULL); delete s_elem; s_elem = NULL; }
+	for (size_t i = 0; i < s_shapes.size(); i++) s_shapes[i]->db_unlock();
+	s_shapes.clear();
+	s_shape_names.clear();
+	if (s_db) { UnInitDatabase(s_db); s_db = NULL; }
+	if (s_db_fs) { UnInitFileStream(s_db_fs); s_db_fs = NULL; }
+}
+
+void ShowOmtShape(int i)
+{
+	if (s_shapes.empty()) return;
+	s_si = (i + (int)s_shapes.size()) % (int)s_shapes.size();
+	ShowShape(s_shapes[s_si]);
+	Frame(s_shapes[s_si], 1.0f);
+	snprintf(s_info, sizeof s_info, "SHAPE %d OF %d  %s", s_si + 1, (int)s_shapes.size(), s_shape_names[s_si].c_str());
+}
+
+void Load(int i)
+{
+	Unload();
+	if (s_models.empty()) return;
+	s_mi = (i + (int)s_models.size()) % (int)s_models.size();
+	const Model &m = s_models[s_mi];
+	s_info[0] = 0;
+	OMedia3DShape *shape = NULL;
+	float scale = 1.0f;
+	try
+	{
+		if (m.kind == 'g')
+		{
+			C3DGrannyObj *o = dynamic_cast<C3DGrannyObj *>(CreateObject('3GRO'));
+			if (o)
+			{
+				s_obj = o;
+				o->m_object_id = '3GRO';
+				snprintf(o->f_924, sizeof o->f_924, "%s", m.file.c_str());
+				strcpy(o->f_988, "none"); strcpy(o->f_9ec, "none"); strcpy(o->f_a50, "none");
+				strcpy(o->f_ab4, "none"); strcpy(o->f_b18, "none"); strcpy(o->f_b7c, "none");
+				o->ResetObject();
+				o->v260();
+				o->v197(kStage[0], kStage[1], kStage[2]);
+				o->v90(kStage[0], kStage[1], kStage[2]);
+				o->place(kStage[0], kStage[1], kStage[2]);			// (the element; Process would)
+				o->ShowAgain();
+				shape = o->get_shape();
+				scale = o->f_6f0 > 0 ? o->f_6f0 : 1.0f;
+			}
+		}
+		else if (m.kind == 'a')
+		{
+			C3DASEObj *o = dynamic_cast<C3DASEObj *>(CreateObject('3ASE'));
+			if (o)
+			{
+				s_obj = o;
+				o->m_object_id = '3ASE';
+				snprintf(o->f_924, sizeof o->f_924, "%s", m.file.c_str());
+				snprintf(o->f_988, sizeof o->f_988, "%s", m.file.c_str());
+				char png[128];
+				if (AseTexture(m.file.c_str(), png, sizeof png)) snprintf(o->f_ab4, sizeof o->f_ab4, "%s", png);
+				else { strcpy(o->f_ab4, "none"); strcpy(s_info, "NO TEXTURE"); }
+				o->f_664 = 0;										// "SecondPass" off: its materials would wait for a pass the stage does not draw
+				o->ResetObject();
+				o->v260();
+				o->v197(kStage[0], kStage[1], kStage[2]);
+				o->v90(kStage[0], kStage[1], kStage[2]);
+				o->place(kStage[0], kStage[1], kStage[2]);			// (the element; Process would)
+				o->ShowAgain();
+				shape = o->get_shape();
+			}
+		}
+		else
+		{
+			s_db_fs = InitFileStream((std::string("omt\\") + m.file).c_str());
+			s_db = s_db_fs ? InitDatabase(s_db_fs) : NULL;
+			if (s_db)
+			{
+				omt_DBIterator it;
+				OMediaDBObject *o = s_db->get_first_object(OMedia3DShape::db_type, it);
+				while (o)
+				{
+					std::string name;
+					o->get_chunk_name(name);
+					s_shapes.push_back((OMedia3DShape *)o);
+					s_shape_names.push_back(name);
+					o = s_db->get_next_object(it);
+				}
+			}
+			if (s_shapes.empty()) strcpy(s_info, "NO 3D SHAPES");
+			else { ShowOmtShape(0); return; }
+		}
+	}
+	catch (OMediaError &e)
+	{
+		SDL_Log("NEG_ASSET_VIEW: %s: %s", m.file.c_str(), e.error_string.c_str());
+		snprintf(s_info, sizeof s_info, "COULD NOT LOAD");
+	}
+	Frame(shape, scale);
+	if (!s_info[0])
+	{
+		omt_VertexList *v = shape ? shape->get_vertices() : NULL;
+		if (!v || v->empty()) strcpy(s_info, m.kind == 'g' ? "NO MESH (AN ANIMATION)" : "NO MESH");
+		else snprintf(s_info, sizeof s_info, "%d VERTICES", (int)v->size());
+	}
+}
+
+void ModelsStart(void)
+{
+	// an empty stage: the level's objects hidden, no sky (the clear layer's colour), no fog
+	for (std::list<CGameObject *>::iterator i = g_objects.begin(); i != g_objects.end(); ++i)
+		if (OMediaElement *e = dynamic_cast<OMediaElement *>(*i)) e->hide(true);
+	if (g_layer_world) g_layer_world->*LayerFogAccess::Enabled() = false;
+	if (g_layer_clear)
+	{
+		g_layer_clear->set_clear_color(OMediaFARGBColor(1.0f, 0.05f, 0.08f, 0.06f));
+		g_layer_clear->set_flags(g_layer_clear->get_flags() | omlayerf_ClearColor);
+	}
+	// a light of our own (the level's are far away): a directional key light and a strong ambient
+	OMediaLight *light = new OMediaLight;
+	light->link(g_world);
+	light->set_light_type(omclt_Directional);
+	light->set_angle(omd_Deg2Angle(-50), omd_Deg2Angle(30), 0);
+	light->set_ambient(OMediaFARGBColor(1.0f, 0.55f, 0.55f, 0.55f));
+	light->set_diffuse(OMediaFARGBColor(1.0f, 0.6f, 0.6f, 0.6f));
+	ListDir("grn", ".grn", 'g');
+	ListDir("ase", ".ase", 'a');
+	ListDir("omt", ".omt", 'o');
+	std::sort(s_models.begin(), s_models.end(), NoCaseLess);
+	int first = 0;
+	if (const char *want = getenv("NEG_MODEL"))			// (desktop tests: the model to start with)
+		for (size_t i = 0; i < s_models.size(); i++)
+			if (!strcasecmp(s_models[i].file.c_str(), want)) first = (int)i;
+	Load(first);
+}
+
+enum { M_UP = 1, M_DOWN = 2, M_LEFT = 4, M_RIGHT = 8, M_PGUP = 16, M_PGDN = 32, M_SPIN = 64, M_HOME = 128, M_BACK = 256 };
+
+bool ModelsFrame(float dt)
+{
+	Pads();
+	const Uint8 *k = SDL_GetKeyboardState(NULL);
+	unsigned held = 0;
+	if (Button(SDL_CONTROLLER_BUTTON_DPAD_UP) || k[SDL_SCANCODE_UP]) held |= M_UP;
+	if (Button(SDL_CONTROLLER_BUTTON_DPAD_DOWN) || k[SDL_SCANCODE_DOWN]) held |= M_DOWN;
+	if (Button(SDL_CONTROLLER_BUTTON_DPAD_LEFT) || k[SDL_SCANCODE_LEFT]) held |= M_LEFT;
+	if (Button(SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || k[SDL_SCANCODE_RIGHT]) held |= M_RIGHT;
+	if (Button(SDL_CONTROLLER_BUTTON_LEFTSHOULDER) || k[SDL_SCANCODE_PAGEUP]) held |= M_PGUP;
+	if (Button(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) || k[SDL_SCANCODE_PAGEDOWN]) held |= M_PGDN;
+	if (Button(SDL_CONTROLLER_BUTTON_A) || k[SDL_SCANCODE_SPACE]) held |= M_SPIN;
+	if (Button(SDL_CONTROLLER_BUTTON_START) || k[SDL_SCANCODE_HOME]) held |= M_HOME;
+	if (Button(SDL_CONTROLLER_BUTTON_B) || Button(SDL_CONTROLLER_BUTTON_BACK) || k[SDL_SCANCODE_ESCAPE]
+		|| k[SDL_SCANCODE_BACKSPACE] || k[SDL_SCANCODE_AC_BACK]) held |= M_BACK;
+	unsigned press = held & ~s_prev;
+	if (held & (M_UP | M_DOWN | M_LEFT | M_RIGHT))		// held: repeats after 0.4 s, 12 a second
+	{
+		s_repeat += dt;
+		if (s_repeat > 0.4f) { press |= held & (M_UP | M_DOWN | M_LEFT | M_RIGHT); s_repeat -= 1.0f / 12; }
+	}
+	else s_repeat = 0;
+	s_prev = held;
+	if (press & M_BACK)
+	{
+		SDL_Log("NEG_ASSET_VIEW: back");
+		s_on = false;
+		Unload();
+		g_app->quit();
+		return true;
+	}
+	if (press & M_UP) Load(s_mi - 1);
+	if (press & M_DOWN) Load(s_mi + 1);
+	if (press & M_PGUP) Load(s_mi - 10);
+	if (press & M_PGDN) Load(s_mi + 10);
+	if ((press & M_LEFT) && !s_shapes.empty()) ShowOmtShape(s_si - 1);
+	if ((press & M_RIGHT) && !s_shapes.empty()) ShowOmtShape(s_si + 1);
+	if (press & M_SPIN) s_spin = !s_spin;
+	if (press & M_HOME) { s_yaw = 0.6f; s_pitch = 0.35f; s_dist = s_radius * 2.6f; }
+
+	// orbit: either stick (and W A S D); zoom: L2 / R2 (Q / E)
+	float ox = Axis(SDL_CONTROLLER_AXIS_RIGHTX) + Axis(SDL_CONTROLLER_AXIS_LEFTX);
+	float oy = Axis(SDL_CONTROLLER_AXIS_RIGHTY) + Axis(SDL_CONTROLLER_AXIS_LEFTY);
+	if (k[SDL_SCANCODE_A]) ox -= 1; if (k[SDL_SCANCODE_D]) ox += 1;
+	if (k[SDL_SCANCODE_W]) oy -= 1; if (k[SDL_SCANCODE_S]) oy += 1;
+	float zoom = Axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT) - Axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+	if (k[SDL_SCANCODE_E]) zoom += 1; if (k[SDL_SCANCODE_Q]) zoom -= 1;
+	if (ox != 0 || oy != 0) s_spin = false;
+	s_yaw += (s_spin ? 0.5f : ox * 2.2f) * dt;
+	s_pitch += oy * 1.6f * dt;
+	if (s_pitch > 1.45f) s_pitch = 1.45f;
+	if (s_pitch < -1.45f) s_pitch = -1.45f;
+	s_dist *= expf(-zoom * 1.5f * dt);
+	if (s_dist < s_radius * 0.3f) s_dist = s_radius * 0.3f;
+	if (s_dist > s_radius * 20.0f) s_dist = s_radius * 20.0f;
+	// the camera: looking at the centre from (yaw, pitch) at s_dist (the view looks along +z)
+	const float kA = 16384.0f / 6.2831853f;
+	g_viewport->set_angle((short)(int)(-s_pitch * kA), (short)((int)(s_yaw * kA) & omc_MaxAngleMask), 0);
+	float d[3];
+	CameraDir(d, 0, 0, 1);
+	g_viewport->place(s_center[0] - d[0] * s_dist, s_center[1] - d[1] * s_dist, s_center[2] - d[2] * s_dist);
+	if (s_obj && s_models[s_mi].kind == 'g')			// a granny model: its pose (the editor's frame)
+	{
+		if (g_granny) GrannyAdvanceTime(g_granny, (double)dt);
+		s_obj->v242(dt);
+	}
+	UpdateTextureAnims(dt);
+
+	// the overlay: the list around the selection, the model, the controls
+	float rgb[3] = { g_text_rgb[0], g_text_rgb[1], g_text_rgb[2] };
+	char line[160];
+	g_text_rgb[0] = 0.45f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.55f;
+	snprintf(line, sizeof line, "MODEL VIEWER   %d OF %d", s_mi + 1, (int)s_models.size());
+	Text(12, 8, line);
+	const int rows = 15;
+	int top = s_mi - rows / 2;
+	if (top > (int)s_models.size() - rows) top = (int)s_models.size() - rows;
+	if (top < 0) top = 0;
+	for (int r = 0; r < rows && top + r < (int)s_models.size(); r++)
+	{
+		const int i = top + r;
+		const bool sel = i == s_mi;
+		g_text_rgb[0] = sel ? 0.8f : 0.25f; g_text_rgb[1] = sel ? 1.0f : 0.7f; g_text_rgb[2] = sel ? 0.8f : 0.35f;
+		snprintf(line, sizeof line, "%s %s", sel ? ">" : " ", s_models[i].file.c_str());
+		Text(12, (short)(30 + r * 12), line);
+	}
+	g_text_rgb[0] = 0.45f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.55f;
+	if (s_mi >= 0) { snprintf(line, sizeof line, "%s   %s", s_models[s_mi].file.c_str(), s_info); Text(12, 420, line); }
+	Text(12, 444, s_shapes.size() > 1 ? "UP DOWN MODEL   LEFT RIGHT SHAPE   L1 R1 JUMP 10   STICKS TURN"
+									   : "UP DOWN MODEL   L1 R1 JUMP 10   STICKS TURN");
+	Text(12, 456, s_spin ? "L2 R2 ZOOM   A STOP TURNING   START RESET   B BACK" : "L2 R2 ZOOM   A TURN   START RESET   B BACK");
+	g_text_rgb[0] = rgb[0]; g_text_rgb[1] = rgb[1]; g_text_rgb[2] = rgb[2];
+	return true;
+}
 }
 
 const char *neg::AssetViewLevel(void)
 {
 	const char *want = getenv("NEG_ASSET_VIEW");
 	if (!want || !*want || strlen(want) >= 64) return NULL;	// (m_level_name holds 80)
+	if (!strcasecmp(want, "models")) return "Template.gam";	// the model viewer's stage
 	return want;
 }
 
@@ -155,6 +514,8 @@ void neg::AssetViewLevelLoaded(const char *name)
 	// The HUD is hidden (its 2D layer); the overlay's text is on the top 2D layer.
 	if (g_layer_hud2d) g_layer_hud2d->set_flags(g_layer_hud2d->get_flags() & ~omlayerf_Visible);
 	s_on = true;
+	s_models_mode = !strcasecmp(getenv("NEG_ASSET_VIEW"), "models");
+	if (s_models_mode) { ModelsStart(); SDL_Log("NEG_ASSET_VIEW: model viewer, %d models", (int)s_models.size()); return; }
 	s_hint = 6.0f;
 	SDL_Log("NEG_ASSET_VIEW: %s (%s) loaded, explorer on", name, s_name);
 }
@@ -162,6 +523,7 @@ void neg::AssetViewLevelLoaded(const char *name)
 bool neg::AssetViewFrame(float dt)
 {
 	if (!s_on) return false;
+	if (s_models_mode) return ModelsFrame(dt);
 	Pads();
 	const Uint8 *k = SDL_GetKeyboardState(NULL);
 

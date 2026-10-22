@@ -108,13 +108,13 @@ public class SetupActivity extends Activity {
         finish();
     }
 
-    /** port: the Asset Viewer: the game exploring a level (NEG_ASSET_VIEW), or the model viewer when
-     *  gam is null; the launcher comes back on the Asset Viewer's page afterwards. */
+    /** port: the Asset Viewer: the game exploring a level, or its model viewer when gam is null
+     *  (NEG_ASSET_VIEW=<gam> / models); the launcher comes back on the Asset Viewer's page afterwards. */
     private void launchAssetView(String gam) {
         hideBottom();
         Intent i = new Intent(this, NegatronActivity.class);
-        i.putExtra(NegatronActivity.EXTRA_LIB, gam != null ? "negatron" : "main");
-        if (gam != null) i.putExtra(NegatronActivity.EXTRA_ASSET_VIEW, gam);
+        i.putExtra(NegatronActivity.EXTRA_LIB, "negatron");
+        i.putExtra(NegatronActivity.EXTRA_ASSET_VIEW, gam != null ? gam : "models");
         i.putExtra(EXTRA_RETURN, gam != null ? "explore:" + gam : "models");
         startActivity(i, onTopScreen());
         finish();
