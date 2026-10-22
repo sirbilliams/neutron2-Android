@@ -311,6 +311,12 @@ class OMediaCanvas : public OMediaDBObject,
 	omtshared virtual void set_2Dsubdivision(int w, int h);
 	inline int get_2Dsubdivision_width(void) const {return subdiv_w;}
 	inline int get_2Dsubdivision_height(void) const {return subdiv_h;}
+
+	// port: HD texture pack (engine/sdl/OMediaHDPack.h): the pack picture standing in for this canvas's
+	// texture ("omt/<db>/<id>.png", empty if none), and whether the game has drawn into the canvas since
+	// it was loaded (then it keeps its own pixels).
+	string	hd_key;
+	bool	hd_drawn;
 	
 	
 

@@ -39,6 +39,7 @@
 #include "OMediaMipmapGenerator.h"
 #include "OMediaVideoEngine.h"
 #include "OMediaBlitter.h"
+#include "OMediaHDPack.h"
 
 OMediaGLCanvas::OMediaGLCanvas(	OMediaGLRenderTarget *atarget,
 							    OMediaCanvas *master,
@@ -46,6 +47,9 @@ OMediaGLCanvas::OMediaGLCanvas(	OMediaGLRenderTarget *atarget,
 								:OMediaCanvasSlave(atarget,master)
 {
 	texturegrid_id = NULL;
+	hd_src = NULL;						// port: HD texture pack
+	hd_scale = 0;
+	hd_bytes = 0;
 	slave_key_long = 0;
 	slave_key_ptr = 0;
 	
@@ -71,6 +75,48 @@ OMediaGLCanvas::~OMediaGLCanvas()
 	}
 	else glDeleteTextures(1,&texture_id);
 
+	omhd::sub_bytes(hd_bytes);		// port: HD texture pack
+}
+
+// port: HD texture pack: drops the textures (HD ones, to be made again from the canvas pixels)
+void OMediaGLCanvas::release_textures(void)
+{
+	if (texturegrid_id)
+	{
+		glDeleteTextures(n_texture,texturegrid_id);
+		delete [] texturegrid_id;
+		texturegrid_id = NULL;
+	}
+	else glDeleteTextures(1,&texture_id);
+	omhd::sub_bytes(hd_bytes);
+	hd_bytes = 0;
+	hd_scale = 0;
+}
+
+// port: HD texture pack: uploads 'src' (any size, already a valid texture size) as the bound texture,
+// with mipmaps when the master canvas's filtering wants them
+static void upload_full(OMediaCanvas *master, OMediaCanvas *src, GLuint internal_format)
+{
+	src->lock(omlf_Read);
+	if (master->get_filtering_min()<=omtfc_Linear)
+	{
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+		glTexImage2D(GL_TEXTURE_2D,0,internal_format,src->get_width(),src->get_height(),0,GL_RGBA,GL_UNSIGNED_BYTE,src->get_pixels());
+	}
+	else
+	{
+		OMediaMipmapGenerator *mm_gen = new OMediaMipmapGenerator(src);
+		do
+		{
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, mm_gen->full_width);
+			glTexImage2D(GL_TEXTURE_2D,mm_gen->level,internal_format,mm_gen->cur_width,mm_gen->cur_height,0,
+						 GL_RGBA,GL_UNSIGNED_BYTE,mm_gen->pixels);
+		}
+		while(mm_gen->generate_next_mipmap());
+		delete mm_gen;
+	}
+	src->unlock();
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 
@@ -161,6 +207,56 @@ void OMediaGLCanvas::create_texture(bool new_texture, omt_CanvasSlaveKeyFlags ke
 	nh = h = master_canv->get_height();
 
 	target->check_texture_size(nw,nh);
+
+	// port: HD texture pack (engine/sdl/OMediaHDPack.h): a canvas with a pack picture gets the picture as
+	// its texture; the layout (exact / scaled / subdivided) and every coordinate stay those of the canvas.
+	if (!new_texture && hd_scale)		// the game drew into it: its own pixels again
+	{
+		release_textures();
+		new_texture = true;
+	}
+	if (new_texture && !master_canv->hd_key.empty())
+	{
+		GLint max_size;
+		int k = 0;
+		glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max_size);
+		OMediaCanvas *hd = omhd::load(master_canv, max_size, k);
+		if (hd && !(w==nw && h==nh) && (key_flags&omcskf_SubDivided))
+		{
+			hd_src = hd;
+			hd_scale = k;
+			create_subimage(master_canv,w,h,new_texture,nw,nh);
+			hd_src = NULL;
+			delete hd;
+			return;
+		}
+		if (hd)
+		{
+			int tw = hd->get_width(), th = hd->get_height();
+			target->check_texture_size(tw,th);
+			const double bytes = tw * (double)th * 4.0 * ((master_canv->get_filtering_min()<=omtfc_Linear) ? 1.0 : 4.0 / 3.0);
+			if (omhd::add_bytes(master_canv, bytes))
+			{
+				OMediaCanvas *scaled = NULL;
+				if (tw!=hd->get_width() || th!=hd->get_height())
+				{
+					scaled = new OMediaCanvas;
+					scaled->create(tw,th,hd);
+				}
+				n_texture = 1;
+				slave_key_long = (w==nw && h==nh) ? omcskf_Exact : omcskf_Scaled;
+				glGenTextures(1,&texture_id);
+				glBindTexture(GL_TEXTURE_2D, texture_id);
+				upload_full(master_canv, scaled ? scaled : hd, internal_format);
+				delete scaled;
+				delete hd;
+				hd_scale = k;
+				hd_bytes = bytes;
+				return;
+			}
+			delete hd;
+		}
+	}
 	
 	if (w==nw && h==nh)		// Exact size
 	{
@@ -343,6 +439,33 @@ void OMediaGLCanvas::create_subimage(OMediaCanvas *canv, int w, int h, bool new_
 
 	n_texture = n_textw * n_texth;
 
+	// port: HD texture pack: the tiles of the pack picture are 2^ks times larger (ks = 0 without one)
+	OMediaCanvas	*src = canv, *hd_resampled = NULL;
+	int				ks = 0;
+	if (hd_src)
+	{
+		GLint	max_size;
+		int		kp = 1;
+		glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max_size);
+		while (kp*2<=hd_scale) kp <<= 1;
+		while (kp>1 && (((subdiv_w_mask+1)*kp)>max_size || ((subdiv_h_mask+1)*kp)>max_size)) kp >>= 1;
+		const double bytes = double(n_textw<<subdiv_shift_w) * double(n_texth<<subdiv_shift_h) * kp * kp * 4.0 *
+							 ((canv->get_filtering_min()<=omtfc_Linear) ? 1.0 : 4.0 / 3.0);
+		if (kp>1 && omhd::add_bytes(canv, bytes))
+		{
+			if (kp!=hd_scale)
+			{
+				hd_resampled = new OMediaCanvas;
+				hd_resampled->create(w*kp,h*kp,hd_src);
+			}
+			src = hd_resampled ? hd_resampled : hd_src;
+			while ((1<<ks)<kp) ks++;
+			hd_scale = kp;
+			hd_bytes = bytes;
+		}
+		else hd_scale = 0;
+	}
+
 	if (new_texture)
 	{
 		texturegrid_id = new GLuint[n_texture];
@@ -375,36 +498,36 @@ void OMediaGLCanvas::create_subimage(OMediaCanvas *canv, int w, int h, bool new_
 	}
 	else last_v = 0.9999f;
 
-	canv->lock(omlf_Read);
-	temp_buffer = new omt_RGBAPixel[(n_textw<<subdiv_shift_w)*(n_texth<<subdiv_shift_h)];
-	OMediaMemTools::copy(canv->get_pixels(),temp_buffer,(w*h)<<2L);
+	src->lock(omlf_Read);
+	temp_buffer = new omt_RGBAPixel[((n_textw<<subdiv_shift_w)*(n_texth<<subdiv_shift_h))<<(2*ks)];
+	OMediaMemTools::copy(src->get_pixels(),temp_buffer,((w*h)<<2L)<<(2*ks));
 
 	for(int ty = 0; ty<n_texth; ty++)
 	{
 		if ((ty==n_texth-1 && (h&subdiv_h_mask)!=0))
 		{
-			th = last_th;			
+			th = last_th<<ks;			
 		}
 		else 
 		{
-			th = subdiv_h_mask+1;
+			th = (subdiv_h_mask+1)<<ks;
 		}
 	
 		for(int tx = 0; tx<n_textw; tx++,tptr++)
 		{
 			if (tx==n_textw-1 && (w&subdiv_w_mask)!=0)
 			{
-				tw = last_tw;
+				tw = last_tw<<ks;
 			}
 			else				
 			{
-				tw = (subdiv_w_mask+1);
+				tw = (subdiv_w_mask+1)<<ks;
 			}
 
 			if (canv->get_filtering_min()<=omtfc_Linear)
 			{			
-				glPixelStorei(GL_UNPACK_ROW_LENGTH, w);
-				pixels = temp_buffer + ( (ty<<subdiv_shift_h) * w) + (tx<<subdiv_shift_w);
+				glPixelStorei(GL_UNPACK_ROW_LENGTH, w<<ks);
+				pixels = temp_buffer + ( (ty<<(subdiv_shift_h+ks)) * (w<<ks)) + (tx<<(subdiv_shift_w+ks));
 				
 				glBindTexture(GL_TEXTURE_2D, *tptr);
 				if (new_texture)
@@ -419,7 +542,7 @@ void OMediaGLCanvas::create_subimage(OMediaCanvas *canv, int w, int h, bool new_
 			else
 			{
 				OMediaMipmapGenerator	*mm_gen;
-				mm_gen = new OMediaMipmapGenerator(canv,tx<<subdiv_shift_w,ty<<subdiv_shift_h,tw,th);
+				mm_gen = new OMediaMipmapGenerator(src,tx<<(subdiv_shift_w+ks),ty<<(subdiv_shift_h+ks),tw,th);
 
 				glBindTexture(GL_TEXTURE_2D, *tptr);
 
@@ -453,8 +576,10 @@ void OMediaGLCanvas::create_subimage(OMediaCanvas *canv, int w, int h, bool new_
 		}
 	}
 
-	canv->unlock();
+	src->unlock();
 	delete temp_buffer;
+	delete hd_resampled;
+	if (ks) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 

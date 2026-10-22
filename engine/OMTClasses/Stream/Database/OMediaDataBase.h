@@ -257,6 +257,9 @@ class OMediaDataBase :  public OMediaListener, public OMediaFormattedStream
 
 	omtshared virtual void free_all_mirrors(void);
 
+	// port: HD texture pack: the database file name, lower case, without ".omt" (empty if not a file)
+	string	hd_name;
+
 
 	protected:
 	

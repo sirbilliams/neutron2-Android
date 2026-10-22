@@ -35,6 +35,9 @@
 #include "OMediaMemStream.h"
 #include "OMediaCRC.h"
 #include "OMediaCompression.h"
+#include "OMediaHDPack.h"
+#include <stdio.h>
+#include "OMediaDataBase.h"
 
 OMediaCanvas::OMediaCanvas(void) 
 {
@@ -45,6 +48,7 @@ OMediaCanvas::OMediaCanvas(void)
 	min_filtering = mag_filtering = omtfc_Nearest;
 	memory_purged = false;
 	subdiv_w = subdiv_h = -1;
+	hd_drawn = false;					// port: HD texture pack
 }
 
 OMediaCanvas::~OMediaCanvas(void)
@@ -90,11 +94,18 @@ void OMediaCanvas::purge(void)
 	width = height = 0;
 	pixdata = NULL;
 	memory_purged = false;
+	hd_key.clear();						// port: HD texture pack: new contents
+	hd_drawn = false;
 }
 
 void OMediaCanvas::lock(omt_LockFlags flags)
 {
 	OMediaEngineImpMaster::lock(flags);
+	if ((flags&omlf_Write) && !hd_key.empty())	// port: HD texture pack: the game draws into the canvas,
+	{											// which keeps its own pixels from now on
+		hd_key.clear();
+		hd_drawn = true;
+	}
 	if (lock_count==1) 
 	{
 		if (memory_purged)
@@ -557,6 +568,18 @@ void OMediaCanvas::read_class(OMediaStreamOperators &stream)
 			}
 		}
 	}
+
+	// port: HD texture pack: a canvas of an .omt database or a loose png/ file
+	if (get_database())
+	{
+		if (!get_database()->hd_name.empty())
+		{
+			char id[32];
+			sprintf(id, "/%d.png", (int)get_chunk_ID());		// as neg_hdtool names them
+			omhd::tag(this, "omt/" + get_database()->hd_name + id);
+		}
+	}
+	else omhd::tag_file(this, &stream);
 }
 
 void OMediaCanvas::write_class(OMediaStreamOperators &stream)

@@ -31,6 +31,7 @@
 
 #include "OMediaDataBase.h"
 #include "OMediaError.h"
+#include "OMediaHDPack.h"
 
 #include <algorithm>
 
@@ -44,6 +45,7 @@ OMediaDataBase::OMediaDataBase(OMediaStream *stream) : OMediaFormattedStream(str
 	get_database_broadcaster()->addlistener(this);
 	memory_used_dirty = true;
 	if (cache_size==0xFFFFFFFF) cache_size = 2000000;	// 2megs for default cache size
+	hd_name = omhd::db_name(stream);					// port: HD texture pack
 }
 
 OMediaDataBase::~OMediaDataBase(void)

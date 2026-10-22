@@ -81,6 +81,12 @@ class OMediaGLCanvas : public OMediaCanvasSlave
 	float					subdiv_w,subdiv_h;
 	float					last_u,last_v;
 	bool					dirty;
+
+	// port: HD texture pack (engine/sdl/OMediaHDPack.h)
+	OMediaCanvas			*hd_src;		// the pack picture while create_subimage runs
+	int						hd_scale;		// its factor when the texture holds a pack picture, else 0
+	double					hd_bytes;		// its memory (counted against the budget)
+	void release_textures(void);
 	
 };
 

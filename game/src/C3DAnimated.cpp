@@ -17,6 +17,7 @@
 #include "OMedia3DShapeConverter.h"
 #include "OMediaCanvas.h"
 #include "OMediaDataBase.h"
+#include "OMediaHDPack.h"
 #include "OMediaFilePath.h"
 #include "OMediaFileStream.h"
 #include "OMediaStreamOperators.h"
@@ -989,6 +990,7 @@ void C3DAnimated::BindTex(void)								// 0x41ae10
 				dst += 4;
 			}
 		f_918->unlock();									// +0x24 vtable +8
+		omhd::tag(f_918, std::string("grn/") + GrannyCompatTextureName(&tex) + ".png");	// port: HD texture pack
 		f_91c->set_texture(f_918);							// vtable +0x20
 		f_91c->set_shade_mode(omshademc_Gouraud);			// +0x28 = 1
 		f_91c->set_light_mode(ommlmc_Light);				// +0x2c = 2

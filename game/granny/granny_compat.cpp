@@ -952,6 +952,24 @@ granny_result GrannyUnlockNewTexture(granny_new_texture *t, granny_cookie cookie
 	return ret(GrannyOK);
 }
 
+const char *GrannyCompatTextureName(const granny_new_texture *t)
+{
+	static std::string name;
+	name.clear();
+	if (!t || !t->internal) return name.c_str();
+	const TextureInst *ti = (const TextureInst *)t->internal;
+	if (!ti->model || !ti->model->file) return name.c_str();
+	std::string b = ti->model->file->path;
+	size_t s = b.find_last_of("/\\");
+	if (s != std::string::npos) b = b.substr(s + 1);
+	size_t d = b.find_last_of('.');
+	if (d != std::string::npos) b.resize(d);
+	char n[16];
+	snprintf(n, sizeof n, "_%u", (unsigned)ti->index);
+	name = b + n;
+	return name.c_str();
+}
+
 granny_result GrannyGetBoneCount(granny_uint32 s0, granny_uint32 s1, granny_uint32 *count)
 {
 	Sequence *s = find_seq(s0, s1);
