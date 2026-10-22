@@ -70,16 +70,69 @@ public class NegatronActivity extends SDLActivity {
     private KeyEvent mBackDown, mBackUp;
     private boolean mBackLong, mBackPending, mSwallowBackUp;
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    // ------------------------------------------------------------------ port: suspend
+
+    /* SDL pauses the game thread (blocks its event loop, pauses the audio, keeps the GL context;
+     * engine/sdl/OMediaSDLInput.cpp then stops the clock and the game pauses itself) only in
+     * onStop on Android 7+. The Thor's lid / screen can go off without that, so the game is also
+     * suspended in onPause and when the main display turns off while the activity stays resumed. */
+    private boolean mResumed, mScreenOff;
+    private android.hardware.display.DisplayManager mDisplays;
+
+    private final android.hardware.display.DisplayManager.DisplayListener mScreenWatch =
+            new android.hardware.display.DisplayManager.DisplayListener() {
+        @Override public void onDisplayAdded(int id) { }
+        @Override public void onDisplayRemoved(int id) { }
+        @Override public void onDisplayChanged(int id) {
+            if (id == android.view.Display.DEFAULT_DISPLAY) screenChanged();
+        }
+    };
+
+    private void screenChanged() {
+        android.view.Display d = mDisplays != null ? mDisplays.getDisplay(android.view.Display.DEFAULT_DISPLAY) : null;
+        boolean off = d != null && d.getState() != android.view.Display.STATE_ON
+                && d.getState() != android.view.Display.STATE_UNKNOWN;
+        if (off == mScreenOff) return;
+        mScreenOff = off;
+        if (!mResumed) return;                          // onPause / onResume take care of it
+        if (off) suspendGame();
+        else resumeGame();
+    }
+
+    private void suspendGame() {
+        if (mPanel != null) mPanel.pause();             // the bottom screen stops polling
+        pauseNativeThread();
+    }
+
+    private void resumeGame() {
+        resumeNativeThread();
         if (mPanel != null) mPanel.resume();
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        mResumed = true;
+        if (mDisplays == null) {
+            mDisplays = (android.hardware.display.DisplayManager) getSystemService(DISPLAY_SERVICE);
+            if (mDisplays != null) mDisplays.registerDisplayListener(mScreenWatch, mUi);
+        }
+        screenChanged();
+        if (!mScreenOff) resumeGame();
+    }
+
+    @Override
     protected void onPause() {
-        if (mPanel != null) mPanel.pause();
+        mResumed = false;
+        suspendGame();
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mDisplays != null) mDisplays.unregisterDisplayListener(mScreenWatch);
+        mDisplays = null;
+        super.onDestroy();
     }
 
     /** Back held for 0.6 s, or pressed twice within 0.35 s, opens the port menu. A single back
