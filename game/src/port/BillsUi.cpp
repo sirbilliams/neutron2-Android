@@ -512,6 +512,81 @@ void BillsScore(float dt, short x, short y)
 	}
 }
 
+// --------------------------------------------------------------------------- 2c. the energy bar
+
+// C2DInGameMenu::SetHealthBar's work (the fill sprite g_health_bar, 20 wide, health * 1.044 high,
+// green from 70 up, yellow from 30, red below - the original's thresholds), with life: the fill
+// drains / fills smoothly, the colour eases between the thresholds' colours, a white flash when
+// energy is gained, a red flicker when hurt, a warning pulse below 30, and a soft glow around it
+// (an additive canvas of our own, in the bar's colour, breathing gently).
+static float s_hb = -1.0f, s_hb_last, s_hb_flash, s_hb_hurt, s_hb_t;
+static float s_hb_col[3] = { 0.0f, 1.0f, 0.0f };
+static unsigned s_hb_frame;
+static Deco s_hb_halo;
+
+void BillsHealthBar(float dt, float health)
+{
+	OMediaCanvasElement *bar = g_health_bar;
+	if (!bar) return;
+	if (s_hb < 0) s_hb = s_hb_last = health;
+	if (health > s_hb_last + 0.5f) s_hb_flash = 1.0f;
+	else if (health < s_hb_last - 0.5f) s_hb_hurt = 1.0f;
+	s_hb_last = health;
+	s_hb += (health - s_hb) * (1.0f - expf(-dt * 7.0f));
+	if (fabsf(health - s_hb) < 0.05f) s_hb = health;
+	s_hb_t += dt;
+	s_hb_flash -= dt * 2.5f; if (s_hb_flash < 0) s_hb_flash = 0;
+	s_hb_hurt -= dt * 2.0f;  if (s_hb_hurt < 0) s_hb_hurt = 0;
+
+	// the original's colour for the shown value, eased
+	const float tr = s_hb < 70.0f ? 1.0f : 0.0f, tg = s_hb < 30.0f ? 0.0f : 1.0f;
+	const float ease = 1.0f - expf(-dt * 6.0f);
+	s_hb_col[0] += (tr - s_hb_col[0]) * ease;
+	s_hb_col[1] += (tg - s_hb_col[1]) * ease;
+	float r = s_hb_col[0], g = s_hb_col[1], b = 0.0f, k = 1.0f;
+	if (s_hb < 30.0f) k = 0.5f + 0.5f * (0.5f + 0.5f * sinf(s_hb_t * 9.0f));	// low: warning pulse
+	r = r * k + (1.0f - r * k) * s_hb_flash;										// gained: white flash
+	g = g * k + (1.0f - g * k) * s_hb_flash;
+	b = s_hb_flash * 0.8f;
+	if (s_hb_hurt > 0 && ((int)(s_hb_t * 24.0f) & 1))							// hurt: red flicker
+	{
+		r = 1.0f; g = 0.12f; b = 0.08f;
+	}
+	const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
+	bar->set_diffuse(OMediaFARGBColor(1.0f, r, g, b));
+	bar->set_size(sx * 20.0f, (float)((double)(sy * s_hb) * 1.044));
+
+	// the glow, around the fill (the sprite's place is its bottom left corner)
+	if (!s_hb_halo.elt)
+	{
+		const int w = 32, h = 128;
+		unsigned int *px = DecoBegin(s_hb_halo, g_layer_hud2d, w, h, true);
+		if (px)
+			for (int j = 0; j < h; j++)
+				for (int i = 0; i < w; i++)
+				{
+					// signed distance (pixels) to the inner rectangle, 8 px in from each side: a soft
+					// glow outside it, a faint fill inside rising to the edge
+					const float x = fabsf(i + 0.5f - w * 0.5f) - (w * 0.5f - 8.0f);
+					const float y = fabsf(j + 0.5f - h * 0.5f) - (h * 0.5f - 8.0f);
+					const float sd = (x > 0 || y > 0) ? sqrtf((x > 0 ? x * x : 0) + (y > 0 ? y * y : 0)) : (x > y ? x : y);
+					const float a = sd > 0 ? 0.9f * expf(-(sd / 4.0f) * (sd / 4.0f)) : 0.2f + 0.7f * expf(-(sd / 3.0f) * (sd / 3.0f));
+					px[j * w + i] = Rgba(1.0f, 1.0f, 1.0f, a);
+				}
+		DecoDone(s_hb_halo);
+	}
+	const float fh = s_hb * 1.044f;
+	if (fh > 0.5f)
+	{
+		const float x0 = (bar->get_x() + (float)(g_screen_w / 2)) / sx, bottom = ((float)(g_screen_h / 2) - bar->get_y()) / sy;
+		float glow = 0.30f + 0.12f * sinf(s_hb_t * 2.2f) + 0.6f * s_hb_flash + 0.6f * s_hb_hurt;
+		if (s_hb < 30.0f) glow += 0.35f * k;
+		s_hb_halo.elt->set_diffuse(OMediaFARGBColor(glow > 1 ? 1.0f : glow, r, g, b + 0.2f * g));
+		DecoPlace(s_hb_halo, x0 - 8.0f, bottom - fh - 8.0f, 36.0f, fh + 16.0f);
+		s_hb_frame = s_frame;
+	}
+}
+
 // --------------------------------------------------------------------------- 3. the help pictures
 
 // The help picture of the current gadget (g_elt_544908[g_help_index], bottom left: the mouse and
@@ -610,6 +685,8 @@ void BillsUiFrame(float dt)
 	s_frame++;
 	const bool on = BillsUi();
 	if (!on || s_frame - s_sonar_frame > 2) DecoHide(s_sonar_plate);
+	if (!on || s_frame - s_hb_frame > 2) DecoHide(s_hb_halo);
+	if (!on) s_hb = -1.0f;
 	ScopeFrame(dt, on && g_game_mode == 4 && g_menu && g_menu->f_4ce == 3);
 	if (g_help_index >= 0 && g_help_index < 14) HelpPieceFrame(s_help[0], &g_elt_544908[g_help_index], WIDE_LEFT, on);
 	HelpPieceFrame(s_help[1], g_help_menu_elt, WIDE_RIGHT, on);
@@ -625,6 +702,8 @@ void BillsUiShutdown(void)
 	DecoFree(s_sonar_plate);
 	DecoFree(s_scope);
 	DecoFree(s_score_halo);
+	DecoFree(s_hb_halo);
+	s_hb = -1.0f;
 	for (int i = 0; i < 2; i++)
 	{
 		DecoFree(s_help[i].plate);

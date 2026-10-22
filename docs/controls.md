@@ -158,6 +158,9 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan
   lines, bright edge with corner brackets), the picture's drawn part (its opaque pixels, measured
   at run time) centred in it, 10 units in from the screen's edges. Vanilla: the original places.
+- **Energy bar** (top left): drains and fills smoothly instead of jumping, its colour eases between
+  the original's (green from 70, yellow from 30, red below), a white flash when energy is gained,
+  a red flicker when hurt, a warning pulse below 30, and a soft glow in the bar's colour.
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
