@@ -70,7 +70,7 @@ bottom screen becomes the companion panel. The box art is the player's own pictu
 (`boxart.img`), "Box art: clear" removes it; never put the cover in the repo. "Menu background:
 choose image..." / "clear" work the same way (`background.img`): the picture fills the main
 screen behind the plates (cover-fit, dimmed); without one, brushed steel. Without one the
-game's own menu picture (below) is shown, or a drawn atom before the game has saved it.
+game's own PDA menu picture (below) is shown, or a drawn atom before the game has saved it.
 
 **Saves** (main menu): **Export saves** writes the save folder's files (`autosave*.tsk`,
 `JimmyGame1..10.tsk`, `StartLevel.txt`; not `slots.txt`, which the game rewrites) to a .zip where
@@ -85,10 +85,18 @@ The game starts with `NEG_START` set (see "How the game starts" below): `new`, `
 `load:<slot>`. (The "original menu" style was removed at Bill's request: the app always shows the launcher;
 the game's own Main Menu is the PDA, Esc / Start in play.)
 The slots come from the game's `save/slots.txt` (before the game first wrote it: the .tsk headers).
-The info window shows the game's own main-menu background (screens.omt, read at run time): the
-game saves it once to `launcher-art.png` in the app's files folder (`NEG_MENU_ART`), so it appears
-from the second start. Desktop preview: `tools/companion/render-menu.sh <game folder> <out dir>
-[picture] [box art stand-in] [background stand-in]` draws every page for both screens.
+The info window shows a picture for the highlighted option, cross-faded on change: the game's own
+full-screen pictures (screens.omt, read from the player's files at run time; game/src/port/
+LauncherArt.cpp saves them once into the app's files folder `launcher/`, `NEG_LAUNCHER_ART`, so
+they appear from the second start): Continue = the autosave level's loading picture (saved as
+levels are played; else the general loading screen), New Game = the museum, Load Game = the
+load / save screen, Saves = the PDA menu, Settings = the options screen, Test = the inventory
+screen, Quit = the credits. The other pages use their option's picture. Until a picture is there,
+an illustration drawn in code takes its place (`LauncherArt.java`: atom, play dial, floppy disk,
+floppy + PDA, gears + gauge, flask, rocket). Desktop preview: `tools/companion/render-menu.sh
+<game folder> <out dir> [folder of the game's pictures, or -] [box art stand-in] [background
+stand-in]` draws every page, and the main menu with each option highlighted (`opt_<id>`), for both
+screens.
 
 ## Port menu and the bottom-screen panel (port)
 

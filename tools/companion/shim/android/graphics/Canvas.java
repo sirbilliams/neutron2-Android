@@ -51,7 +51,10 @@ public class Canvas {
         java.awt.geom.AffineTransform t = g.getTransform();
         g.translate(dst.left, dst.top);
         g.scale(dst.width() / b.getWidth(), dst.height() / b.getHeight());
+        java.awt.Composite old = g.getComposite();
+        if (p != null && p.alpha < 255) g.setComposite(java.awt.AlphaComposite.getInstance(java.awt.AlphaComposite.SRC_OVER, p.alpha / 255f));
         g.drawImage(b.img, 0, 0, null);
+        g.setComposite(old);
         g.setTransform(t);
     }
 }

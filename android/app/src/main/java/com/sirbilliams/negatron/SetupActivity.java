@@ -184,8 +184,33 @@ public class SetupActivity extends Activity {
         }
     }
 
-    /** The game's main menu background, saved by the game on its first run (NEG_MENU_ART). */
-    static final String MENU_ART = "launcher-art.png";
+    /** The game's own pictures for the launcher, saved by the game (NEG_LAUNCHER_ART; LauncherArt.h). */
+    static final String ART_DIR = "launcher";
+
+    /** Picture key (LauncherModel.pics) -> the file the game saves for it. */
+    private static final String[][] PICS = {
+        { "new", "museum.png" }, { "load", "loadsave.png" }, { "saves", "menu.png" },
+        { "settings", "options.png" }, { "test", "inventory.png" }, { "quit", "credits.png" } };
+
+    /** The game's pictures (small: the info window shows them at most 640 x 480). */
+    private void loadPictures() {
+        File dir = new File(getExternalFilesDir(null), ART_DIR);
+        mMenu.pics.clear();
+        for (String[] k : PICS) putPicture(k[0], new File(dir, k[1]));
+        // Continue: the autosave's level (its loading picture), else the general loading screen
+        LauncherPages.Slot auto = LauncherPages.slots(saveDir())[0];
+        String gam = auto.gam.toLowerCase(Locale.ROOT);
+        if (gam.endsWith(".gam")) gam = gam.substring(0, gam.length() - 4);
+        if (!auto.present || gam.length() == 0 || !putPicture("continue", new File(dir, "level-" + gam + ".png")))
+            putPicture("continue", new File(dir, "loading.png"));
+        mMenu.art = mMenu.pics.get("saves");                        // the PDA: the bottom screen's fallback
+    }
+
+    private boolean putPicture(String key, File f) {
+        android.graphics.Bitmap b = f.isFile() ? android.graphics.BitmapFactory.decodeFile(f.getPath()) : null;
+        if (b != null) mMenu.pics.put(key, b);
+        return b != null;
+    }
 
     private LauncherModel mMenu;
     private LauncherView mTop;
@@ -217,7 +242,7 @@ public class SetupActivity extends Activity {
         // port: always the launcher (Bill removed the "original menu" style; the game's own Main Menu
         // is still its PDA, opened with Esc / Start in play).
         mMenu = new LauncherModel();
-        mMenu.art = android.graphics.BitmapFactory.decodeFile(new File(getExternalFilesDir(null), MENU_ART).getPath());
+        loadPictures();
         mMenu.boxArt = decodeScaled(boxArtFile());
         mMenu.background = decodeScaled(backgroundFile());
         mMenu.reset(mainPage());
@@ -518,6 +543,7 @@ public class SetupActivity extends Activity {
         new File(dir, "slots.txt").delete();
         mIncoming = new ArrayList<>();
         toast("Imported " + n + " save file" + (n == 1 ? "" : "s") + ".");
+        loadPictures();                                         // Continue's picture may change
         mMenu.reset(mainPage());
     }
 

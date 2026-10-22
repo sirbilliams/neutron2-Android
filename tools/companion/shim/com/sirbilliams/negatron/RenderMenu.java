@@ -16,9 +16,21 @@ public final class RenderMenu {
         out.mkdirs();
         File save = new File(game, "save");
         LauncherModel m = new LauncherModel();
-        if (a.length > 2) m.art = Bitmap.wrap(ImageIO.read(new File(a[2])));
+        if (a.length > 2 && !a[2].equals("-")) {           // the folder the game saves its pictures in
+            String[][] pics = { { "new", "museum.png" }, { "load", "loadsave.png" }, { "saves", "menu.png" },
+                { "settings", "options.png" }, { "test", "inventory.png" }, { "quit", "credits.png" },
+                { "continue", "loading.png" } };
+            for (String[] k : pics) {
+                File f = new File(a[2], k[1]);
+                if (f.isFile()) m.pics.put(k[0], Bitmap.wrap(ImageIO.read(f)));
+            }
+            m.art = m.pics.get("saves");
+        }
         m.reset(LauncherPages.main(LauncherPages.slots(save)[0], true));
         draw(m, out, "main");
+        for (int k = 0; k < m.page().items.size(); k++)          // each option's picture
+            if (m.select(k)) draw(m, out, "opt_" + m.page().items.get(k).id);
+        m.select(1);
         if (a.length > 3) {                         // a stand-in for the player's box art
             m.boxArt = Bitmap.wrap(ImageIO.read(new File(a[3])));
             draw(m, out, "main_boxart");
@@ -28,7 +40,7 @@ public final class RenderMenu {
         draw(m, out, "new");
         m.pop();
         if (a.length > 4) m.background = Bitmap.wrap(ImageIO.read(new File(a[4])));   // a stand-in
-        m.push(LauncherPages.settings(true, true, true, false, false, a.length > 4));
+        m.push(LauncherPages.settings(true, true, true, false, a.length > 4));
         draw(m, out, "settings");
         m.pop();
         m.push(LauncherPages.load(LauncherPages.slots(save)));

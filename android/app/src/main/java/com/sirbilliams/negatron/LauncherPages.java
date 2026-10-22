@@ -154,6 +154,7 @@ final class LauncherPages {
 
     static LauncherModel.Page saves() {
         LauncherModel.Page p = new LauncherModel.Page("saves", "Saves");
+        p.pic = "saves";
         p.add("export_all", "Export saves", "Write all the game's saves (the autosave and slots 1-10) to one "
                 + ".zip: Downloads, Drive... They are the original game's own files, usable in the PC game's "
                 + "save folder too. One slot: Load Game, then Y.");
@@ -166,6 +167,7 @@ final class LauncherPages {
     /** What an import holds: Cancel first (the default), Import, then one row per file. */
     static LauncherModel.Page importPage(List<Incoming> files) {
         LauncherModel.Page p = new LauncherModel.Page("import", "Import saves");
+        p.pic = "saves";
         int replaced = 0;
         StringBuilder which = new StringBuilder();
         for (Incoming f : files) {
@@ -192,6 +194,7 @@ final class LauncherPages {
     /** A single .tsk whose name is no slot's: which slot it goes into. */
     static LauncherModel.Page importTarget(Slot[] have) {
         LauncherModel.Page p = new LauncherModel.Page("import_to", "Import into slot");
+        p.pic = "saves";
         for (int n = 1; n <= SLOTS; n++) {
             Slot s = have[n];
             LauncherModel.Item i = p.add("to:" + n, n + "  " + (s.present ? s.level() : "---"),
@@ -227,11 +230,13 @@ final class LauncherPages {
         p.add("settings", "Settings", "Widescreen, the bottom screen, box art and background.");
         if (test) p.add("test", "Test", "Jump to a level, the model viewer, share the log.");
         p.add("quit", "Quit", "Close the game.");
+        for (LauncherModel.Item it : p.items) it.pic = it.id;     // each option its own picture
         return p;
     }
 
     static LauncherModel.Page newGame() {
         LauncherModel.Page p = new LauncherModel.Page("new", "New game");
+        p.pic = "new";
         p.warning = "A new game wipes the autosave: Continue will start from the beginning.";
         p.add("new_yes", "Start a new game", "Wipe the autosave and start from the beginning.");
         p.add("back", "Cancel", "Back to the main menu.");
@@ -241,6 +246,7 @@ final class LauncherPages {
 
     static LauncherModel.Page load(Slot[] slots) {
         LauncherModel.Page p = new LauncherModel.Page("load", "Load game");
+        p.pic = "load";
         for (int n = 1; n < slots.length; n++) {
             Slot s = slots[n];
             LauncherModel.Item i = p.add("slot:" + n, n + "  " + (s.present ? s.level() : "---"),
@@ -257,6 +263,7 @@ final class LauncherPages {
     static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen,
             boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
+        p.pic = "settings";
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
         i.value = wide ? "ON" : "OFF";
         i = p.add("panel", "Dual screen", (secondScreen ? "" : "No second screen found. ")
@@ -283,6 +290,7 @@ final class LauncherPages {
 
     static LauncherModel.Page test() {
         LauncherModel.Page p = new LauncherModel.Page("test", "Test");
+        p.pic = "test";
         p.add("levels", "Jump to a level", "Play one level straight away, without its opening (NEG_TEST_PLAY).");
         p.add("viewer", "Model viewer", "Look at the game's models.");
         p.add("log", "Share log", "Send the last run's log (omt-log.txt) as text.");
@@ -292,6 +300,7 @@ final class LauncherPages {
 
     static LauncherModel.Page levels(List<String> gams) {
         LauncherModel.Page p = new LauncherModel.Page("levels", "Jump to a level");
+        p.pic = "test";
         for (String g : gams) {
             p.add("level:" + g, g, "Play " + g + " from its start.");
             if (g.equalsIgnoreCase("Level5.gam")) p.sel = p.items.size() - 1;

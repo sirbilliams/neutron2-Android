@@ -17,6 +17,7 @@ final class LauncherModel {
         String[] detail;            // a save slot's preview lines, or null
         boolean enabled = true;
         boolean hint;               // drawn as a note, not a button (e.g. "later")
+        String pic;                 // the info window's picture (LauncherView), else the page's
 
         Item(String id, String label, String help) {
             this.id = id;
@@ -32,6 +33,7 @@ final class LauncherModel {
         int sel;
         String warning;             // a page with a warning shows it above the items (New Game)
         String footer;              // the pad hint under the buttons, or null for the usual one
+        String pic;                 // the info window's picture for the page's items (LauncherView)
 
         Page(String id, String title) {
             this.id = id;
@@ -51,6 +53,17 @@ final class LauncherModel {
     private final ArrayList<Listener> mListeners = new ArrayList<>();
     /** A picture from the game's own files (read at run time), shown in the info window; or null. */
     Object art;
+    /** The game's own pictures for the info window by picture key (continue, new, load, saves,
+     *  settings, test, quit), read at run time; a key without one gets a drawn illustration. */
+    final java.util.HashMap<String, Object> pics = new java.util.HashMap<>();
+
+    /** The picture key of the selected item (its own, else its page's), or null. */
+    String picKey() {
+        Page p = page();
+        Item i = selected();
+        if (i != null && i.pic != null) return i.pic;
+        return p != null ? p.pic : null;
+    }
     /** The game's box art, which the player chose (Settings), shown alone on the bottom screen
      *  while the main menu is up; or null (then the picture above, or a drawn atom). */
     Object boxArt;

@@ -9,7 +9,9 @@ public class Paint {
     float textSize = 12; Typeface typeface = Typeface.SANS_SERIF; Align align = Align.LEFT; Shader shader;
     public Paint() {}
     public Paint(int flags) {}
+    int alpha = 255;
     public void setColor(int c) { color = c; }
+    public void setAlpha(int a) { alpha = a; }
     public void setStyle(Style s) { style = s; }
     public void setStrokeWidth(float w) { strokeWidth = w; }
     public void setStrokeCap(Cap c) { cap = c; }

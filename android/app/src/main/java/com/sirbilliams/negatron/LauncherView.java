@@ -62,6 +62,10 @@ final class LauncherView extends View {
     private Bitmap mChrome;
     private int mChromeW, mChromeH;
     private boolean mCover;                 // the chrome is the main menu's cover background
+    private String mPicKey, mPrevKey;       // the info window's picture and the one fading out
+    private long mFadeStart;
+    private static final float FADE_MS = 280;
+    private final java.util.HashMap<String, Bitmap> mDrawn = new java.util.HashMap<>();
     private Object mCoverArt;               // ... for this picture
 
     LauncherView(Context c, LauncherModel model, boolean bottom) {
@@ -173,19 +177,22 @@ final class LauncherView extends View {
         engraved(c, p.footer != null ? p.footer : "D-PAD / STICK  CHOOSE     A  SELECT     B  BACK",
                 T_MENU.centerX(), T_MENU.bottom - 26, 22, true, false);
 
-        // the info window: the game's picture or an atom, then the selected item's help / preview
+        // the info window: the option's picture (the game's own, else drawn here), cross-faded
+        // when the selection changes, then the selected item's help / preview
         RectF crt = new RectF(T_INFO.left + BEZEL, T_INFO.top + BEZEL, T_INFO.right - BEZEL, T_INFO.bottom - BEZEL);
-        float picH = crt.height() * 0.52f;
-        Bitmap art = mModel.art instanceof Bitmap ? (Bitmap) mModel.art : null;
-        if (art != null) {
-            float sc = Math.min((crt.width() - 60) / art.getWidth(), (picH - 40) / art.getHeight());
-            float aw = art.getWidth() * sc, ah = art.getHeight() * sc;
-            mRect.set(crt.centerX() - aw / 2, crt.top + 30, crt.centerX() + aw / 2, crt.top + 30 + ah);
-            c.drawBitmap(art, null, mRect, mBmp);
-            scanlines(c, mRect);
-        } else {
-            atom(c, crt.centerX(), crt.top + picH / 2 + 10, picH * 0.36f, t);
+        float picH = crt.height() * 0.54f;
+        String key = mModel.picKey();
+        if (key == null) key = "";
+        if (!key.equals(mPicKey)) {
+            mPrevKey = mPicKey;
+            mPicKey = key;
+            mFadeStart = mPrevKey == null ? t - (long) FADE_MS : t;    // the first one: no fade
         }
+        float f = Math.min(1f, Math.max(0f, (t - mFadeStart) / FADE_MS));
+        float aw = Math.min(crt.width() - 60, (picH - 40) * 4f / 3f), ah = aw * 3f / 4f;
+        RectF pic = new RectF(crt.centerX() - aw / 2, crt.top + 30, crt.centerX() + aw / 2, crt.top + 30 + ah);
+        if (f < 1f && mPrevKey != null) picture(c, mPrevKey, pic, 1f);
+        picture(c, mPicKey, pic, f);
         mStroke.setShader(null);
         mStroke.setStrokeWidth(2);
         mStroke.setColor(Color.argb(90, 110, 255, 140));
@@ -210,6 +217,30 @@ final class LauncherView extends View {
             lcd(c, vx, y + 15, vw, ROW_H - 30);
             text(c, it.value, vx + vw / 2, y + 55, 30, it.enabled ? LED_ON : LED_DIM, Paint.Align.CENTER, true);
         }
+    }
+
+    /** The picture for key in r with alpha a: the game's own (with scanlines), else the drawing. */
+    private void picture(Canvas c, String key, RectF r, float a) {
+        if (key == null || a <= 0) return;
+        Object o = mModel.pics.get(key);
+        boolean game = o instanceof Bitmap;
+        Bitmap b = game ? (Bitmap) o : drawn(key);
+        if (b == null) return;
+        mBmp.setAlpha(Math.round(255 * a));
+        c.drawBitmap(b, null, r, mBmp);
+        mBmp.setAlpha(255);
+        if (game && a >= 1f) scanlines(c, r);
+    }
+
+    /** An illustration drawn in code (phosphor green, atomic-age lab motifs), 640 x 480, cached. */
+    private Bitmap drawn(String key) {
+        Bitmap b = mDrawn.get(key);
+        if (b != null) return b;
+        b = Bitmap.createBitmap(640, 480, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(b);
+        LauncherArt.draw(c, key);
+        mDrawn.put(key, b);
+        return b;
     }
 
     // ------------------------------------------------------------------ bottom screen
