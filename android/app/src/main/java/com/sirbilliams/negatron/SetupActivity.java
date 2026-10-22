@@ -110,8 +110,6 @@ public class SetupActivity extends Activity {
 
     // ------------------------------------------------------------------ port: the launcher menu
 
-    /** port: the menu style, "new" (the launcher, default) or "original" (the game's own title menu). */
-    static final String PREF_MENU_ORIGINAL = "menu_original";
     /** Intent extra: show the launcher even when the original menu is chosen. */
     static final String EXTRA_LAUNCHER = "launcher";
     /** The player's box art picture, copied into the app's private files (never shipped in the repo). */
@@ -216,11 +214,8 @@ public class SetupActivity extends Activity {
 
     /** Game files present: the launcher menu, or straight into the game's own title menu. */
     private void buildChooser() {
-        boolean launcher = getIntent() != null && getIntent().getBooleanExtra(EXTRA_LAUNCHER, false);
-        if (prefs().getBoolean(PREF_MENU_ORIGINAL, false) && !launcher) {
-            launch("negatron", null, "menu");
-            return;
-        }
+        // port: always the launcher (Bill removed the "original menu" style; the game's own Main Menu
+        // is still its PDA, opened with Esc / Start in play).
         mMenu = new LauncherModel();
         mMenu.art = android.graphics.BitmapFactory.decodeFile(new File(getExternalFilesDir(null), MENU_ART).getPath());
         mMenu.boxArt = decodeScaled(boxArtFile());
@@ -253,7 +248,7 @@ public class SetupActivity extends Activity {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), CompanionPanel.wanted(p, second), second,
-                p.getBoolean(PREF_MENU_ORIGINAL, false), boxArtFile().isFile(),
+                boxArtFile().isFile(),
                 backgroundFile().isFile());
     }
 
@@ -290,9 +285,6 @@ public class SetupActivity extends Activity {
             p.edit().putBoolean(CompanionPanel.KEY_ON, !CompanionPanel.wanted(p, second)).apply();
             mMenu.replace(settingsPage());
             showBottom();
-        } else if (id.equals("style")) {
-            p.edit().putBoolean(PREF_MENU_ORIGINAL, !p.getBoolean(PREF_MENU_ORIGINAL, false)).apply();
-            mMenu.replace(settingsPage());
         } else if (id.equals("saves")) mMenu.push(LauncherPages.saves());
         else if (id.equals("export_all")) {
             String date = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new java.util.Date());
@@ -559,7 +551,7 @@ public class SetupActivity extends Activity {
         else if (repeat) return true;
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
-            if (it != null && (it.id.equals("wide") || it.id.equals("panel") || it.id.equals("style"))) choose();
+            if (it != null && (it.id.equals("wide") || it.id.equals("panel") )) choose();
         } else if (act == 4) choose();
         else if (act == 5) back();
         else if (act == 6) {

@@ -59,7 +59,7 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no
 artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it wipes the autosave),
 **Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: level, score, date), **Settings**
-(widescreen 16:9, dual screen, menu style, box art, menu background, "HD image pack" for later) and **Quit**. Select or Y on
+(widescreen 16:9, dual screen, box art, menu background, "HD image pack" for later) and **Quit**. Select or Y on
 the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
 viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
 back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows, on the
@@ -82,8 +82,8 @@ slot it goes into. Paths inside the zip are ignored (only known save names are t
 are the original game's own format: they work in the PC game's `save` folder and back.
 
 The game starts with `NEG_START` set (see "How the game starts" below): `new`, `continue`,
-`load:<slot>`, or `menu` when Settings -> Menu style is ORIGINAL (the app then skips the launcher:
-the original start, with the game's own Main Menu, the PDA; the port menu below switches back).
+`load:<slot>`. (The "original menu" style was removed at Bill's request: the app always shows the launcher;
+the game's own Main Menu is the PDA, Esc / Start in play.)
 The slots come from the game's `save/slots.txt` (before the game first wrote it: the .tsk headers).
 The info window shows the game's own main-menu background (screens.omt, read at run time): the
 game saves it once to `launcher-art.png` in the app's files folder (`NEG_MENU_ART`), so it appears
@@ -110,7 +110,6 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   choice made here or in the launcher's Settings is remembered and wins. With no second screen
   the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
-- **Menu style: NEW / ORIGINAL** - the launcher or the game's own title menu, from the next start.
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
 a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads
