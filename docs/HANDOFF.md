@@ -200,7 +200,7 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
   from the level geometry, the game's own icons read at run time, tasks lit when active (no "done" state
   found). Desktop preview: `NEG_COMPANION_DUMP=<dir>` + `tools/companion/render.sh <dir> <Level> out.png`.
   Bill tried it on the Thor's bottom screen: "looks great", some polish still to do (ask him which).
-  HD image pack: on hold (Bill), see "Next" 3.
+  HD texture pack: loader + install done (docs/hd-pack.md).
 - **Bill's next requests (planned with him, not started):**
   - Dual-screen panel ON by default when a second display is present (off otherwise); an explicit
     choice by the player is remembered and wins.
@@ -290,19 +290,15 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
      by the margin (`game/src/port/Widescreen.h`). Android: SetupActivity "Widescreen (16:9)" checkbox
      (prefs, default on). Unchecked visually: the PiP viewport (no PiP seen in the Level5/3 openings).
      Test: `NEG_WIDESCREEN=1 OMT_WINDOW_SIZE=1920x1080` vs `NEG_WIDESCREEN=0`.
-   - **AI-upscaled HD pack of full-screen art + HUD/icons (PAUSED by Bill):** `tools/hd/neg_hdtool.cpp`
-     (desktop: `list`, `extract` to `<out>/<db>/<id>.png` + manifest.tsv, `install` (untested)) is on main.
-     Inventory: 739 images: screens.omt 553 (27 full-screen 640x480; help panels, menu buttons/icons,
-     pickup/collect icons, digits, letterbox, cursor), alpha.omt 142 (font), Editor.omt 8 (THQ/AWE splash),
-     RetainedSprites.omt 36 (radar, cursor, splashes); icons/permanenticons.omt left out (editor only).
-     Upscaler: Real-ESRGAN ncnn-vulkan from GitHub on CPU (needs `mesa-vulkan-drivers`):
-     realesr-animevideov3 ~44 s per 640x480 (whole set ~35-40 min), realesrgan-x4plus-anime ~7 min each
-     (~5 h, visibly sharper). Plan: upscale the alpha separately, keep hard alpha hard, full-screen art to
-     1440x1080, the rest 3x. Loader designed, not written: an engine hook when a canvas is loaded from an
-     .omt looks for `hd/<db>/<id>.png`, uploads the HD pixels to the GL texture while the canvas keeps its
-     original size; the full-screen tile path needs a small change; drop the HD copy if the game draws into
-     the canvas. Then a SetupActivity "Install HD image pack (.zip)". THE PACK IS GAME ART: only ever in
-     Bill's private negatron-gamefiles repo (branch `hd-pack`), never in this repo.
+   - **HD texture pack (done, docs/hd-pack.md):** `hd/omt/<db>/<id>.png`, `hd/png/<name>.png`,
+     `hd/grn/<model>_<n>.png` (integer multiples of the originals) are uploaded as the textures of the
+     canvases they stand for (engine/sdl/OMediaHDPack.cpp; hooks in OMediaCanvas, OMediaDataBase,
+     OMediaGLCanvas, C3DAnimated::BindTex); the game's sizes stay the original. Launcher Settings
+     "HD texture pack: install (.zip)" / "remove"; desktop `neg_hdtool install|remove`. Tested on the
+     desktop with a fake 2x pack (3D, HUD, full-screen pause art, granny, loose png); not yet on the Thor
+     with Bill's real pack (watch the log's "HD:" lines: replaced count, memory). Upscaler notes:
+     Real-ESRGAN ncnn-vulkan (realesr-animevideov3 fast, realesrgan-x4plus-anime sharper); upscale the
+     alpha separately and keep hard alpha hard. THE PACK IS GAME ART: never in this repo.
 4. Then the rest of the game: the next .gam files after Level3, the same way (census -> classes -> compare).
 
 ## Reference: the research for the Level5 and Level3 classes (all done now)
