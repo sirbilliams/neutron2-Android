@@ -59,7 +59,7 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no
 artwork in the repo): **Continue** (the autosave), **New Game** (asks first: it wipes the autosave),
 **Load Game** (the game's save slots `save/JimmyGame1..10.tsk`: level, score, date), **Settings**
-(widescreen 16:9, dual screen, box art, menu background, "HD image pack" for later) and **Quit**. Select or Y on
+(widescreen 16:9, in-game UI, dual screen, box art, menu background, "HD image pack" for later) and **Quit**. Select or Y on
 the pad (or a long press on the title) shows a hidden **Test** item: jump to a level, the model
 viewer, share the log. D-pad / left stick choose, A selects, left / right flip a setting, B goes
 back; touch works too. On a dual-screen device (dual screen on) the bottom screen shows, on the
@@ -128,12 +128,20 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   choice made here or in the launcher's Settings is remembered and wins. With no second screen
   the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
+- **In-game UI: BILL'S UI / VANILLA** - switches the in-game UI polish at once (remembered; also
+  the launcher's Settings item "In-game UI", passed to the game as `NEG_UI=bills|vanilla`, default
+  Bill's UI; desktop: the environment variable). See "Bill's UI" below.
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
 a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads
 the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1` logs the same
 snapshot once a second, and `NEG_COMPANION_DUMP=<dir>` writes the map, the snapshot and the icons
 there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel from them.
+
+## Bill's UI (port)
+
+`NEG_UI=bills` (the default) or `vanilla` (game/src/port/BillsUi.h). Vanilla is the original's look.
+Bill's UI adds, all drawn in code (only the game's own fonts and pictures are read at run time):
 
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
 

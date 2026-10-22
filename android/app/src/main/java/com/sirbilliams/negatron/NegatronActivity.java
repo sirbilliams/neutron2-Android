@@ -50,6 +50,17 @@ public class NegatronActivity extends SDLActivity {
             boolean wide = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getBoolean(SetupActivity.PREF_WIDESCREEN, true);
             Os.setenv("NEG_WIDESCREEN", wide ? "1" : "0", true);
+            // port: the in-game UI (game/src/port/BillsUi.h), the launcher's Settings / the port menu
+            boolean bills = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
+                    .getBoolean(SetupActivity.PREF_BILLS_UI, true);
+            Os.setenv("NEG_UI", bills ? "bills" : "vanilla", true);
+            // port: the app's version for the pause screen's credit line
+            try {
+                android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
+                Os.setenv("NEG_APP_VERSION", pi.versionName + " (" + pi.versionCode + ")", true);
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                Os.unsetenv("NEG_APP_VERSION");
+            }
         } catch (ErrnoException e) {
             // no test hook then
         }
@@ -219,13 +230,19 @@ public class NegatronActivity extends SDLActivity {
         String panel = "Bottom screen panel: " + (on ? "ON" : "OFF")
                 + (mPanel.hasSecondDisplay() ? "" : " (no second screen found)");
         String zoom = "Panel map zoom: " + (far ? "FAR" : "NEAR");
+        final boolean bills = prefs.getBoolean(SetupActivity.PREF_BILLS_UI, true);
+        String ui = "In-game UI: " + (bills ? "BILL'S UI" : "VANILLA");
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
-                .setItems(new String[] { panel, zoom, "Close" }, new DialogInterface.OnClickListener() {
+                .setItems(new String[] { panel, zoom, ui, "Close" }, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) mPanel.setEnabled(!on);
                         else if (which == 1) mPanel.setZoomFar(!far);
+                        else if (which == 2) {          // port: Bill's UI / Vanilla, applied at once
+                            prefs.edit().putBoolean(SetupActivity.PREF_BILLS_UI, !bills).apply();
+                            Companion.setBillsUi(!bills);
+                        }
                     }
                 })
                 .show();

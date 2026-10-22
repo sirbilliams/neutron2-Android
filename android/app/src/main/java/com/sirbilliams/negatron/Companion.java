@@ -14,6 +14,7 @@ final class Companion {
     private static native void nativeSetEnabled(boolean on);
     private static native int[] nativeMap();
     private static native int[] nativeIcon(int id);
+    private static native void nativeSetBillsUi(boolean on);
 
     /** The latest snapshot as JSON, or null when the game library is not there. */
     static String snapshot() {
@@ -55,6 +56,15 @@ final class Companion {
             nativeSetEnabled(on);
         } catch (UnsatisfiedLinkError e) {
             sBroken = true;
+        }
+    }
+
+    /** port: switches the in-game UI (Bill's UI / Vanilla) while the game runs (game/src/port/BillsUi.h). */
+    static void setBillsUi(boolean on) {
+        try {
+            nativeSetBillsUi(on);
+        } catch (UnsatisfiedLinkError e) {
+            // not the game
         }
     }
 }

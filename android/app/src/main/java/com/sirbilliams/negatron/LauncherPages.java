@@ -262,10 +262,19 @@ final class LauncherPages {
 
     static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen,
             boolean boxArt, boolean background) {
+        return settings(wide, true, panel, secondScreen, boxArt, background);
+    }
+
+    static LauncherModel.Page settings(boolean wide, boolean billsUi, boolean panel, boolean secondScreen,
+            boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         p.pic = "settings";
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
         i.value = wide ? "ON" : "OFF";
+        i = p.add("ui", "In-game UI", "Bill's UI: the port's polish (the pause screen's scope, the score "
+                + "counting up, framed help pictures, the sonar readout centred). Vanilla: the original look. "
+                + "Also in game: hold Back.");
+        i.value = billsUi ? "BILL'S UI" : "VANILLA";
         i = p.add("panel", "Dual screen", (secondScreen ? "" : "No second screen found. ")
                 + "The bottom screen shows the level map, the tasks and the gadgets while you play "
                 + "(on by default when there is a second screen). Also in game: hold Back.");

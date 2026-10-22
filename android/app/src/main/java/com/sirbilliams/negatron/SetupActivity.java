@@ -280,7 +280,8 @@ public class SetupActivity extends Activity {
     private LauncherModel.Page settingsPage() {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(displays()) != null;
-        return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), CompanionPanel.wanted(p, second), second,
+        return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
+                CompanionPanel.wanted(p, second), second,
                 boxArtFile().isFile(),
                 backgroundFile().isFile());
     }
@@ -312,6 +313,9 @@ public class SetupActivity extends Activity {
         else if (id.equals("quit")) finish();
         else if (id.equals("wide")) {
             p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).commit();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("ui")) {
+            p.edit().putBoolean(PREF_BILLS_UI, !p.getBoolean(PREF_BILLS_UI, true)).commit();
             mMenu.replace(settingsPage());
         } else if (id.equals("panel")) {
             boolean second = CompanionPanel.findDisplay(displays()) != null;
@@ -585,7 +589,7 @@ public class SetupActivity extends Activity {
         else if (repeat) return true;
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
-            if (it != null && (it.id.equals("wide") || it.id.equals("panel") )) choose();
+            if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("panel"))) choose();
         } else if (act == 4) choose();
         else if (act == 5) back();
         else if (act == 6) {
@@ -1001,6 +1005,8 @@ public class SetupActivity extends Activity {
 
     /** port: the 16:9 widescreen setting (on by default; NegatronActivity passes it as NEG_WIDESCREEN). */
     static final String PREF_WIDESCREEN = "widescreen";
+    /** port: the in-game UI, Bill's UI (default) or Vanilla (NegatronActivity passes it as NEG_UI). */
+    static final String PREF_BILLS_UI = "bills_ui";
 
     private static void deleteTree(File f) {
         if (f == null || !f.exists()) return;
