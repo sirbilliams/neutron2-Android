@@ -224,7 +224,7 @@ final class LauncherPages {
                 : "The game's save slots: coming with the game's save / load.");
         i.enabled = GAME_LOADS;
         p.add("saves", "Saves", "Export the game's saves to a file, or import them.");
-        p.add("settings", "Settings", "Widescreen, the bottom screen, the menu style.");
+        p.add("settings", "Settings", "Widescreen, the bottom screen, box art and background.");
         if (test) p.add("test", "Test", "Jump to a level, the model viewer, share the log.");
         p.add("quit", "Quit", "Close the game.");
         return p;
@@ -254,7 +254,7 @@ final class LauncherPages {
         return p;
     }
 
-    static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen, boolean original,
+    static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen,
             boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
@@ -263,9 +263,6 @@ final class LauncherPages {
                 + "The bottom screen shows the level map, the tasks and the gadgets while you play "
                 + "(on by default when there is a second screen). Also in game: hold Back.");
         i.value = panel ? "ON" : "OFF";
-        i = p.add("style", "Menu style", "NEW: this menu. ORIGINAL: the game's own title menu, from the next start "
-                + "(to come back here: hold Back in the game, then Menu style).");
-        i.value = original ? "ORIGINAL" : "NEW";
         i = p.add("boxart", "Box art: choose image...", "A picture of the game's box (your own photo or "
                 + "scan) for the bottom screen while the main menu is up. It is copied into the app."
                 + (boxArt ? " Now: your picture." : " Now: a picture from the game."));
