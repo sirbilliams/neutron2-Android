@@ -151,8 +151,8 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   grid's phosphor green - a radar sweep with blips over range rings and Jimmy's atom (three orbits
   slowly turning, an electron on each) - and the credit line "Jimmy Neutron vs Jimmy Negatron
   Recomp - by sirbilliams - <version>" in the game's font. The version: "v<versionName>
-  (<commit>)" on Android (versionName from the APK, `NEG_APP_VERSION`, set by NegatronActivity),
-  "dev (<commit>)" on the desktop; the short git commit is baked in at every build by
+  build <commit>" on Android (versionName from the APK, `NEG_APP_VERSION`, set by NegatronActivity),
+  "dev build <commit>" on the desktop (the game's fonts have no parentheses); the short git commit is baked in at every build by
   `engine/cmake/neg_version.cmake`.
 - **Help pictures** (H / F1: the current gadget's mouse / keys picture, bottom left, and the help
   keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan

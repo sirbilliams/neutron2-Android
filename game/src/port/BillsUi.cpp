@@ -402,9 +402,10 @@ static void ScopeFrame(float dt, bool show)
 	if (!line2[0])
 	{
 		const char *app = getenv("NEG_APP_VERSION");
-		// Android: v<versionName> (<commit>); desktop: dev (<commit>)
-		if (app && *app) snprintf(line2, sizeof line2, "BY SIRBILLIAMS - V%s (%s)", app, NEG_GIT_COMMIT);
-		else snprintf(line2, sizeof line2, "BY SIRBILLIAMS - DEV (%s)", NEG_GIT_COMMIT);
+		// Android: v<versionName> build <commit>; desktop: dev build <commit> (the game's fonts have
+		// no parentheses, so "build" stands in for "(<commit>)")
+		if (app && *app) snprintf(line2, sizeof line2, "BY SIRBILLIAMS - V%s BUILD %s", app, NEG_GIT_COMMIT);
+		else snprintf(line2, sizeof line2, "BY SIRBILLIAMS - DEV BUILD %s", NEG_GIT_COMMIT);
 	}
 	const char *line1 = "JIMMY NEUTRON VS JIMMY NEGATRON RECOMP";
 	const int font = TextWidth('MED', line1) <= 440 ? 'MED' : 'SMAL';
