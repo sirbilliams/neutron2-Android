@@ -927,9 +927,12 @@ void C2DInGameMenu::Process(float dt)
 			}
 			UpdatePulse(dt);
 			UpdatePickupPopup(this, dt);
-			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
-			if (neg::BillsUi()) neg::BillsHealthBar(dt, g_health);	// port: Bill's UI
-			else SetHealthBar(g_health);	// (the health bar; takes the float)
+			if (neg::BillsUi()) neg::BillsHealthBar(dt, g_health);	// port: Bill's UI (bar and number)
+			else
+			{
+				DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
+				SetHealthBar(g_health);		// (the health bar; takes the float)
+			}
 			DrawScoreHud(dt);
 			break;
 
@@ -964,9 +967,12 @@ void C2DInGameMenu::Process(float dt)
 			UpdateIndicator(dt);
 			UpdatePickupPopup(this, dt);
 			if (g_545dd4) UpdateDialog(this, dt);
-			DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
-			if (neg::BillsUi()) neg::BillsHealthBar(dt, g_health);	// port: Bill's UI
-			else SetHealthBar(g_health);
+			if (neg::BillsUi()) neg::BillsHealthBar(dt, g_health);	// port: Bill's UI (bar and number)
+			else
+			{
+				DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)g_health);	// port: WideX
+				SetHealthBar(g_health);
+			}
 			DrawScoreHud(dt);
 			break;
 	}

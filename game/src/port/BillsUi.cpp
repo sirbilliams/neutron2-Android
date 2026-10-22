@@ -521,8 +521,328 @@ void BillsScore(float dt, short x, short y)
 // (an additive canvas of our own, in the bar's colour, breathing gently).
 static float s_hb = -1.0f, s_hb_last, s_hb_flash, s_hb_hurt, s_hb_t;
 static float s_hb_col[3] = { 0.0f, 1.0f, 0.0f };
-static unsigned s_hb_frame;
+static unsigned s_hb_frame, s_energy_frame;
 static Deco s_hb_halo;
+
+// --- the redesigned energy widgets (mock-ups for Bill to pick from; NEG_UI_ENERGY=a|b|c, "bar" =
+// the original bar with the animation above). They replace the bar, its frame, the atom picture
+// and the number (those sprites are hidden while a widget shows, shown again otherwise).
+static int EnergyDesign(void)
+{
+	static int d = -1;
+	if (d < 0)
+	{
+		const char *e = getenv("NEG_UI_ENERGY");
+		d = 1;
+		if (e && (e[0] == 'b' || e[0] == 'B')) d = (e[1] == 'a' || e[1] == 'A') ? 0 : 2;	// "bar" / "b"
+		else if (e && (e[0] == 'c' || e[0] == 'C')) d = 3;
+	}
+	return d;
+}
+
+static bool s_orig_hidden;
+static void ShowOriginalBar(bool show)
+{
+	OMediaCanvasElementWrapper *const kPieces[3] = { g_545854, g_545968, g_5448e4 };	// atom picture, frame, fill
+	if (!show)						// (every frame: the game shows them again on entering play)
+	{
+		for (int i = 0; i < 3; i++)
+			if (kPieces[i] && kPieces[i]->getvisible()) kPieces[i]->hide(true);
+		s_orig_hidden = true;
+		return;
+	}
+	if (!s_orig_hidden) return;
+	for (int i = 0; i < 3; i++)
+		if (kPieces[i]) kPieces[i]->force_show();
+	s_orig_hidden = false;
+}
+
+// A float RGBA painter for the widgets: premultiplied "over" compositing, shapes by signed
+// distance (in widget units; k pixels per unit), anti-aliased over one pixel.
+struct Paint
+{
+	float	*p;			// r, g, b, a (premultiplied)
+	int		w, h;
+	float	k;
+	float	u, v;		// the current pixel's centre, in units
+	int		i;			// its index
+	void Over(float r, float g, float b, float a)
+	{
+		if (a <= 0) return;
+		if (a > 1) a = 1;
+		float *q = p + i * 4;
+		const float ia = 1.0f - a;
+		q[0] = r * a + q[0] * ia; q[1] = g * a + q[1] * ia; q[2] = b * a + q[2] * ia; q[3] = a + q[3] * ia;
+	}
+	void Add(float r, float g, float b, float a)	// a glow: brightens, adds coverage
+	{
+		if (a <= 0) return;
+		float *q = p + i * 4;
+		q[0] += r * a; q[1] += g * a; q[2] += b * a; q[3] += a * 0.6f;
+		if (q[3] > 1) q[3] = 1;
+	}
+	float Cov(float sd) const { return Clamp01(0.5f - sd * k); }
+};
+
+static float SdCircle(float u, float v, float cx, float cy, float r) { return sqrtf((u - cx) * (u - cx) + (v - cy) * (v - cy)) - r; }
+static float SdBox(float u, float v, float cx, float cy, float hw, float hh, float rad)
+{
+	const float qx = fabsf(u - cx) - (hw - rad), qy = fabsf(v - cy) - (hh - rad);
+	const float ox = qx > 0 ? qx : 0, oy = qy > 0 ? qy : 0;
+	return sqrtf(ox * ox + oy * oy) + (qx > qy ? (qx < 0 ? qx : 0) : (qy < 0 ? qy : 0)) - rad;
+}
+static float SdSeg(float u, float v, float ax, float ay, float bx, float by)
+{
+	const float pax = u - ax, pay = v - ay, bax = bx - ax, bay = by - ay;
+	float h = (pax * bax + pay * bay) / (bax * bax + bay * bay);
+	h = Clamp01(h);
+	const float dx = pax - bax * h, dy = pay - bay * h;
+	return sqrtf(dx * dx + dy * dy);
+}
+// brushed steel: light at the top, a dark band, fine horizontal grain
+static void Steel(float v01, int row, float *c)
+{
+	const float base = 0.62f + 0.30f * cosf(v01 * 3.14159f * 1.15f) - 0.18f * expf(-(v01 - 0.62f) * (v01 - 0.62f) * 40.0f);
+	const float grain = (float)(((unsigned)row * 2654435761u >> 24) & 15) / 15.0f * 0.06f - 0.03f;
+	c[0] = c[1] = c[2] = Clamp01(base + grain);
+	c[2] = Clamp01(c[2] + 0.03f);
+}
+// the original's energy colour at value e (green from 70, yellow from 30, red)
+static void EnergyColour(float e, float *c)
+{
+	c[0] = e < 70.0f ? 1.0f : 0.15f; c[1] = e < 30.0f ? 0.18f : 1.0f; c[2] = 0.12f;
+}
+// a 7-segment digit d (0..9, -1 blank) with its top left at (x, y), w x h, segment thickness t
+static float SevenSeg(float u, float v, float x, float y, float w, float h, float t, int d, bool *lit)
+{
+	static const unsigned char kSeg[10] = { 0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f };
+	const float m = y + h * 0.5f, x1 = x + w, y1 = y + h, in = t * 0.6f;
+	const float segs[7][4] = {
+		{ x + in, y, x1 - in, y }, { x1, y + in, x1, m - in }, { x1, m + in, x1, y1 - in }, { x + in, y1, x1 - in, y1 },
+		{ x, m + in, x, y1 - in }, { x, y + in, x, m - in }, { x + in, m, x1 - in, m } };
+	float best = 1e9f;
+	*lit = false;
+	for (int s = 0; s < 7; s++)
+	{
+		const float dd = SdSeg(u, v, segs[s][0], segs[s][1], segs[s][2], segs[s][3]) - t * 0.5f;
+		if (dd < best) { best = dd; *lit = d >= 0 && ((kSeg[d] >> s) & 1); }
+	}
+	return best;
+}
+
+static Deco s_energy;
+static float *s_energy_buf;
+static int s_energy_cap;
+
+static void EnergyWidget(int design, float health, float fr, float fg, float fb, float pulse)
+{
+	ShowOriginalBar(false);
+	DecoHide(s_hb_halo);
+	const float e = s_hb < 0 ? 0 : (s_hb > 100 ? 100 : s_hb);
+	const float W = design == 1 ? 232.0f : 116.0f, H = design == 1 ? 48.0f : 116.0f;
+	const float k = 2.0f;
+	const int pw = (int)(W * k), ph = (int)(H * k);
+	if (s_energy_cap < pw * ph)
+	{
+		delete[] s_energy_buf;
+		s_energy_buf = new float[pw * ph * 4];
+		s_energy_cap = pw * ph;
+	}
+	memset(s_energy_buf, 0, sizeof(float) * 4 * pw * ph);
+	Paint P;
+	P.p = s_energy_buf; P.w = pw; P.h = ph; P.k = k;
+	const float t = s_hb_t, pi = 3.14159265f;
+	float col[3];
+	col[0] = fr; col[1] = fg; col[2] = fb;			// the animated colour (flash, flicker, pulse)
+	const bool low = e < 30.0f;
+
+	// electrons for the atoms (design 1's cap, design 2's gauge): faster and flickering red when low
+	const float espeed = low ? 4.5f : 1.8f;
+	for (int j = 0; j < ph; j++)
+		for (int i = 0; i < pw; i++)
+		{
+			P.i = j * pw + i;
+			const float u = (i + 0.5f) / k, v = (j + 0.5f) / k;
+			if (design == 1)
+			{
+				// A "Steel LED tube": a chrome capsule with 10 LED cells, a glowing atom cap on the left
+				const float cx = 24.0f, cy = 24.0f;
+				// capsule body
+				const float sd = SdBox(u, v, 132.0f, 24.0f, 96.0f, 14.0f, 14.0f);
+				if (sd < 1.0f)
+				{
+					float c[3];
+					Steel((v - 10.0f) / 28.0f, j, c);
+					P.Over(c[0] * 0.55f, c[1] * 0.55f, c[2] * 0.55f, P.Cov(sd));					// rim (darker)
+					const float sd2 = SdBox(u, v, 132.0f, 24.0f, 95.0f, 13.0f, 13.0f);
+					P.Over(c[0], c[1], c[2], P.Cov(sd2));
+					const float win = SdBox(u, v, 136.0f, 24.0f, 82.0f, 8.0f, 4.0f);				// the window
+					P.Over(0.02f, 0.06f, 0.04f, P.Cov(win));
+					// cells
+					const int N = 10;
+					const float x0 = 56.0f, x1 = 216.0f, cw = (x1 - x0) / N;
+					const int ci = (int)((u - x0) / cw);
+					if (ci >= 0 && ci < N && win < 0)
+					{
+						const float ccx = x0 + cw * (ci + 0.5f);
+						const float cs = SdBox(u, v, ccx, 24.0f, cw * 0.5f - 1.2f, 6.0f, 1.2f);
+						float on = Clamp01(e / 100.0f * N - ci);			// the last cell partly lit
+						float cc[3];
+						EnergyColour(ccx < x0 ? 0 : (ci + 1) * 100.0f / N, cc);
+						if (on > 0) { cc[0] = col[0]; cc[1] = col[1]; cc[2] = col[2]; }
+						const float lit = on * pulse;
+						P.Over(0.04f + cc[0] * 0.9f * lit, 0.10f + cc[1] * 0.9f * lit, 0.06f + cc[2] * 0.9f * lit, P.Cov(cs));
+						if (lit > 0) P.Add(cc[0], cc[1], cc[2], 0.35f * lit * expf(-fabsf(v - 24.0f) / 3.0f));
+					}
+					// a highlight along the top of the glass
+					const float hl = SdBox(u, v, 136.0f, 19.0f, 80.0f, 1.2f, 1.2f);
+					P.Add(1, 1, 1, 0.18f * P.Cov(hl));
+				}
+				// the cap: a steel ring round a glowing atom
+				const float sc = SdCircle(u, v, cx, cy, 22.0f);
+				if (sc < 6.0f)
+				{
+					float c[3];
+					Steel((v - 2.0f) / 44.0f, j, c);
+					P.Add(col[0], col[1], col[2], 0.35f * expf(-(sc > 0 ? sc : 0) / 2.0f) * (sc > 0 ? 1.0f : 0.0f));
+					P.Over(c[0], c[1], c[2], P.Cov(sc));
+					const float inner = SdCircle(u, v, cx, cy, 17.5f);
+					const float gl = 0.35f + 0.65f * Clamp01(1.0f - sqrtf((u - cx) * (u - cx) + (v - cy) * (v - cy)) / 17.5f);
+					P.Over(0.02f + col[0] * 0.25f * gl, 0.05f + col[1] * 0.35f * gl, 0.03f + col[2] * 0.25f * gl, P.Cov(inner));
+					if (inner < 0)
+					{
+						for (int o = 0; o < 3; o++)
+						{
+							const float phi = t * 0.4f + o * pi / 3.0f, c0 = cosf(phi), s0 = sinf(phi);
+							const float lx = (u - cx) * c0 + (v - cy) * s0, ly = -(u - cx) * s0 + (v - cy) * c0;
+							const float ell = sqrtf(lx * lx / (13.0f * 13.0f) + ly * ly / (4.5f * 4.5f));
+							P.Add(0.7f, 1.0f, 0.8f, 0.55f * Clamp01(1.0f - fabsf(ell - 1.0f) * 9.0f));
+							const float ua = t * espeed + o * 2.1f;
+							const float ex = cx + cosf(ua) * 13.0f * c0 - sinf(ua) * 4.5f * s0, ey = cy + cosf(ua) * 13.0f * s0 + sinf(ua) * 4.5f * c0;
+							const bool red = low && ((int)(t * 12.0f + o) & 1);
+							P.Add(red ? 1.0f : 0.8f, red ? 0.2f : 1.0f, red ? 0.15f : 0.85f, Clamp01(1.0f - SdCircle(u, v, ex, ey, 1.6f) * 0.8f));
+						}
+						P.Add(1, 1, 1, Clamp01(1.0f - SdCircle(u, v, cx, cy, 2.6f) * 0.7f));
+					}
+				}
+			}
+			else if (design == 2)
+			{
+				// B "Atom orbit gauge": a 270 degree ring that fills / drains round Jimmy's atom
+				const float cx = 58.0f, cy = 58.0f;
+				const float dx = u - cx, dy = cy - v, rr = sqrtf(dx * dx + dy * dy);
+				P.Over(0.01f, 0.05f, 0.03f, 0.55f * P.Cov(rr - 54.0f));					// hologram backing
+				P.Add(0.3f, 1.0f, 0.5f, 0.5f * Clamp01(1.0f - fabsf(rr - 54.0f) * k * 0.5f));	// its rim
+				float ang = atan2f(dy, dx) * (180.0f / pi);
+				if (ang < -135.0f) ang += 360.0f;									// -45 .. 225 is the arc
+				const float pos = (225.0f - ang) / 270.0f * 100.0f;				// 0 at the lower left, 100 at the lower right
+				if (pos >= 0 && pos <= 100)
+				{
+					const float ring = fabsf(rr - 47.0f) - 4.0f;
+					const float cv = P.Cov(ring);
+					if (cv > 0)
+					{
+						if (pos <= e) P.Over(col[0] * pulse, col[1] * pulse, col[2] * pulse, cv);
+						else P.Over(0.05f, 0.14f, 0.08f, cv);
+						if (pos <= e) P.Add(col[0], col[1], col[2], 0.25f * pulse);
+					}
+					// the bright leading edge
+					if (fabsf(pos - e) < 1.2f && ring < 1.5f) P.Add(1, 1, 1, 0.6f);
+					// ticks at 30 and 70
+					if ((fabsf(pos - 30.0f) < 0.5f || fabsf(pos - 70.0f) < 0.5f) && fabsf(rr - 47.0f) < 6.0f) P.Over(0.9f, 0.95f, 0.9f, 0.8f);
+				}
+				// the atom: three orbits, an electron on each, a glowing nucleus
+				for (int o = 0; o < 3; o++)
+				{
+					const float phi = t * 0.3f + o * pi / 3.0f, c0 = cosf(phi), s0 = sinf(phi);
+					const float lx = (u - cx) * c0 + (v - cy) * s0, ly = -(u - cx) * s0 + (v - cy) * c0;
+					const float A = 34.0f, B = 11.0f;
+					const float ell = sqrtf(lx * lx / (A * A) + ly * ly / (B * B));
+					P.Add(0.6f, 1.0f, 0.7f, 0.6f * Clamp01(1.0f - fabsf(ell - 1.0f) * 16.0f));
+					const float ua = t * espeed + o * 2.1f;
+					const float ex = cx + cosf(ua) * A * c0 - sinf(ua) * B * s0, ey = cy + cosf(ua) * A * s0 + sinf(ua) * B * c0;
+					const bool red = low && ((int)(t * 12.0f + o) & 1);
+					P.Add(red ? 1.0f : 0.85f, red ? 0.2f : 1.0f, red ? 0.15f : 0.9f, Clamp01(1.0f - SdCircle(u, v, ex, ey, 2.6f) * 0.7f));
+				}
+				P.Add(col[0], col[1], col[2], 0.5f * expf(-rr / 6.0f));
+				P.Add(1, 1, 1, Clamp01(1.0f - SdCircle(u, v, cx, cy, 4.0f) * 0.7f));
+			}
+			else
+			{
+				// C "Dial": the bottom-screen panel's energy dial - steel bezel, green-yellow-red arc,
+				// needle, the number in LED digits
+				const float cx = 58.0f, cy = 58.0f;
+				const float dx = u - cx, dy = cy - v, rr = sqrtf(dx * dx + dy * dy);
+				const float bz = rr - 56.0f;
+				if (bz < 1.0f)
+				{
+					float c[3];
+					Steel(Clamp01((v - 2.0f) / 112.0f), j, c);
+					P.Over(c[0], c[1], c[2], P.Cov(bz));
+					P.Over(0.03f, 0.05f, 0.04f, 0.95f * P.Cov(rr - 49.0f));			// the face
+				}
+				float ang = atan2f(dy, dx) * (180.0f / pi);
+				if (ang < -135.0f) ang += 360.0f;
+				const float pos = (225.0f - ang) / 270.0f * 100.0f;
+				if (pos >= 0 && pos <= 100 && rr < 49.0f)
+				{
+					float bc[3];
+					EnergyColour(pos, bc);
+					const float band = P.Cov(fabsf(rr - 42.0f) - 3.5f);
+					const float lit = pos <= e ? 1.0f * (pos > e - 100 ? 1.0f : 1.0f) : 0.28f;
+					P.Over(bc[0] * lit, bc[1] * lit, bc[2] * lit, band);
+					if (pos <= e) P.Add(bc[0], bc[1], bc[2], 0.2f * band);
+					const float tick = fabsf(fmodf(pos + 5.0f, 10.0f) - 5.0f) * 270.0f / 100.0f * (pi / 180.0f) * rr;
+					if (rr > 33.0f && rr < 37.5f) P.Over(0.85f, 0.9f, 0.85f, Clamp01(1.0f - tick * k * 0.8f) * 0.9f);
+				}
+				// LED digits (the number), under the hub
+				const int n = (int)(health + 0.5f) < 0 ? 0 : ((int)(health + 0.5f) > 999 ? 999 : (int)(health + 0.5f));
+				const int dg[3] = { n >= 100 ? n / 100 : -1, n >= 10 ? (n / 10) % 10 : -1, n % 10 };
+				for (int q = 0; q < 3; q++)
+				{
+					bool on;
+					const float sd = SevenSeg(u, v, 41.0f + q * 12.5f, 71.0f, 8.0f, 15.0f, 2.2f, dg[q], &on);
+					const float cv = P.Cov(sd);
+					if (cv > 0)
+					{
+						if (on) P.Over(col[0] * pulse, col[1] * pulse, col[2] * pulse + 0.1f, cv);
+						else P.Over(0.06f, 0.12f, 0.08f, cv * 0.8f);
+					}
+					if (on && sd < 3.0f) P.Add(col[0], col[1], col[2], 0.25f * Clamp01(1.0f - sd / 3.0f) * pulse);
+				}
+				// the needle and hub
+				const float na = (225.0f - 270.0f * e / 100.0f) * (pi / 180.0f);
+				const float nx = cx + cosf(na) * 40.0f, ny = cy - sinf(na) * 40.0f;
+				const float sn = SdSeg(u, v, cx, cy, nx, ny) - 1.4f;
+				P.Over(1.0f, 0.35f, 0.15f, P.Cov(sn));
+				const float sh = SdCircle(u, v, cx, cy, 6.0f);
+				if (sh < 1.0f)
+				{
+					float c[3];
+					Steel(Clamp01((v - 52.0f) / 12.0f), j, c);
+					P.Over(c[0], c[1], c[2], P.Cov(sh));
+				}
+			}
+		}
+	unsigned int *px = DecoBegin(s_energy, g_layer_hud2d, pw, ph, false);
+	if (px)
+		for (int i = 0; i < pw * ph; i++)
+		{
+			const float *q = s_energy_buf + i * 4;
+			if (q[3] <= 0.002f) continue;
+			px[i] = Rgba(q[0] / q[3], q[1] / q[3], q[2] / q[3], q[3]);
+		}
+	DecoDone(s_energy);
+	// a shake when hurt
+	const float shake = s_hb_hurt > 0 ? sinf(t * 70.0f) * 2.5f * s_hb_hurt : 0.0f;
+	const float x = -WideMargin() + 6.0f + shake, y = 6.0f;
+	DecoPlace(s_energy, x, y, W, H);
+	s_energy_frame = s_frame;
+	if (design == 1)		// A: the number in the game's font, after the tube
+		DrawText((short)(int)(x + W + 6.0f), (short)(int)(y + 24.0f + FontHeight('MED') * 0.5f), 'MED', "%d", (int)(short)(int)health);
+	else if (design == 2)	// B: the game's big digits, beside the gauge
+		DrawText((short)(int)(x + W + 4.0f), (short)(int)(y + 58.0f + FontHeight('BIG') * 0.5f), 'BIG', "%d", (int)(short)(int)health);
+}
 
 void BillsHealthBar(float dt, float health)
 {
@@ -552,6 +872,14 @@ void BillsHealthBar(float dt, float health)
 	{
 		r = 1.0f; g = 0.12f; b = 0.08f;
 	}
+	const int design = EnergyDesign();
+	if (design != 0)
+	{
+		EnergyWidget(design, health, r, g, b, k);
+		return;
+	}
+	ShowOriginalBar(true);
+	DrawText(WideX(40, WIDE_LEFT), 67, 'BIG', "%d", (int)(short)(int)health);
 	const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
 	bar->set_diffuse(OMediaFARGBColor(1.0f, r, g, b));
 	bar->set_size(sx * 20.0f, (float)((double)(sy * s_hb) * 1.044));
@@ -687,6 +1015,8 @@ void BillsUiFrame(float dt)
 	if (!on || s_frame - s_sonar_frame > 2) DecoHide(s_sonar_plate);
 	if (!on || s_frame - s_hb_frame > 2) DecoHide(s_hb_halo);
 	if (!on) s_hb = -1.0f;
+	if (!on || s_frame - s_energy_frame > 2) DecoHide(s_energy);
+	if (!on && s_orig_hidden && (g_game_mode == 5 || g_game_mode == 6)) ShowOriginalBar(true);
 	ScopeFrame(dt, on && g_game_mode == 4 && g_menu && g_menu->f_4ce == 3);
 	if (g_help_index >= 0 && g_help_index < 14) HelpPieceFrame(s_help[0], &g_elt_544908[g_help_index], WIDE_LEFT, on);
 	HelpPieceFrame(s_help[1], g_help_menu_elt, WIDE_RIGHT, on);
@@ -703,6 +1033,8 @@ void BillsUiShutdown(void)
 	DecoFree(s_scope);
 	DecoFree(s_score_halo);
 	DecoFree(s_hb_halo);
+	DecoFree(s_energy);
+	s_orig_hidden = false;
 	s_hb = -1.0f;
 	for (int i = 0; i < 2; i++)
 	{

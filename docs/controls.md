@@ -158,9 +158,15 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan
   lines, bright edge with corner brackets), the picture's drawn part (its opaque pixels, measured
   at run time) centred in it, 10 units in from the screen's edges. Vanilla: the original places.
-- **Energy bar** (top left): drains and fills smoothly instead of jumping, its colour eases between
-  the original's (green from 70, yellow from 30, red below), a white flash when energy is gained,
-  a red flicker when hurt, a warning pulse below 30, and a soft glow in the bar's colour.
+- **Energy** (top left; being redesigned, mock-ups for Bill to pick from, desktop selector
+  `NEG_UI_ENERGY=a|b|c|bar`, default a): A "steel LED tube" (chrome capsule, 10 LED cells, a glowing
+  atom cap, the number in the game's font), B "atom orbit gauge" (a 270-degree ring round Jimmy's
+  atom, the game's big digits), C "dial" (the bottom-screen panel's dial: steel bezel, green /
+  yellow / red arc, needle, LED digits); "bar" = the original bar animated. All replace the bar,
+  its frame, the atom picture and the number, and share the behaviour: the value drains / fills
+  smoothly, the original's colours (green from 70, yellow from 30, red below) eased, a white
+  flash when energy is gained, a red flicker and a shake when hurt, a warning pulse below 30
+  (the atoms' electrons speed up and flicker red).
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
