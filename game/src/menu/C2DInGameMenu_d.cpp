@@ -20,6 +20,9 @@
 #include "../Todo.h"
 #include "../Sound.h"
 #include "../C3DTriggerType.h"
+#include "../C3DJimmy.h"
+#include "../C3DPlayer.h"
+#include "../Mouse.h"
 #include "../port/Widescreen.h"
 #include "OMediaViewPort.h"
 #include "OMediaRGBColor.h"
@@ -41,10 +44,10 @@ enum { VK_ESCAPE_KEY = 0x1b };
 // --------------------------------------------------------------------------- stubs (other systems)
 
 // Sound: PlaySound 0x4b8380 / StopChannel 0x4b88e0 (Sound.h)
-// g_gametype +0x490: the running level's 4cc ('LV5C' ...).
-static int GameTypeLevelID(void)		{ NEG_TODO(0x40fe7f, "CGameType +0x490 (level id)"); return 0; }
-// 0x4b1d50: puts the cursor in the middle of the viewport (g_viewport +0xd4..0xe0, world +0x38 ...).
-static void CenterCursor(void)			{ NEG_TODO(0x4b1d50, "centre the cursor"); }
+// g_gametype +0x490: the running level's 4cc ('LV5C' ...), its ObjectID.
+static int GameTypeLevelID(void)		{ return g_gametype->m_object_id; }
+// 0x4b1d50: puts the cursor in the middle of the viewport (Mouse.h).
+static void CenterCursor(void)			{ neg::CenterMouse(); }
 // 0x485360: the game mode (0x53b5b4), told to every object (vtable +0x438).
 // A C3DTriggerType (element vtable +0xdc, its CGameObject base at +0xc8) activated by name.
 static void TriggerTypeActivate(CGameObject *o, const char *name, int a)
@@ -57,20 +60,29 @@ namespace neg { void FlyingCameraTrigger(CGameObject *o); }			// objects/C3DFlyi
 static void FlyingCameraStart(CGameObject *o)	{ neg::FlyingCameraTrigger(o); }	// 0x406cd4
 // A C3DPickupItem (element vtable +0xec, its CGameObject base at +0xc8).
 static void PickupItemCollect(CGameObject *o)	{ NEG_TODO(0x408dce, "C3DPickupItem element slot 59"); (void)o; }
-// C3DJimmy (element vtable +0x1e4): go to `file` at start point `start`.
+// C3DJimmy element slot 121 (+0x1e4, C3DPlayer::ev121 0x4648a0 "PlayerLoadLevel"): go to `file`
+// at start point `start`, coming back to `file2` / `start2`; `picture` shows while loading.
+// (The original calls g_jimmy's slot unchecked.)
 static void JimmyLoadLevel(CGameObject *jimmy, const char *file, const char *start,
-						   const char *file2, const char *start2, int a)
+						   const char *file2, const char *start2, int picture)
 {
-	NEG_TODO(0x41038c, "C3DJimmy element slot 121 (load level)");
-	(void)jimmy; (void)file; (void)start; (void)file2; (void)start2; (void)a;
+	if (C3DPlayer *p = jimmy ? dynamic_cast<C3DPlayer *>(jimmy) : NULL)
+		p->ev121((char *)file, (char *)start, (char *)file2, (char *)start2, picture);
 }
-// C3DJimmy (element vtable +0x228)(menu, jimmy, 3, 13.0) before level1_C.gam.
-static void JimmySlot138(CGameObject *jimmy, C2DInGameMenu *menu, CGameObject *jimmy_go, int a, float b)
+// C3DJimmy element slot 138 (+0x228, ActivateMenuItem 0x449df0)(menu, NULL, 3, 13.0) before
+// level1_C.gam: the original pushes a zeroed register as the second object.
+static void JimmySlot138(CGameObject *jimmy, C2DInGameMenu *menu, CGameObject *who, int item, float value)
 {
-	NEG_TODO(0x410315, "C3DJimmy element slot 138"); (void)jimmy; (void)menu; (void)jimmy_go; (void)a; (void)b;
+	if (jimmy) JimmyActivateMenuItem(jimmy, menu, who, item, value);
 }
-// C3DJimmy +0xcbc: an object whose vtable +0xdc is called after a warp (if set).
-static void JimmyAfterWarp(CGameObject *jimmy)	{ NEG_TODO(0x4103a6, "C3DJimmy +0xcbc vtable +0xdc"); (void)jimmy; }
+// C3DJimmy +0xcbc (the shrink-ray effect): its element +0xdc (HideAgain) after a warp, if set.
+// (The original reads +0xcbc of (g_jimmy - 0xc0) without testing g_jimmy.)
+static void JimmyAfterWarp(CGameObject *jimmy)
+{
+	(void)jimmy;
+	C3DJimmy *j = Jimmy();
+	if (j && j->f_cbc) j->f_cbc->HideAgain();
+}
 
 // --------------------------------------------------------------------------- menu helpers
 
@@ -823,7 +835,7 @@ void C2DInGameMenu::v342(short level)
 		level1_c:
 			if (GameTypeLevelID() == 'L1_C') return;
 			g_flag_545e54 = true;
-			JimmySlot138(g_jimmy, this, g_jimmy, 3, 13.0f);
+			JimmySlot138(g_jimmy, this, NULL, 3, 13.0f);
 			JimmyLoadLevel(g_jimmy, "level1_C.gam", "PHONEBOOTH", "level1_C.gam", "PHONEBOOTH", 0x1b1);
 			JimmyAfterWarp(g_jimmy);
 			return;
