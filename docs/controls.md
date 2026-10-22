@@ -113,11 +113,13 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
 
 - **Bottom screen panel: ON / OFF** - shows a companion panel on the Thor's second screen
   (any second Android display; the first presentation display if there are several), styled as a
-  stainless-steel lab gadget with green LEDs: the level and game mode, neutron energy on a dial
-  (green / yellow / red as the game's own bar), score and lives (or the boss's health while it
-  shows), the pickups / neutrons / checkpoints collected, the gadgets Jimmy has (the current one
-  lit) and the items collected (the game's own pictures), the caption being typed, the story
-  tasks (lit = started, with their stage number), and a map of the level in a green CRT window:
+  stainless-steel lab gadget with green LEDs: the level, game mode and time in the level, neutron
+  energy on a dial (green / yellow / red as the game's own bar), the score, the boss's health
+  while it shows, the current gadget (its HUD picture, and the HUD's gadget bar while the game
+  shows it), whether Goddard is about, this level's collectables (neutrons, checkpoints and each
+  kind of pickup with the game's own picture, collected / all), the inventory page Jimmy opens
+  (every item, lit when he has it, with how many, a dark silhouette when not), and a map of the
+  level in a green CRT window with the nearest open exit's direction and the caption being typed:
   a top-down picture of the level drawn from its own geometry, following Jimmy (white arrow,
   north up), with the pickups, neutrons and checkpoints (their game pictures), friends (blue
   orbits), other characters (red), doors, exits (green = open, red = still shut, with the level

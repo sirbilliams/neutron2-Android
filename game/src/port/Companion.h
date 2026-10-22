@@ -28,19 +28,21 @@
       level    the .gam file;  id  the game type's 4cc (e.g. "LEV3")
       mode     game mode (0 starting, 1 loading, 2 saving, 3 cut scene, 4 menu, 5 playing, 6 paused);
       cut      1 in a cut scene
-      energy   neutron energy 0..100 (the HUD bar);  energy_max 100;  lives;  score
-      gadget   current gadget = inventory page item (0 = none; C3DJimmy::ActivateMenuItem)
-      gadgets  [[item, menu state, icon], ...] the inventory page items (state 0: not owned)
-      items    [[pickup, count, icon], ...] the pickups page items Jimmy has (state != 0)
-      tasks    [[name, state], ...] the story tasks (state 0 = not started; others are stages)
+      energy   neutron energy 0..100 (the HUD bar);  energy_max 100;  energy_icon  the HUD's
+               neutron picture;  score;  time  seconds played in this level
+      gadget   current gadget (0 = none; C3DJimmy::ActivateMenuItem);  gadget_icon  its HUD
+               picture;  gadget_charge  the HUD's gadget bar (0..100) while the game shows it
+      sheet    [[item, count, icon, owned, x, y], ...] the inventory page Jimmy opens (the
+               pickups page): every item with a picture, its page position
+      collect  [[item, collected, all, icon], ...] this level's pickups by menu item (-1: none)
       caption  the caption being typed (C3DTextTrigger lines of the current group, so far)
       boss     {"name", "hp" 0..1, "bar" 1 while its bar is up} (C3DHerman)
-      pickups / neutrons / checkpoints   [collected, total] in the level
+      pickups / neutrons / checkpoints   [collected, total, (icon)] in the level
       map      {"gen", "w", "h", "s" world units per pixel} the current map image (gen changes
                when it is rebuilt; 0 = none yet)
       jimmy    [x, y, hx, hy, height] in map pixels, hx/hy his heading (unit, map pixels)
       pts      [[kind, x, y, icon or label], ...] in map pixels: p pickup (icon), n neutron,
-               c checkpoint, f friend, e other AI character, o objective (a C3DArrow showing),
+               c checkpoint, r red neutron, g Goddard, f friend, e other AI character, o objective (a C3DArrow showing),
                d door, x exit (label: the level it loads; kind X while its task holds it shut)
       picker   {"sel", "cards": [[name, wire icon, colour icon], ...]} while the Vox world picker is
                open (port/VoxPicker.h): the worlds left to right, sel the lit one (-1 none)
