@@ -468,11 +468,16 @@ void C3DAnimated::CreateAnim(char *name, char *file)		// 0x41b360
 	// only erased the vector, and MSVC 6 keeps the old element in place, so the original picks
 	// up the id the previous animated file left there (another object's definition).
 	// port: keep that id ourselves instead of reading past the end of an empty vector, and do
-	// nothing if no animated file was ever converted (the original would crash).
+	// nothing if no animated file was ever converted (the original would crash). Chunk id 0 is
+	// a valid id (the first definition in a database), so "none yet" is a flag of its own.
 	static omt_FSChunkID last_morph_def = 0;
+	static bool have_morph_def = false;
 	if (!OMedia3DShapeConverter::related_morphdefs.empty())
+	{
 		last_morph_def = OMedia3DShapeConverter::related_morphdefs[0].morph_def;
-	OMedia3DMorphAnimDef *def = last_morph_def == 0 ? NULL :
+		have_morph_def = true;
+	}
+	OMedia3DMorphAnimDef *def = !have_morph_def ? NULL :
 		(OMedia3DMorphAnimDef *)m_db->get_object(OMedia3DMorphAnimDef::db_type,	// +0x14
 		last_morph_def);									// port: 2002 kept the chunk ids only
 	a->def = def;
