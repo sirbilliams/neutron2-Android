@@ -164,7 +164,37 @@ STRT, 3JIM, 3ROC, 3GRN, LOAD (plus the terrain and sky). No CTrigger, checkpoint
 The 10 "fish" are the intro logo letters (T, H, Q, AWE games...): level1d opens with the logo cut scene.
 LoadGame stops at the first NULL object, so every class in the file must exist or nothing after it loads.
 
-## Status at the end of session 3 (Oct 21, phase 2) — READ THIS FIRST
+## Status at v1.0 (Oct 22, session 4, cap-off) — READ THIS FIRST
+
+- **Done and on main:** the whole game plays from the logos to "YOU WIN" (20 story levels + VR01; level4a has
+  no art on the disc). **Bill played the full chain on the Thor: "perfect, no complaints".**
+- **v1.0 polish:** app "Neutron vs Negatron", vector atom icon, versionName 1.0 / versionCode 100, APK
+  `Neutron-vs-Negatron.apk` (the "latest" pre-release also carries `Negatron-Viewer.apk`), player README.md,
+  THIRD_PARTY.md + assets/licenses/, CHANGELOG.md. Pushing a `v*` tag makes a permanent release whose notes
+  are that version's CHANGELOG section.
+- **Signing:** CI signs with Bill's stable key from the secrets `NEG_KEYSTORE_B64` / `NEG_KEYSTORE_PASSWORD`
+  (alias `negatron`; build.gradle `stable` config when `NEG_KEYSTORE` is set). The workflow strips stray
+  whitespace and checks the key opens, else fails with a clear error. Bill holds the only copy of the
+  keystore + password: never in the repo; losing it means one more uninstall for players.
+- **Phase 3 port features (all `port:`):** launcher main menu (Continue / New Game / Load Game / Settings /
+  Asset Viewer / Quit; steel/green-LED style, the menu-style toggle was removed, box art on the bottom
+  screen); Exit Game returns to the launcher; save export/import; suspend on lid close; dual-screen panel on
+  by default when a second display exists (gadget sheet + collectables; Tasks/Lives removed; level display
+  names via `neg::SaveLevelName`); only the top-screen game view casts (BottomScreen.java skips
+  cast/HDMI/virtual displays); Bill's UI vs Vanilla (`NEG_UI`), energy bar styles a/b/c (`NEG_UI_ENERGY`),
+  hologram frames a/b/c/off (`NEG_UI_HOLO`), pause screen version line; Vox picker fix.
+- **Asset Viewer (agent A, `game/src/port/AssetView.*`):** `NEG_ASSET_VIEW=<level>.gam` = frozen level +
+  noclip camera (sticks move/look, L/R up/down, A speed, Y fog, X hide Jimmy, Start reset, B leave; saves
+  are never written: guards in WriteTaskFile/DeleteFile); `NEG_ASSET_VIEW=models` = all 744 .grn/.ase/.omt
+  shapes with orbit/zoom. Launcher "Asset viewer" page. Desktop-tested only.
+- **HD texture pack (agent B):** see "Next" 3 and docs/hd-pack.md. Not yet run on the Thor with Bill's real
+  upscaled pack (he has the texture zip `negatron-textures.zip` for upscaling); watch the log's "HD:" lines.
+- **Known open items:** the Smaller TODOs and untested-real-play list in the session 3 status below; the
+  HD pack's oversize clamp and wrong-size skip are untested; NEG_TEST_PLAY runs hang after CLEAN EXIT.
+- **To resume:** set up per "Setting up a workspace"; briefs for agents: `docs/agent-brief-p2.md` (update
+  paths/commit first). Private (not GitHub-public) game-art repo: `negatron-gamefiles` (menu art, box art).
+
+## Status at the end of session 3 (Oct 21, phase 2)
 
 - **The whole story chain plays through** (main 8b7cee9, Android CI green, Bill has this APK):
   level1d (logos) -> Level5 (museum) -> Level3 (lab: 3 parts -> water gun -> button pad -> bots hunt ->
@@ -201,7 +231,7 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
   found). Desktop preview: `NEG_COMPANION_DUMP=<dir>` + `tools/companion/render.sh <dir> <Level> out.png`.
   Bill tried it on the Thor's bottom screen: "looks great", some polish still to do (ask him which).
   HD texture pack: loader + install done (docs/hd-pack.md).
-- **Bill's next requests (planned with him, not started):**
+- **Bill's requests from this session (all done in session 4, see above):**
   - Dual-screen panel ON by default when a second display is present (off otherwise); an explicit
     choice by the player is remembered and wins.
   - A main menu with **Continue** (autosave), **New Game** (warns: it wipes the autosave, as the
@@ -256,7 +286,7 @@ LoadGame stops at the first NULL object, so every class in the file must exist o
 ## Next
 
 1. **Bill's checks on the Thor** of the build on main; fix what he reports (**Share log** sends `omt-log.txt`).
-   First real test of the dual-screen panel (below).
+   Next real test: Bill's upscaled HD pack and the Asset Viewer on the device.
 2. **Open TODOs in the new classes:** the pickup menu announcement 0x408f80 (a menu pickup ticks but shows
    nothing), the OXYGEN pickup's C3DWaterPlane 0x45f2eb (class not written), Jimmy's point cursor over
    pickups 0x4489ac (reads C3DPickupItem `m_show_arrow` +0x914, which now exists). The C3DAI subclasses'
