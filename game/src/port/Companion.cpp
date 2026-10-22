@@ -2,6 +2,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in the OMT headers)
 #include "Companion.h"
+#include "LauncherArt.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
 #include "../C3DTerrain.h"
@@ -1045,45 +1046,9 @@ int neg::CompanionCopy(char *buf, int size)
 	return n;
 }
 
-// port: the launcher's picture (android SetupActivity / LauncherView): the main menu page's
-// background (dat\menu.dat BACKGROUND MAINMENU, a screens.omt canvas), saved once as a PNG where
-// NEG_MENU_ART points, so the launcher can show the player's own game art on its next start.
-static void SaveMenuArt()
-{
-	const char *file = getenv("NEG_MENU_ART");
-	if (!file || !*file || !g_screens_db) return;
-	if (FILE *f = fopen(file, "rb")) { fclose(f); return; }
-	int id = -1;
-	for (std::list<C2DInGameMenu::MenuObject *>::iterator i = C2DInGameMenu::s_objects.begin();
-		 i != C2DInGameMenu::s_objects.end(); ++i)
-		if (*i && (*i)->type == C2DInGameMenu::MOBJ_BACKGROUND && strcasecmp((*i)->name, "MAINMENU") == 0)
-			id = (*i)->canvas_hi;
-	OMediaCanvas *c = id >= 0 ? LoadCanvasID(g_screens_db, id) : NULL;
-	if (!c) return;
-	try
-	{
-		OMediaFilePath path(file);
-		OMediaFileStream f;
-		f.setpath(&path);
-		f.open(omcfp_Write, true);
-		c->png_export(f);
-		f.close();
-		SDL_Log("COMPANION: launcher picture (screens.omt canvas %d) -> %s", id, file);
-	}
-	catch (...)
-	{
-		SDL_Log("COMPANION: cannot write %s", file);
-	}
-}
-
 void neg::CompanionTick(float dt)
 {
-	static bool s_art_done = false;
-	if (!s_art_done && g_screens_db && !C2DInGameMenu::s_objects.empty())
-	{
-		s_art_done = true;
-		SaveMenuArt();
-	}
+	LauncherArtTick();							// port: the launcher's pictures (port/LauncherArt.h)
 	if (!s_env_read)
 	{
 		s_env_read = true;
