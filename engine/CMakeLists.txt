@@ -104,6 +104,13 @@ endif()
 # The reconstructed game (../game/src). MSVC's char is signed and the original code relies on it,
 # so -fsigned-char (arm64's default char is unsigned).
 file(GLOB_RECURSE NEG_SRC ${CMAKE_CURRENT_SOURCE_DIR}/../game/src/*.cpp)
+# port: the build's git commit, baked in at every build (cmake/neg_version.cmake, for the pause
+# screen's credit line in game/src/port/BillsUi.cpp)
+set(NEG_VERSION_DIR ${CMAKE_CURRENT_BINARY_DIR}/neg_version)
+add_custom_target(neg_version
+  COMMAND ${CMAKE_COMMAND} -DOUT=${NEG_VERSION_DIR}/neg_version.h -DSRC=${CMAKE_CURRENT_SOURCE_DIR}/..
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/neg_version.cmake
+  BYPRODUCTS ${NEG_VERSION_DIR}/neg_version.h)
 set(NEG_FLAGS -fsigned-char -Wno-multichar -Wno-write-strings -Werror=narrowing -Wfloat-conversion -fno-strict-aliasing)
 
 if(ANDROID)
@@ -116,6 +123,8 @@ if(ANDROID)
     add_library(negatron SHARED ${NEG_SRC} ${OMT_MAIN})
     target_link_libraries(negatron omt granny_compat)
     target_compile_options(negatron PRIVATE ${NEG_FLAGS})
+    target_include_directories(negatron PRIVATE ${NEG_VERSION_DIR})
+    add_dependencies(negatron neg_version)
   endif()
 else()
   add_executable(omt_viewer viewer/OMTViewer.cpp ${OMT_MAIN})
@@ -136,6 +145,8 @@ else()
     add_executable(negatron ${NEG_SRC} ${OMT_MAIN})
     target_link_libraries(negatron omt granny_compat)
     target_compile_options(negatron PRIVATE ${NEG_FLAGS})
+    target_include_directories(negatron PRIVATE ${NEG_VERSION_DIR})
+    add_dependencies(negatron neg_version)
   endif()
 
   # Script runner for comparing granny_compat with the real granny.dll (tools/granny/verify.sh)

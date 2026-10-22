@@ -116,7 +116,10 @@ static void DrawScoreHud(float dt)
 			}
 		}
 	}
-	DrawText(neg::WideX(0x1a9, neg::WIDE_RIGHT), (short)(g_545e78->f_594 + 0x1b3), 'LARG', "%6.0d", g_score);	// port: WideX
+	if (neg::BillsUi())							// port: Bill's UI - counts up, pops and glows
+		neg::BillsScore(dt, neg::WideX(0x1a9, neg::WIDE_RIGHT), (short)(g_545e78->f_594 + 0x1b3));
+	else
+		DrawText(neg::WideX(0x1a9, neg::WIDE_RIGHT), (short)(g_545e78->f_594 + 0x1b3), 'LARG', "%6.0d", g_score);	// port: WideX
 }
 // (game over: NewGameAfterGameOver 0x498c70, SaveGame.h)
 

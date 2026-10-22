@@ -18,6 +18,7 @@ int TextWidth(int font, const char *s);
 
 // The pieces (BillsUi.cpp; each is called only with Bill's UI on, the frame hook in both modes):
 void BillsSonarReadout(int range);	// C3DRadar: the range readout, centred under the disc on a plate
+void BillsScore(float dt, short x, short y);	// DrawScoreHud: the score, counting up, pop and glow
 void BillsUiFrame(float dt);		// C2DInGameMenu::Process, at its end: shows / hides our pieces
 void BillsUiShutdown(void);			// C2DInGameMenu's destructor: frees them
 

@@ -9,6 +9,7 @@
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include "OMediaLayer.h"
+#include "neg_version.h"				// NEG_GIT_COMMIT (engine/cmake/neg_version.cmake)
 #include <SDL.h>
 #include <math.h>
 #include <stdlib.h>
@@ -248,19 +249,287 @@ void BillsSonarReadout(int range)
 	s_sonar_frame = s_frame;
 }
 
+// --------------------------------------------------------------------------- 2. the pause screen
+
+// The PDA main menu (C2DInGameMenu page 3, Esc / Start in play) has an empty green grid in its
+// middle. Bill's UI puts a scope there: a radar sweep with blips over range rings, and Jimmy's atom
+// (three orbits slowly turning, electrons running round them), in the grid's green phosphor (an
+// additive canvas redrawn every other frame), and the credit line under it in the game's font.
+enum { SCOPE_PX = 320 };
+static const float kScopeX = 205.0f, kScopeY = 108.0f, kScopeSize = 230.0f;	// 640x480 units
+static Deco s_scope;
+static float *s_scope_base, *s_scope_buf, *s_scope_ang, *s_scope_r;
+static float s_scope_t, s_scope_fade;
+
+static inline float Line(float dist_px, float width_px) { const float v = 1.0f - fabsf(dist_px) / width_px; return v > 0 ? v : 0; }
+
+static void ScopeInit(void)
+{
+	const int n = SCOPE_PX;
+	s_scope_base = new float[n * n];
+	s_scope_buf = new float[n * n];
+	s_scope_ang = new float[n * n];
+	s_scope_r = new float[n * n];
+	const float half = n * 0.5f, pi = 3.14159265f;
+	for (int j = 0; j < n; j++)
+		for (int i = 0; i < n; i++)
+		{
+			const float x = (i + 0.5f) / half - 1.0f, y = 1.0f - (j + 0.5f) / half;
+			const float r = sqrtf(x * x + y * y);
+			float a = atan2f(y, x);
+			if (a < 0) a += 2 * pi;
+			s_scope_ang[j * n + i] = a;
+			s_scope_r[j * n + i] = r;
+			float v = 0;
+			if (r < 0.95f)
+			{
+				for (int k = 1; k <= 3; k++) v += 0.20f * Line((r - 0.25f * k) * half, 1.3f);
+				v += 0.12f * Line(x * half, 1.1f) + 0.12f * Line(y * half, 1.1f);
+				const float deg = a * (180.0f / pi);
+				const float d10 = fabsf(fmodf(deg + 5.0f, 10.0f) - 5.0f) * (pi / 180.0f) * r * half;
+				const float d30 = fabsf(fmodf(deg + 15.0f, 30.0f) - 15.0f) * (pi / 180.0f) * r * half;
+				if (r > 0.89f) v += 0.30f * Line(d10, 1.0f);
+				if (r > 0.83f) v += 0.25f * Line(d30, 1.2f);
+			}
+			v += 0.60f * Line((r - 0.96f) * half, 1.6f);			// the bezel ring and its halo
+			if (r > 0.96f) v += 0.18f * expf(-(r - 0.96f) * half / 4.0f);
+			s_scope_base[j * n + i] = v;
+		}
+}
+
+// Adds a soft dot of intensity v at (x, y) in canvas pixels (radius rad).
+static void Splat(float *buf, float x, float y, float v, float rad)
+{
+	const int n = SCOPE_PX;
+	const int r = (int)(rad * 2.0f + 1.0f);
+	const int cx = (int)x, cy = (int)y;
+	const float k = 1.0f / (rad * rad);
+	for (int j = cy - r; j <= cy + r; j++)
+	{
+		if (j < 0 || j >= n) continue;
+		for (int i = cx - r; i <= cx + r; i++)
+		{
+			if (i < 0 || i >= n) continue;
+			const float dx = i + 0.5f - x, dy = j + 0.5f - y;
+			const float d2 = (dx * dx + dy * dy) * k;
+			if (d2 < 4.0f) buf[j * n + i] += v * expf(-d2);
+		}
+	}
+}
+
+static void ScopeDraw(void)
+{
+	if (!s_scope_base) ScopeInit();
+	const int n = SCOPE_PX;
+	const float half = n * 0.5f, pi = 3.14159265f, t = s_scope_t;
+	float *b = s_scope_buf;
+	// the sweep (clockwise, one turn in about 5 s) and its fading trail
+	float sweep = fmodf(-t * 1.25f, 2 * pi);
+	if (sweep < 0) sweep += 2 * pi;
+	for (int i = 0; i < n * n; i++)
+	{
+		float v = s_scope_base[i];
+		const float r = s_scope_r[i];
+		if (r < 0.95f)
+		{
+			float d = s_scope_ang[i] - sweep;
+			if (d < 0) d += 2 * pi;
+			v += 0.55f * expf(-d * 2.4f);
+			const float px = (d > pi ? d - 2 * pi : d) * r * half;
+			v += 0.9f * Line(px, 1.4f);
+		}
+		b[i] = v;
+	}
+	// blips that light up as the sweep passes them
+	static const float kBlips[][2] = { { 0.62f, 0.7f }, { 0.35f, 2.2f }, { 0.80f, 3.1f }, { 0.55f, 4.0f },
+									   { 0.72f, 5.3f }, { 0.47f, 5.9f } };
+	for (unsigned k = 0; k < sizeof kBlips / sizeof kBlips[0]; k++)
+	{
+		float d = kBlips[k][1] - sweep;
+		if (d < 0) d += 2 * pi;
+		const float v = 0.15f + 1.1f * expf(-d * 1.3f);
+		Splat(b, half + cosf(kBlips[k][1]) * kBlips[k][0] * half, half - sinf(kBlips[k][1]) * kBlips[k][0] * half, v, 2.2f);
+	}
+	// the atom: three orbits (ellipses at 60 degrees) turning slowly, an electron on each
+	const float A = 0.44f * half, B = 0.15f * half, spin = t * 0.30f;
+	for (int k = 0; k < 3; k++)
+	{
+		const float phi = spin + k * (pi / 3.0f), c = cosf(phi), s = sinf(phi);
+		for (int m = 0; m < 240; m++)
+		{
+			const float u = m * (2 * pi / 240.0f), ex = cosf(u) * A, ey = sinf(u) * B;
+			Splat(b, half + ex * c - ey * s, half - (ex * s + ey * c), 0.26f, 0.9f);
+		}
+		const float u0 = t * (1.9f + 0.25f * k) + k * 2.1f;
+		for (int m = 0; m < 12; m++)			// the electron and its tail
+		{
+			const float u = u0 - m * 0.06f, ex = cosf(u) * A, ey = sinf(u) * B;
+			Splat(b, half + ex * c - ey * s, half - (ex * s + ey * c), m == 0 ? 1.6f : 0.35f * (1.0f - m / 12.0f), m == 0 ? 3.0f : 1.6f);
+		}
+	}
+	Splat(b, half, half, 0.35f, 0.13f * half);	// the nucleus: a glow and a bright core
+	Splat(b, half, half, 1.3f, 0.045f * half);
+	// to pixels: phosphor green, white-hot where bright; alpha = intensity (drawn additively)
+	unsigned int *px = DecoBegin(s_scope, g_layer_hud2d, n, n, true);
+	if (px)
+		for (int i = 0; i < n * n; i++)
+		{
+			const float v = b[i];
+			if (v <= 0.004f) continue;
+			const float hot = Clamp01((v - 0.75f) * 0.9f);
+			px[i] = Rgba(0.22f + 0.7f * hot, 1.0f, 0.42f + 0.5f * hot, v);
+		}
+	DecoDone(s_scope);
+}
+
+static void ScopeFrame(float dt, bool show)
+{
+	if (!show)
+	{
+		DecoHide(s_scope);
+		s_scope_fade = 0;
+		return;
+	}
+	s_scope_t += dt;
+	s_scope_fade += dt * 3.0f;
+	if (s_scope_fade > 1.0f) s_scope_fade = 1.0f;
+	if (!s_scope.elt || (s_frame & 1)) ScopeDraw();
+	s_scope.elt->set_diffuse(OMediaFARGBColor(s_scope_fade, 1.0f, 1.0f, 1.0f));
+	DecoPlace(s_scope, kScopeX, kScopeY, kScopeSize, kScopeSize);
+
+	// the credit line, in the game's small font, under the scope
+	static char line2[96];
+	if (!line2[0])
+	{
+		const char *app = getenv("NEG_APP_VERSION");
+		if (app && *app) snprintf(line2, sizeof line2, "BY SIRBILLIAMS - V%s %s", app, NEG_GIT_COMMIT);
+		else snprintf(line2, sizeof line2, "BY SIRBILLIAMS - %s", NEG_GIT_COMMIT);
+	}
+	const char *line1 = "JIMMY NEUTRON VS JIMMY NEGATRON RECOMP";
+	const int font = TextWidth('MED', line1) <= 440 ? 'MED' : 'SMAL';
+	const int h = FontHeight(font);
+	const int keep = g_text_center;
+	g_text_center = 1;
+	const float y1 = kScopeY + kScopeSize + 10.0f + (float)h;
+	const float rgb[3] = { g_text_rgb[0], g_text_rgb[1], g_text_rgb[2] };
+	g_text_rgb[0] = 0.62f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.68f;	// phosphor green
+	g_text_alpha = s_scope_fade;
+	DrawText(320, (short)(int)y1, font, "%s", line1);
+	g_text_alpha = s_scope_fade;
+	DrawText(320, (short)(int)(y1 + 6.0f + (float)FontHeight('SMAL')), 'SMAL', "%s", line2);
+	g_text_rgb[0] = rgb[0]; g_text_rgb[1] = rgb[1]; g_text_rgb[2] = rgb[2];
+	g_text_center = keep;
+}
+
+// --------------------------------------------------------------------------- 2b. the score
+
+// DrawScoreHud: the score counts up to its new value (fast at first, about half a second) and,
+// as points come in, pops (the digits grow for a moment) with a green glow behind it.
+static double s_score_shown = -1.0;
+static int s_score_seen;
+static float s_score_pop, s_score_glow;
+static Deco s_score_halo;
+
+void BillsScore(float dt, short x, short y)
+{
+	const int target = g_score;
+	if (s_score_shown < 0 || (double)target < s_score_shown - 0.5)	// a load, a new game: no count
+	{
+		s_score_shown = target;
+		s_score_seen = target;
+	}
+	if (target > s_score_seen)
+	{
+		s_score_pop = 1.0f;
+		s_score_glow = 1.0f;
+		s_score_seen = target;
+	}
+	const bool counting = s_score_shown < (double)target;
+	if (counting)
+	{
+		s_score_shown += ((double)target - s_score_shown) * (1.0 - exp(-(double)dt * 7.0)) + 25.0 * dt;
+		if (s_score_shown > (double)target) s_score_shown = target;
+	}
+	s_score_pop -= dt * 4.0f;
+	if (s_score_pop < 0) s_score_pop = 0;
+	s_score_glow -= dt * 1.6f;
+	if (s_score_glow < (counting ? 0.55f : 0.0f)) s_score_glow = counting ? 0.55f : 0.0f;
+
+	char text[32];
+	snprintf(text, sizeof text, "%6.0d", (int)s_score_shown);
+	int lead = 0;
+	while (text[lead] == ' ') lead++;
+	if (!text[lead])									// nothing to show (score 0, as the original)
+	{
+		DecoHide(s_score_halo);
+		return;
+	}
+	char spaces[32];
+	memcpy(spaces, text, lead);
+	spaces[lead] = 0;
+	const float dx0 = (float)x + (float)TextWidth('LARG', spaces);	// the digits, in 640x480 units
+	const float dw = (float)TextWidth('LARG', text + lead), th = (float)FontHeight('LARG');
+	const float cx = dx0 + dw * 0.5f, cy = (float)y - th * 0.5f;
+
+	if (s_score_glow > 0.01f)
+	{
+		if (!s_score_halo.elt)
+		{
+			const int w = 128, h = 64;
+			unsigned int *px = DecoBegin(s_score_halo, g_layer_hud2d, w, h, true);
+			if (px)
+				for (int j = 0; j < h; j++)
+					for (int i = 0; i < w; i++)
+					{
+						const float u = (i + 0.5f) / w * 2 - 1, v = (j + 0.5f) / h * 2 - 1;
+						const float d2 = u * u + v * v;
+						px[j * w + i] = Rgba(0.35f, 1.0f, 0.5f, d2 < 1 ? 0.85f * (expf(-d2 * 3.2f) - 0.0408f) / 0.9592f : 0.0f);
+					}
+			DecoDone(s_score_halo);
+		}
+		const float gw = dw + 50.0f + 20.0f * s_score_pop, gh = th + 26.0f + 10.0f * s_score_pop;
+		s_score_halo.elt->set_diffuse(OMediaFARGBColor(s_score_glow, 1.0f, 1.0f, 1.0f));
+		DecoPlace(s_score_halo, cx - gw * 0.5f, cy - gh * 0.5f, gw, gh);
+	}
+	else DecoHide(s_score_halo);
+
+	const unsigned short first = g_alpha_used;
+	DrawText(x, y, 'LARG', "%s", text);
+	const float k = 1.0f + 0.22f * s_score_pop * s_score_pop;
+	if (k > 1.001f)
+	{
+		// grow the glyphs about the digits' centre (layer coordinates: centred, y up)
+		const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
+		const float lx = cx * sx - (float)(g_screen_w / 2), ly = (float)(g_screen_h / 2) - cy * sy;
+		for (unsigned short i = first; i < g_alpha_used; i++)
+		{
+			OMediaCanvasElement &e = g_alpha[i];
+			e.set_size(e.get_width() * k, e.get_height() * k);
+			e.place(lx + (e.get_x() - lx) * k, ly + (e.get_y() - ly) * k, 0);
+		}
+	}
+}
+
 // --------------------------------------------------------------------------- per frame
 
 void BillsUiFrame(float dt)
 {
-	(void)dt;
 	s_frame++;
 	const bool on = BillsUi();
 	if (!on || s_frame - s_sonar_frame > 2) DecoHide(s_sonar_plate);
+	ScopeFrame(dt, on && g_game_mode == 4 && g_menu && g_menu->f_4ce == 3);
+	if (!on || (g_game_mode != 5 && g_game_mode != 6))
+	{
+		DecoHide(s_score_halo);
+		if (!on) s_score_shown = -1.0;
+	}
 }
 
 void BillsUiShutdown(void)
 {
 	DecoFree(s_sonar_plate);
+	DecoFree(s_scope);
+	DecoFree(s_score_halo);
 }
 
 }
