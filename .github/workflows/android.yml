@@ -32,6 +32,22 @@ jobs:
       - name: Fetch SDL2 + gl4es (pinned)
         run: bash fetch-deps.sh
 
+      # A stable signing key from the repo secrets (if set), so each APK installs over the last one.
+      # Without it Gradle signs with a fresh debug key on every run (Android then refuses the update).
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.NEG_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.NEG_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/negatron.keystore"
+            echo "NEG_KEYSTORE=$RUNNER_TEMP/negatron.keystore" >> "$GITHUB_ENV"
+            echo "NEG_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "stable signing key: yes"
+          else
+            echo "::warning::No NEG_KEYSTORE_B64 secret: signed with a one-off debug key (won't install over an older APK)"
+          fi
+
       - name: Build APK
         working-directory: android
         run: |
@@ -41,24 +57,26 @@ jobs:
       - name: Collect APK
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/debug/app-debug.apk out/Negatron-Viewer.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/Neutron-vs-Negatron.apk
           ls -la out
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Negatron-Viewer-apk
-          path: out/Negatron-Viewer.apk
+          name: Neutron-vs-Negatron-apk
+          path: out/Neutron-vs-Negatron.apk
           if-no-files-found: error
 
       # Every push to main replaces the "latest" pre-release, so the newest APK is always at
-      # https://github.com/<owner>/<repo>/releases/download/latest/Negatron-Viewer.apk
+      # https://github.com/<owner>/<repo>/releases/download/latest/Neutron-vs-Negatron.apk
+      # It also carries the same APK under its old name, Negatron-Viewer.apk, so old links keep working.
       - name: Publish as the latest build
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cp out/Neutron-vs-Negatron.apk out/Negatron-Viewer.apk
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest out/Negatron-Viewer.apk --prerelease --target "$GITHUB_SHA" \
+          gh release create latest out/Neutron-vs-Negatron.apk out/Negatron-Viewer.apk --prerelease --target "$GITHUB_SHA" \
             --title "Latest build ($(date -u +%Y-%m-%d) ${GITHUB_SHA::7})" \
             --notes "Built automatically from ${GITHUB_SHA::7}: $(git log -1 --format=%s)"
 
