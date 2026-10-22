@@ -40,9 +40,15 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.NEG_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/negatron.keystore"
+            # Pasted secrets often carry a stray newline or space: neither value contains whitespace.
+            PW=$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d ' \t\r\n')
+            printf '%s' "$KEYSTORE_B64" | tr -d ' \t\r\n' | base64 -d > "$RUNNER_TEMP/negatron.keystore"
+            if ! keytool -list -keystore "$RUNNER_TEMP/negatron.keystore" -storepass "$PW" -alias negatron > /dev/null; then
+              echo "::error::NEG_KEYSTORE_B64 / NEG_KEYSTORE_PASSWORD don't open the key: re-paste both secrets"
+              exit 1
+            fi
             echo "NEG_KEYSTORE=$RUNNER_TEMP/negatron.keystore" >> "$GITHUB_ENV"
-            echo "NEG_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "NEG_KEYSTORE_PASSWORD=$PW" >> "$GITHUB_ENV"
             echo "stable signing key: yes"
           else
             echo "::warning::No NEG_KEYSTORE_B64 secret: signed with a one-off debug key (won't install over an older APK)"
