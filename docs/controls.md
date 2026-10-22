@@ -143,6 +143,10 @@ there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel fr
 `NEG_UI=bills` (the default) or `vanilla` (game/src/port/BillsUi.h). Vanilla is the original's look.
 Bill's UI adds, all drawn in code (only the game's own fonts and pictures are read at run time):
 
+- **Sonar readout** (the radar's "2X".."5X" range while the sonar power-up runs): centred under
+  the radar disc on a small green-hologram plate. (Both modes: the original drew it at y 10 as its
+  bottom edge, so it was cut off at the top of the screen; Vanilla now has it at the top right,
+  fully on screen, moving to the right edge with the disc in widescreen.)
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
 
 The original has no menu before the game (manual p. 6-7; CEditor::UpdateGame 0x4a5c70): the

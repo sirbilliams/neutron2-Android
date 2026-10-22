@@ -11,6 +11,7 @@
 #include "Game.h"
 #include "gen/globals.h"
 #include "port/Widescreen.h"
+#include "port/BillsUi.h"
 #include "OMediaViewPort.h"
 #include "OMediaTrigo.h"
 #include "OMedia3DVector.h"
@@ -313,7 +314,11 @@ void C3DRadar::UpdateBlips(CGameObject *centre, int unused, float pos[4])	// 0x4
 		case 4: f_614 = 4; break;
 		default: f_614 = 5; break;
 	}
-	DrawText(600, 10, 'MED', "%dX", f_614);					// 0x4a1a80 (0x539ec0)
+	// port: the original draws the readout at (600, 10), and y is the text's bottom edge: all but
+	// its lowest pixels were above the screen (in both modes). Its top is put at y 10 instead, and
+	// x moves to the right edge with the disc in widescreen. Bill's UI centres it under the disc.
+	if (BillsUi()) BillsSonarReadout(f_614);
+	else DrawText(WideX(600, WIDE_RIGHT), (short)(10 + FontHeight('MED')), 'MED', "%dX", f_614);	// 0x4a1a80 (0x539ec0)
 	f_600->ShowAgain();										// element +0xd4
 }
 

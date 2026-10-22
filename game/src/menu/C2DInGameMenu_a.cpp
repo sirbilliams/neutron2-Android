@@ -14,6 +14,7 @@
 #include "../Todo.h"
 #include "../C3DRadar.h"
 #include "../port/Widescreen.h"
+#include "../port/BillsUi.h"
 #include "OMediaFileStream.h"
 #include "OMediaError.h"
 #include <stdint.h>
@@ -503,6 +504,7 @@ C2DInGameMenu::C2DInGameMenu()
 C2DInGameMenu::~C2DInGameMenu()
 {
 	WideAnchorClear();							// port: widescreen anchors (Widescreen.h)
+	BillsUiShutdown();							// port: Bill's UI pieces (BillsUi.h)
 	g_interface.DestroyAll();
 
 	// Deleted, not cleared (sic: the globals keep dangling pointers). f_5b0 and the canvas

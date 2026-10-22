@@ -21,6 +21,7 @@
 #include "../C3DJimmy.h"
 #include "../C3DRadar.h"
 #include "../port/Widescreen.h"
+#include "../port/BillsUi.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
 #include <SDL.h>
@@ -965,6 +966,7 @@ void C2DInGameMenu::Process(float dt)
 			break;
 	}
 	g_interface.UpdateAll(dt);
+	neg::BillsUiFrame(dt);						// port: Bill's UI (port/BillsUi.h)
 }
 
 // --------------------------------------------------------------------------- SLOT 260 0x40ac30
