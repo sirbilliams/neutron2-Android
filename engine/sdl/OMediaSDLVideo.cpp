@@ -106,9 +106,12 @@ void OMediaSDLVideoEngine::set_widescreen(int height)
 	}
 }
 
+static OMediaSDLVideoEngine *s_video_engine = NULL;		// port: for omf_SDLContextReset
+
 OMediaSDLVideoEngine::OMediaSDLVideoEngine(OMediaWindow *master_window) :
 	OMediaVideoEngine(ommeic_OS, master_window)
 {
+	s_video_engine = this;
 	omf_SDLInit();
 	state = 0;
 	current_video_mode = default_video_mode = NULL;
@@ -116,7 +119,19 @@ OMediaSDLVideoEngine::OMediaSDLVideoEngine(OMediaWindow *master_window) :
 	create_video_cards();
 }
 
-OMediaSDLVideoEngine::~OMediaSDLVideoEngine() { unlink(); }
+OMediaSDLVideoEngine::~OMediaSDLVideoEngine() { unlink(); if (s_video_engine == this) s_video_engine = NULL; }
+
+// port: the GL context was lost while the app was in the background (SDL_RENDER_DEVICE_RESET,
+// Android): every texture / display list the targets made is gone, so their implementations
+// are dropped; the canvases and shapes upload themselves again when next drawn.
+void omf_SDLContextReset(void)
+{
+	OMediaRenderer *r = s_video_engine ? s_video_engine->get_selected_renderer() : NULL;
+	if (!r) return;
+	omt_RenderTargetList *t = r->get_targets();
+	for (omt_RenderTargetList::iterator i = t->begin(); i != t->end(); ++i) (*i)->delete_all_implementations();
+	SDL_Log("port: GL context reset - textures will be uploaded again");
+}
 
 void OMediaSDLVideoEngine::create_video_cards(void)
 {

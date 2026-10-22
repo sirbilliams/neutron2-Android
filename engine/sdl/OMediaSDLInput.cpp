@@ -8,6 +8,7 @@
 #include "OMediaWindow.h"
 #include "OMediaAnimPeriodical.h"
 #include "OMediaDefMessages.h"
+#include "OMediaTimeCounter.h"
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
@@ -354,6 +355,21 @@ static void omf_fake_pad_init(void)
 	SDL_Log("OMT_FAKE_PAD: attached");
 }
 
+static void omf_push_app_event(Uint32 type)
+{
+	SDL_Event e;
+	SDL_zero(e);
+	e.type = type;
+	SDL_PushEvent(&e);
+}
+
+static Uint32 omf_resume_timer(Uint32, void *)
+{
+	omf_push_app_event(SDL_APP_WILLENTERFOREGROUND);
+	omf_push_app_event(SDL_APP_DIDENTERFOREGROUND);
+	return 0;
+}
+
 static void omf_fake_pad_step(int tick)
 {
 	if (!omg_fake_pad) return;
@@ -378,6 +394,18 @@ static void omf_fake_pad_step(int tick)
 			e.button.clicks = 1;
 			SDL_GetMouseState(&e.button.x, &e.button.y);
 			SDL_PushEvent(&e);
+			continue;
+		}
+		if (strcmp(name, "suspend") == 0)		// port test: background for v ms (as Android's pause), then back
+		{
+			omf_push_app_event(SDL_APP_WILLENTERBACKGROUND);
+			omf_push_app_event(SDL_APP_DIDENTERBACKGROUND);
+			SDL_AddTimer(Uint32(v > 0 ? v : 1), omf_resume_timer, NULL);
+			continue;
+		}
+		if (strcmp(name, "glreset") == 0)		// port test: as if the GL context had been lost
+		{
+			omf_push_app_event(SDL_RENDER_DEVICE_RESET);
 			continue;
 		}
 		if (strcmp(name, "acback") == 0)		// the Android back button
@@ -426,14 +454,63 @@ static void omf_pad_tick(void)
 	omf_pad_pointer(dt);
 }
 
+// ---------------------------------------------------------------------------
+// port: suspend. When the app goes to the background (Android: the screen turns off, the Thor's
+// lid closes, another app comes up; the desktop: the window is minimised), the mix is paused and
+// OMT's clock stops. On Android SDL itself then blocks the main loop in SDL_PumpEvents until the
+// app comes back (SDL_HINT_ANDROID_BLOCK_ON_PAUSE, its default) and restores the GL context; on
+// the desktop the loop waits here for the window to come back. The game pauses itself from the
+// same events (CAweReal: the original's WM_ACTIVATEAPP handling). docs/controls.md.
+
+void omf_SDLAudioPause(bool pause);			// OMediaSDLSound.cpp
+void omf_SDLContextReset(void);				// OMediaSDLVideo.cpp
+
+static bool s_suspended = false, s_clock_paused = false;
+
+static void omf_suspend(bool on)
+{
+	if (on == s_suspended) return;
+	s_suspended = on;
+	SDL_Log("port: %s", on ? "suspended (in the background)" : "resumed");
+	omf_SDLAudioPause(on);
+	if (on && !OMediaTimeCounter::is_paused_millisecs())
+	{
+		OMediaTimeCounter::pause_millisecs(true);
+		s_clock_paused = true;
+	}
+	else if (!on && s_clock_paused)
+	{
+		OMediaTimeCounter::pause_millisecs(false);
+		s_clock_paused = false;
+	}
+}
+
+// SDL's app / window events that suspend or resume (before the game's own filter sees them).
+static void omf_lifecycle(SDL_Event &se)
+{
+	if (se.type == SDL_APP_WILLENTERBACKGROUND) omf_suspend(true);
+	else if (se.type == SDL_APP_DIDENTERFOREGROUND) omf_suspend(false);
+	else if (se.type == SDL_RENDER_DEVICE_RESET) omf_SDLContextReset();
+	else if (se.type == SDL_WINDOWEVENT && se.window.event == SDL_WINDOWEVENT_MINIMIZED) omf_suspend(true);
+	else if (se.type == SDL_WINDOWEVENT && se.window.event == SDL_WINDOWEVENT_RESTORED) omf_suspend(false);
+	else if (se.type == SDL_QUIT) omf_suspend(false);
+}
+
 void OMediaEventManager::spend_time(void)
 {
 	SDL_Event se;
 	omf_pad_tick();
-	while (SDL_PollEvent(&se))
+	for (;;)
 	{
+		int got = SDL_PollEvent(&se);
+#ifndef __ANDROID__
+		// port: suspended (window minimised): sleep in the event queue until it comes back
+		if (!got && s_suspended) got = SDL_WaitEvent(&se);
+#endif
+		if (!got) break;
 		if (se.type == SDL_CONTROLLERDEVICEADDED) omf_pad_added(se.cdevice.which);
 		else if (se.type == SDL_CONTROLLERDEVICEREMOVED) omf_pad_removed(se.cdevice.which);
+		omf_lifecycle(se);
 		if (filter_event(&se)) continue;
 		if (se.type == SDL_QUIT)
 		{

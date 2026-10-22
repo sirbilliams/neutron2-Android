@@ -319,3 +319,9 @@ class OMediaSDLSoundEngine : public OMediaSoundEngine
 };
 
 OMediaSoundEngine *omf_SDLCreateSoundEngine(OMediaWindow *master) { return new OMediaSDLSoundEngine(master); }
+
+// port: suspend (OMediaSDLInput.cpp): the whole mix stops while the app is in the background
+void omf_SDLAudioPause(bool pause)
+{
+	if (omg_audio_dev) SDL_PauseAudioDevice(omg_audio_dev, pause ? 1 : 0);
+}

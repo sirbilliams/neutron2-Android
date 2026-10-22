@@ -162,6 +162,30 @@ until left / right is pressed again; `NEG_VOX_PICKER=0` turns the picker off. On
 device the bottom panel shows the worlds as steel cards, the chosen one lit
 (`game/src/port/VoxPicker.*`, `CompanionView.drawPicker`).
 
+## Suspend (port)
+
+When the app leaves the foreground the game is suspended, and nothing is saved (as the
+original): on Android when the activity pauses or stops, or when the main display turns off while
+it stays resumed (the Thor's lid: a DisplayManager listener in NegatronActivity); on the desktop
+when the window is minimised.
+
+- SDL blocks the game thread in its event pump until the app comes back
+  (`SDL_HINT_ANDROID_BLOCK_ON_PAUSE`, SDL's default), pauses the audio devices and keeps / restores
+  the GL context. NegatronActivity also asks SDL to pause in `onPause` (SDL itself only pauses in
+  `onStop` on Android 7+). On the desktop the event loop waits for the window to come back.
+- The engine (engine/sdl/OMediaSDLInput.cpp) pauses the sound device and OMT's clock on
+  `SDL_APP_WILLENTERBACKGROUND` / minimise and resumes them on `SDL_APP_DIDENTERFOREGROUND` /
+  restore. If the GL context was lost after all (`SDL_RENDER_DEVICE_RESET`), every texture and
+  shape implementation is dropped and uploaded again when next drawn.
+- The game deactivates as the original did on WM_ACTIVATEAPP (CAweReal: `PauseGame` while
+  playing, the music and effects stop) and reactivates on return with the frame timer reset, so no
+  game time passes. The focus events take the same path (sent once per change); before this port
+  change they reached nothing, so losing the focus (e.g. the port menu's dialog) now pauses the
+  game too, as alt-tab did on Windows.
+- The bottom-screen panel stops polling while suspended.
+- Desktop test hooks: `OMT_FAKE_PAD="<tick>:suspend=<ms>"` goes to the background for that long
+  and comes back; `<tick>:glreset=1` acts as a lost GL context.
+
 ## Pointer helpers
 
 `game/src/Mouse.h` has the shared pointer helpers: `GetMousePos` 0x4b1d10, `SetMousePos`

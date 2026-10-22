@@ -43,6 +43,18 @@ CAweReal::CAweReal() : OMediaApplication(omchint_BestInit, true)		// OMediaAppli
 
 CAweReal::~CAweReal() {}
 
+// port: WM_ACTIVATEAPP came once per change; SDL reports the focus and the background separately
+// (both can come for one change), so the activate / deactivate messages are sent on changes only,
+// to the application's own handler below (as the original's window procedure did; sending them to
+// OMediaApplication::listen_to_message, as before, reached nothing).
+static void AppActive(CAweReal *app, bool on)
+{
+	static bool s_active = true;
+	if (on == s_active) return;
+	s_active = on;
+	app->listen_to_message(on ? omsg_neg_Activate : omsg_neg_DeActivate, NULL);
+}
+
 // 0x4a3380. The original reacts to raw Windows messages that OMT's event filter forwards
 // (WM_KEYDOWN/UP fill g_keys[VK], WM_ACTIVATEAPP restores the display, WM_USER+n = AWEMSG_*).
 // On this port the filter carries SDL events, translated here to the same effects.
@@ -51,7 +63,7 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 	switch (msg)
 	{
 		case omsg_neg_DeActivate:
-			SDL_Log("omsg_DeActivate");
+			SDL_Log("omsg_DeActivate (game state %d)", (int)g_53b5b4);
 			if (g_gametype)
 			{
 				g_53f27c = g_53b5b4;			// remember the game state (0x53b5b4, CJimmyGame)
@@ -82,9 +94,21 @@ void CAweReal::listen_to_message(omt_Message msg, void *param)
 				if (e->type == SDL_KEYDOWN && e->key.keysym.sym == SDLK_F4 && g_cheat_keys) quit();
 			}
 			else if (e->type == SDL_WINDOWEVENT && e->window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-				OMediaApplication::listen_to_message(omsg_neg_Activate, NULL);
+				AppActive(this, true);
 			else if (e->type == SDL_WINDOWEVENT && e->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
-				OMediaApplication::listen_to_message(omsg_neg_DeActivate, NULL);
+				AppActive(this, false);
+			// port: suspend (engine/sdl/OMediaSDLInput.cpp; docs/controls.md): going to the background
+			// (Android: screen off, lid shut, another app; desktop: minimised) deactivates the game as
+			// losing the focus does, coming back activates it with no game time passed.
+			else if (e->type == SDL_APP_WILLENTERBACKGROUND
+					 || (e->type == SDL_WINDOWEVENT && e->window.event == SDL_WINDOWEVENT_MINIMIZED))
+				AppActive(this, false);
+			else if (e->type == SDL_APP_DIDENTERFOREGROUND
+					 || (e->type == SDL_WINDOWEVENT && e->window.event == SDL_WINDOWEVENT_RESTORED))
+			{
+				ResetFrameTimer();				// 0x4b9600: the time away is not game time
+				AppActive(this, true);
+			}
 			else if (e->type == SDL_QUIT)
 				SDL_Log("EXIT REQUEST, CALLING QUIT (CLEAN EXIT)");
 			break;
