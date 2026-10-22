@@ -11,6 +11,7 @@
     4 SAVE_MENU, 5 OPTIONS_MENU, 6 CREDITS_MENU.                                                */
 #include "../DatabaseCache.h"
 #include "../C2DInGameMenu.h"
+#include "../port/VoxPicker.h"
 #include "../CanvasWrapper.h"
 #include "../Game.h"
 #include "../SaveGame.h"
@@ -648,6 +649,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 	// under the mouse, and acts on a click. Each menu acts once per press (the f_5a4.. latches).
 	(void)dt;
 	int difficulty = g_difficulty;
+	if (VoxPickerFrame(this)) return 1;			// port: the Vox world picker (port/VoxPicker.h)
 
 	if (v301() == MENU_SAVE)
 	{
@@ -680,7 +682,7 @@ unsigned char C2DInGameMenu::HandleMenuInput(float dt)					// 0x40efa0
 	}
 
 	short mx, my;
-	GetMousePos(mx, my);
+	if (!VoxPickerPointer(mx, my)) GetMousePos(mx, my);	// port: the picker's picture (port/VoxPicker.h)
 	short over = UpdateRollovers(mx, my);
 	// (0x463890 "OverItemIndex: %d" at 70,400 - empty in the shipped build)
 	if (over == -1)

@@ -115,6 +115,10 @@ final class CompanionView extends View {
     private float[] mPtX = new float[0], mPtY = new float[0];
     private int[] mPtIcon = new int[0];
     private String[] mPtLabel = new String[0];
+    // the Vox world picker (port/VoxPicker.h): cards left to right, the lit one
+    private String[] mPickName = new String[0];
+    private int[] mPickWire = new int[0], mPickColour = new int[0];
+    private int mPickSel = -1;
 
     CompanionView(Context c) {
         super(c);
@@ -272,6 +276,23 @@ final class CompanionView extends View {
             }
             if (mPtIcon[i] >= 0) fetchIcon(mPtIcon[i]);
         }
+        JSONObject pk = d.optJSONObject("picker");
+        JSONArray cards = pk != null ? pk.optJSONArray("cards") : null;
+        n = cards != null ? cards.length() : 0;
+        if (mPickName.length != n) {
+            mPickName = new String[n];
+            mPickWire = new int[n];
+            mPickColour = new int[n];
+        }
+        mPickSel = pk != null ? pk.optInt("sel", -1) : -1;
+        for (int i = 0; i < n; i++) {
+            JSONArray e = cards.optJSONArray(i);
+            mPickName[i] = e != null ? e.optString(0, "") : "";
+            mPickWire[i] = e != null ? e.optInt(1, -1) : -1;
+            mPickColour[i] = e != null ? e.optInt(2, -1) : -1;
+            if (mPickWire[i] >= 0) fetchIcon(mPickWire[i]);
+            if (mPickColour[i] >= 0) fetchIcon(mPickColour[i]);
+        }
         for (int i = 2; i < mGadgets.length; i += 3) fetchIcon(mGadgets[i]);
         for (int i = 2; i < mItems.length; i += 3) fetchIcon(mItems[i]);
         if (mNeutronIcon >= 0) fetchIcon(mNeutronIcon);
@@ -334,7 +355,8 @@ final class CompanionView extends View {
             drawKit(c);
             drawTasks(c);
         }
-        drawMap(c);
+        if (mPickName.length > 0) drawPicker(c);
+        else drawMap(c);
         c.restore();
     }
 
@@ -537,6 +559,66 @@ final class CompanionView extends View {
         c.drawLine(bx, by - 8, bx, by + 8, mStroke);
         c.drawLine(bx + bar, by - 8, bx + bar, by + 8, mStroke);
         lcdText(c, "1000", bx + bar / 2 - 24, by - 12, 18, PHOSPHOR);
+    }
+
+    /** The Vox world picker, in the map's window: one steel card per world, left to right as on
+     *  the game's screen, the chosen one raised and lit (its colour picture, LED on). */
+    private void drawPicker(Canvas c) {
+        RectF crt = mRect2;
+        crt.set(R_MAP.left + BEZEL, R_MAP.top + BEZEL, R_MAP.right - BEZEL, R_MAP.bottom - BEZEL);
+        mFill.setShader(null);
+        mFill.setColor(CRT_BG);
+        c.drawRect(crt.left, crt.top, crt.right, crt.bottom, mFill);
+        lcdText(c, "VOX", crt.left + 30, crt.top + 70, 44, LED_ON);
+        lcdText(c, "CHOOSE A WORLD", crt.left + 150, crt.top + 70, 34, LED_DIM);
+        int n = mPickName.length;
+        float gap = 18, cw = (crt.width() - 40 - gap * (n - 1)) / n, ch = Math.min(560, cw * 2.4f);
+        float top = crt.centerY() - ch / 2 + 10;
+        for (int i = 0; i < n; i++) {
+            boolean lit = i == mPickSel;
+            float l = crt.left + 20 + i * (cw + gap), t = top - (lit ? 10 : 0);
+            // glow, body, edges
+            if (lit) {
+                mFill.setColor(Color.argb(60, 96, 255, 110));
+                mRect.set(l - 12, t - 12, l + cw + 12, t + ch + 12);
+                c.drawRoundRect(mRect, 26, 26, mFill);
+            }
+            mFill.setColor(Color.argb(110, 0, 0, 0));
+            mRect.set(l + 4, t + 7, l + cw + 4, t + ch + 7);
+            c.drawRoundRect(mRect, 18, 18, mFill);
+            mFill.setColor(lit ? STEEL_HI : STEEL_MID);
+            mRect.set(l, t, l + cw, t + ch);
+            c.drawRoundRect(mRect, 18, 18, mFill);
+            mStroke.setShader(null);
+            mStroke.setStrokeWidth(lit ? 5 : 2);
+            mStroke.setColor(lit ? LED_ON : STEEL_LO);
+            mStroke.setStyle(Paint.Style.STROKE);
+            c.drawRoundRect(mRect, 18, 18, mStroke);
+            mStroke.setStyle(Paint.Style.FILL);              // (as the other users of mStroke have it)
+            // the picture in a CRT inset
+            float ps = cw - 36, px = l + 18, py = t + 22;
+            mFill.setColor(Color.rgb(50, 54, 60));
+            mRect.set(px - 4, py - 4, px + ps + 4, py + ps + 4);
+            c.drawRoundRect(mRect, 8, 8, mFill);
+            mFill.setColor(CRT_BG);
+            c.drawRect(px, py, px + ps, py + ps, mFill);
+            Bitmap b = mIcons.get(lit ? mPickColour[i] : mPickWire[i]);
+            if (b == null) b = mIcons.get(mPickWire[i]);
+            if (b != null) drawIcon(c, b, px + ps / 2, py + ps / 2, ps);
+            if (!lit) {
+                mFill.setColor(Color.argb(90, 4, 16, 8));
+                c.drawRect(px, py, px + ps, py + ps, mFill);
+            }
+            // the name, engraved, sized to the card
+            String name = mPickName[i];
+            float size = Math.min(34, (cw - 24) / (0.66f * Math.max(4, name.length())));
+            engraved(c, name, l + cw / 2, py + ps + 26 + size, size, true);
+            // the LED and the button hint
+            float ly = t + ch - 46;
+            led(c, l + cw / 2, ly, 14, lit ? 2 : 1, LED_ON);
+            if (lit) engraved(c, "A  GO", l + cw / 2, ly + 40, 20, true);
+        }
+        lcdText(c, "< >  CHOOSE    A  GO    B  BACK", crt.left + 30, crt.bottom - 34, 26, LED_DIM);
     }
 
     private void drawPoint(Canvas c, char kind, float px, float py, int iconId, String label, float sc) {

@@ -42,6 +42,8 @@
       pts      [[kind, x, y, icon or label], ...] in map pixels: p pickup (icon), n neutron,
                c checkpoint, f friend, e other AI character, o objective (a C3DArrow showing),
                d door, x exit (label: the level it loads; kind X while its task holds it shut)
+      picker   {"sel", "cards": [[name, wire icon, colour icon], ...]} while the Vox world picker is
+               open (port/VoxPicker.h): the worlds left to right, sel the lit one (-1 none)
       icon     a screens.omt canvas id (-1 = none), fetched with Companion.nativeIcon        */
 #pragma once
 

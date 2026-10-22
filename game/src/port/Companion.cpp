@@ -20,6 +20,7 @@
 #include "../objects/C3DArrow.h"
 #include "../objects/C3DNeutron.h"
 #include "../objects/C3DCheckPoint.h"
+#include "VoxPicker.h"
 #include "OMediaElement.h"
 #include "OMedia3DShape.h"
 #include "OMedia3DPolygon.h"
@@ -859,6 +860,24 @@ void Build(std::string &o)
 		o += ','; Str(o, "hp"); o += ':'; Num(o, boss->f_1d58);
 		o += ','; Str(o, "bar"); o += ':'; Int(o, boss->f_1d60 > 0 ? 1 : 0);
 		o += '}';
+	}
+	VoxCard cards[8];										// the Vox world picker (port/VoxPicker.h)
+	int sel = -1;
+	const int ncards = VoxPickerCards(cards, 8, &sel);
+	if (ncards > 0)
+	{
+		Key(o, "picker"); o += '{';
+		Str(o, "sel"); o += ':'; Int(o, sel);
+		o += ','; Str(o, "cards"); o += ":[";
+		for (int k = 0; k < ncards; k++)
+		{
+			if (k) o += ',';
+			o += '['; Str(o, cards[k].name);
+			o += ','; Int(o, NeedIcon(cards[k].wire) ? cards[k].wire : -1);
+			o += ','; Int(o, NeedIcon(cards[k].colour) ? cards[k].colour : -1);
+			o += ']';
+		}
+		o += "]}";
 	}
 	Key(o, "map"); o += '{';
 	Str(o, "gen"); o += ':'; Int(o, s_map.w > 0 ? s_map.gen : 0);

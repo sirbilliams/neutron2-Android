@@ -141,6 +141,18 @@ seconds (the save date). Empty and DUMMY slots are not listed. (A launcher may a
 .tsk header itself: big-endian; strings are a length byte + chars: version ("DUMMY   " =
 empty), int level 4cc, string gam file, string task file, float health, short lives, int score.)
 
+## Vox, the museum's world picker (port)
+
+In the museum (Level5d) the question-mark terminal opens the PDA main menu with the world
+pictures (VR tank, pyramid, King Carl), which the original drove with the Windows pointer. On
+that page (only when the terminal opened it): **left / right** (d-pad, left stick, arrow keys)
+move the highlight, **A** goes to the world, **B** (or Backspace) closes the menu and steps
+Jimmy back out of the terminal (walk in again to reopen it). Each picture has its world's name
+under it. Touching / moving the pointer gives the page back to the pointer (the original way)
+until left / right is pressed again; `NEG_VOX_PICKER=0` turns the picker off. On a dual-screen
+device the bottom panel shows the worlds as steel cards, the chosen one lit
+(`game/src/port/VoxPicker.*`, `CompanionView.drawPicker`).
+
 ## Pointer helpers
 
 `game/src/Mouse.h` has the shared pointer helpers: `GetMousePos` 0x4b1d10, `SetMousePos`

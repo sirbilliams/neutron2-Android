@@ -10,6 +10,7 @@
 #include "../C3DAI.h"
 #include "../friends/C3DLibby.h"
 #include "../C2DInGameMenu.h"
+#include "../port/VoxPicker.h"
 #include "../CanvasWrapper.h"
 #include "../CGameType.h"
 #include "../SaveGame.h"
@@ -639,6 +640,7 @@ void C3DAITrigger::SpecialAction(CGameObject *caller)
 			g_gametype->PauseGame(true);					// +0x110
 			g_menu->ActivateActiveMenu(3);					// +0x494
 			g_menu->f_590 = 3;
+			VoxPickerOpened();								// port: the pad picker (port/VoxPicker.h)
 		}
 	}
 	else if (strcasecmp(tag, "PICKUPWATERGUN") == 0)
