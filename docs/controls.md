@@ -128,6 +128,8 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   choice made here or in the launcher's Settings is remembered and wins. With no second screen
   the menu says so and nothing is shown.
 - **Panel map zoom: NEAR / FAR** - the map's scale (remembered).
+- **Energy meter: TUBE / ORBIT / DIAL** (with Bill's UI on) - the next energy meter design, at once
+  (remembered; also in the launcher's Settings).
 - **In-game UI: BILL'S UI / VANILLA** - switches the in-game UI polish at once (remembered; also
   the launcher's Settings item "In-game UI", passed to the game as `NEG_UI=bills|vanilla`, default
   Bill's UI; desktop: the environment variable). See "Bill's UI" below.
@@ -158,11 +160,12 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan
   lines, bright edge with corner brackets), the picture's drawn part (its opaque pixels, measured
   at run time) centred in it, 10 units in from the screen's edges. Vanilla: the original places.
-- **Energy** (top left; being redesigned, mock-ups for Bill to pick from, desktop selector
-  `NEG_UI_ENERGY=a|b|c|bar`, default a): A "steel LED tube" (chrome capsule, 10 LED cells, a glowing
+- **Energy meter** (top left), a setting: launcher Settings "Energy meter: TUBE / ORBIT / DIAL"
+  (left / right cycle; shown with Bill's UI on) and the port menu (applied at once), passed as
+  `NEG_UI_ENERGY=a|b|c` (default a; desktop also `bar`): A "steel LED tube" (chrome capsule, 10 LED cells, a glowing
   atom cap, the number in the game's font), B "atom orbit gauge" (a 270-degree ring round Jimmy's
   atom, the game's big digits), C "dial" (the bottom-screen panel's dial: steel bezel, green /
-  yellow / red arc, needle, LED digits); "bar" = the original bar animated. All replace the bar,
+  yellow / red arc, a pointer by the arc, LED digits); "bar" = the original bar animated. All replace the bar,
   its frame, the atom picture and the number, and share the behaviour: the value drains / fills
   smoothly, the original's colours (green from 70, yellow from 30, red below) eased, a white
   flash when energy is gained, a red flicker and a shake when hurt, a warning pulse below 30

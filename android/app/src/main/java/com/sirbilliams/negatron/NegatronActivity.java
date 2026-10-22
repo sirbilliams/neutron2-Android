@@ -54,6 +54,8 @@ public class NegatronActivity extends SDLActivity {
             boolean bills = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getBoolean(SetupActivity.PREF_BILLS_UI, true);
             Os.setenv("NEG_UI", bills ? "bills" : "vanilla", true);
+            Os.setenv("NEG_UI_ENERGY", getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
+                    .getString(SetupActivity.PREF_ENERGY, "a"), true);
             // port: the app's version for the pause screen's credit line
             try {
                 android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -232,9 +234,13 @@ public class NegatronActivity extends SDLActivity {
         String zoom = "Panel map zoom: " + (far ? "FAR" : "NEAR");
         final boolean bills = prefs.getBoolean(SetupActivity.PREF_BILLS_UI, true);
         String ui = "In-game UI: " + (bills ? "BILL'S UI" : "VANILLA");
+        final String energy = prefs.getString(SetupActivity.PREF_ENERGY, "a");
+        final String[] items = bills
+                ? new String[] { panel, zoom, ui, "Energy meter: " + LauncherPages.energyName(energy), "Close" }
+                : new String[] { panel, zoom, ui, "Close" };
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
-                .setItems(new String[] { panel, zoom, ui, "Close" }, new DialogInterface.OnClickListener() {
+                .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
                         if (which == 0) mPanel.setEnabled(!on);
@@ -242,6 +248,10 @@ public class NegatronActivity extends SDLActivity {
                         else if (which == 2) {          // port: Bill's UI / Vanilla, applied at once
                             prefs.edit().putBoolean(SetupActivity.PREF_BILLS_UI, !bills).apply();
                             Companion.setBillsUi(!bills);
+                        } else if (which == 3 && bills) {   // port: the next energy meter, at once
+                            String next = LauncherPages.energyStep(energy, 1);
+                            prefs.edit().putString(SetupActivity.PREF_ENERGY, next).apply();
+                            Companion.setEnergyMeter(next.charAt(0) - 'a' + 1);
                         }
                     }
                 })

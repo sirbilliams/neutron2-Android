@@ -262,11 +262,27 @@ final class LauncherPages {
 
     static LauncherModel.Page settings(boolean wide, boolean panel, boolean secondScreen,
             boolean boxArt, boolean background) {
-        return settings(wide, true, panel, secondScreen, boxArt, background);
+        return settings(wide, true, "a", panel, secondScreen, boxArt, background);
     }
 
-    static LauncherModel.Page settings(boolean wide, boolean billsUi, boolean panel, boolean secondScreen,
-            boolean boxArt, boolean background) {
+    /** port: the energy meter designs of Bill's UI (NEG_UI_ENERGY a / b / c, game/src/port/BillsUi.h). */
+    static final String[] ENERGY_IDS = { "a", "b", "c" };
+    static final String[] ENERGY_NAMES = { "TUBE", "ORBIT", "DIAL" };
+
+    static String energyName(String id) {
+        for (int i = 0; i < ENERGY_IDS.length; i++) if (ENERGY_IDS[i].equals(id)) return ENERGY_NAMES[i];
+        return ENERGY_NAMES[0];
+    }
+
+    /** The next (dir 1) or previous (dir -1) energy meter after `id`. */
+    static String energyStep(String id, int dir) {
+        int n = ENERGY_IDS.length, i = 0;
+        for (int k = 0; k < n; k++) if (ENERGY_IDS[k].equals(id)) i = k;
+        return ENERGY_IDS[((i + dir) % n + n) % n];
+    }
+
+    static LauncherModel.Page settings(boolean wide, boolean billsUi, String energy, boolean panel,
+            boolean secondScreen, boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         p.pic = "settings";
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
@@ -275,6 +291,11 @@ final class LauncherPages {
                 + "counting up, framed help pictures, the sonar readout centred). Vanilla: the original look. "
                 + "Also in game: hold Back.");
         i.value = billsUi ? "BILL'S UI" : "VANILLA";
+        if (billsUi) {
+            i = p.add("energy", "Energy meter", "Bill's UI's energy meter: TUBE (a steel LED tube), ORBIT (an "
+                    + "atom with an orbit gauge) or DIAL (the bottom screen's dial). Also in game: hold Back.");
+            i.value = energyName(energy);
+        }
         i = p.add("panel", "Dual screen", (secondScreen ? "" : "No second screen found. ")
                 + "The bottom screen shows the level map, the tasks and the gadgets while you play "
                 + "(on by default when there is a second screen). Also in game: hold Back.");

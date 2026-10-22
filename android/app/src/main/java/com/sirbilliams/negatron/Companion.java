@@ -15,6 +15,7 @@ final class Companion {
     private static native int[] nativeMap();
     private static native int[] nativeIcon(int id);
     private static native void nativeSetBillsUi(boolean on);
+    private static native void nativeSetEnergyMeter(int design);
 
     /** The latest snapshot as JSON, or null when the game library is not there. */
     static String snapshot() {
@@ -63,6 +64,15 @@ final class Companion {
     static void setBillsUi(boolean on) {
         try {
             nativeSetBillsUi(on);
+        } catch (UnsatisfiedLinkError e) {
+            // not the game
+        }
+    }
+
+    /** port: Bill's UI's energy meter, 1 TUBE / 2 ORBIT / 3 DIAL, switched while the game runs. */
+    static void setEnergyMeter(int design) {
+        try {
+            nativeSetEnergyMeter(design);
         } catch (UnsatisfiedLinkError e) {
             // not the game
         }

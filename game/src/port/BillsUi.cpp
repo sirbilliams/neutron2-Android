@@ -524,18 +524,23 @@ static float s_hb_col[3] = { 0.0f, 1.0f, 0.0f };
 static unsigned s_hb_frame, s_energy_frame;
 static Deco s_hb_halo;
 
-// --- the redesigned energy widgets (mock-ups for Bill to pick from; NEG_UI_ENERGY=a|b|c, "bar" =
-// the original bar with the animation above). They replace the bar, its frame, the atom picture
+// --- the energy meter designs (a setting: NEG_UI_ENERGY=a|b|c - TUBE / ORBIT / DIAL, default a;
+// the launcher's Settings and the port menu set it; "bar" = the original bar with the animation
+// above, desktop only). They replace the bar, its frame, the atom picture
 // and the number (those sprites are hidden while a widget shows, shown again otherwise).
+static volatile int s_energy_design = -1;
+void SetEnergyDesign(int design) { s_energy_design = design; }
+
 static int EnergyDesign(void)
 {
-	static int d = -1;
+	int d = s_energy_design;
 	if (d < 0)
 	{
 		const char *e = getenv("NEG_UI_ENERGY");
 		d = 1;
 		if (e && (e[0] == 'b' || e[0] == 'B')) d = (e[1] == 'a' || e[1] == 'A') ? 0 : 2;	// "bar" / "b"
 		else if (e && (e[0] == 'c' || e[0] == 'C')) d = 3;
+		s_energy_design = d;
 	}
 	return d;
 }
@@ -810,11 +815,12 @@ static void EnergyWidget(int design, float health, float fr, float fg, float fb,
 					}
 					if (on && sd < 3.0f) P.Add(col[0], col[1], col[2], 0.25f * Clamp01(1.0f - sd / 3.0f) * pulse);
 				}
-				// the needle and hub
-				const float na = (225.0f - 270.0f * e / 100.0f) * (pi / 180.0f);
-				const float nx = cx + cosf(na) * 40.0f, ny = cy - sinf(na) * 40.0f;
-				const float sn = SdSeg(u, v, cx, cy, nx, ny) - 1.4f;
-				P.Over(1.0f, 0.35f, 0.15f, P.Cov(sn));
+				// the needle (a pointer by the arc, r 33..45, and a short stub at the hub: it never
+				// crosses the digits, which lie within r 32 below the hub) and the hub
+				const float na = (225.0f - 270.0f * e / 100.0f) * (pi / 180.0f), ca = cosf(na), sa = -sinf(na);
+				const float sn = SdSeg(u, v, cx + ca * 33.0f, cy + sa * 33.0f, cx + ca * 45.0f, cy + sa * 45.0f) - 1.6f;
+				const float st = SdSeg(u, v, cx, cy, cx + ca * 10.0f, cy + sa * 10.0f) - 1.6f;
+				P.Over(1.0f, 0.35f, 0.15f, P.Cov(sn < st ? sn : st));
 				const float sh = SdCircle(u, v, cx, cy, 6.0f);
 				if (sh < 1.0f)
 				{
@@ -1049,6 +1055,13 @@ void BillsUiShutdown(void)
 
 #ifdef __ANDROID__
 #include <jni.h>
+
+// Companion.setEnergyMeter (the port menu's "Energy meter" item): 1 TUBE, 2 ORBIT, 3 DIAL
+extern "C" JNIEXPORT void JNICALL
+Java_com_sirbilliams_negatron_Companion_nativeSetEnergyMeter(JNIEnv *, jclass, jint design)
+{
+	if (design >= 1 && design <= 3) neg::SetEnergyDesign(design);
+}
 
 // Companion.setBillsUi (the in-game port menu's "In-game UI" item)
 extern "C" JNIEXPORT void JNICALL

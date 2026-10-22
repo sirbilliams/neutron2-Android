@@ -281,7 +281,7 @@ public class SetupActivity extends Activity {
         android.content.SharedPreferences p = prefs();
         boolean second = CompanionPanel.findDisplay(displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
-                CompanionPanel.wanted(p, second), second,
+                p.getString(PREF_ENERGY, "a"), CompanionPanel.wanted(p, second), second,
                 boxArtFile().isFile(),
                 backgroundFile().isFile());
     }
@@ -313,6 +313,9 @@ public class SetupActivity extends Activity {
         else if (id.equals("quit")) finish();
         else if (id.equals("wide")) {
             p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).commit();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("energy")) {
+            p.edit().putString(PREF_ENERGY, LauncherPages.energyStep(p.getString(PREF_ENERGY, "a"), mStepDir)).commit();
             mMenu.replace(settingsPage());
         } else if (id.equals("ui")) {
             p.edit().putBoolean(PREF_BILLS_UI, !p.getBoolean(PREF_BILLS_UI, true)).commit();
@@ -589,7 +592,12 @@ public class SetupActivity extends Activity {
         else if (repeat) return true;
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
-            if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("panel"))) choose();
+            if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("energy")
+                    || it.id.equals("panel"))) {
+                mStepDir = k == android.view.KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
+                choose();
+                mStepDir = 1;
+            }
         } else if (act == 4) choose();
         else if (act == 5) back();
         else if (act == 6) {
@@ -1007,6 +1015,10 @@ public class SetupActivity extends Activity {
     static final String PREF_WIDESCREEN = "widescreen";
     /** port: the in-game UI, Bill's UI (default) or Vanilla (NegatronActivity passes it as NEG_UI). */
     static final String PREF_BILLS_UI = "bills_ui";
+    /** port: Bill's UI's energy meter, "a" TUBE (default) / "b" ORBIT / "c" DIAL (NEG_UI_ENERGY). */
+    static final String PREF_ENERGY = "energy_meter";
+    /** Left / right on a cycling setting: -1 / 1. */
+    private int mStepDir = 1;
 
     private static void deleteTree(File f) {
         if (f == null || !f.exists()) return;
