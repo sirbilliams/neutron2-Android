@@ -112,7 +112,7 @@ Hold the Android back button (or the back swipe from the screen edge) for 0.6 s,
 quick taps (within 0.35 s), to open a small menu over the game (the game pauses while it is open):
 
 - **Bottom screen panel: ON / OFF** - shows a companion panel on the Thor's second screen
-  (any second Android display; the first presentation display if there are several), styled as a
+  (its built-in bottom display only, never a TV: see "Casting / TV" below), styled as a
   stainless-steel lab gadget with green LEDs: the level, game mode and time in the level, neutron
   energy on a dial (green / yellow / red as the game's own bar), the score, the boss's health
   while it shows, the current gadget (its HUD picture, and the HUD's gadget bar while the game
@@ -139,6 +139,32 @@ a tap from a hold or a double tap). The panel never takes the focus or touches, 
 the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1` logs the same
 snapshot once a second, and `NEG_COMPANION_DUMP=<dir>` writes the map, the snapshot and the icons
 there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel from them.
+
+## Casting / TV (port)
+
+Casting the Thor to a TV (Android screen mirroring / Chromecast, Miracast wireless display, or a
+USB-C HDMI cable) shows the game: the game always runs on the default display (the top screen; the
+launcher opens it there with `ActivityOptions.setLaunchDisplayId(DEFAULT_DISPLAY)`), and that is
+the display Android mirrors. The bottom-screen panel and the launcher's bottom page only ever use
+the Thor's built-in bottom display (`BottomScreen.java`), never the TV, even when Android offers the
+TV as a presentation display:
+
+- never the default display, an invalid or private display, or one of type WIFI / OVERLAY /
+  VIRTUAL (the hidden `Display.getType()` by reflection, else the "type ..." in
+  `Display.toString()`), or one whose name says cast / wireless / mirror / virtual;
+- a display of type INTERNAL, or the Thor's bottom panel size (1240x1080), is the bottom screen; a
+  display of type EXTERNAL (HDMI), or named HDMI / USB / TV / monitor, is not;
+- the bottom screen is remembered once seen (name and size, `negatron_displays` preferences); a
+  display of unknown type is used only when it is the one candidate and no bottom screen has been
+  seen before;
+- a TV appearing or going away mid-game (DisplayManager listeners in the panel and the launcher)
+  never moves the panel or the game; if the bottom screen itself goes, the panel just hides.
+
+Each change logs the displays seen and the one chosen (logcat tag `Negatron`, and
+`display-log.txt` in the game folder, added to the end of the launcher's Test -> Share log), e.g.
+`displays (display 3 added): 0 "Built-in Screen" 1920x1080 internal secure; 2 "..." 1240x1080
+internal presentation secure; 3 "TV" 1920x1080 wifi presentation [skip] -> bottom screen = display 2`,
+plus `game on display 0 (the top screen)` at each game start.
 
 ## Bill's UI (port)
 

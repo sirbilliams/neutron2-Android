@@ -13,8 +13,8 @@ import android.view.WindowManager;
 
 /**
  * port: the bottom-screen companion panel (AYN Thor: its second display). Shows a
- * {@link CompanionView} in an android.app.Presentation on the first presentation display (or any
- * non-default display), polling the native snapshot 10 times a second. On by default when a second
+ * {@link CompanionView} in an android.app.Presentation on the Thor's built-in bottom screen
+ * ({@link BottomScreen}: never a TV / cast / HDMI display, so mirroring shows the game), polling the native snapshot 10 times a second. On by default when a second
  * display is present (off otherwise); a choice the player makes (the port menu, the launcher's
  * settings) is remembered and wins. With no second display it simply shows nothing. The panel
  * never takes focus or touches, so the game keeps the input.
@@ -67,38 +67,33 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         if (mPresentation != null && mPresentation.view != null) mPresentation.view.setZoomFar(far);
     }
 
-    boolean hasSecondDisplay() { return findDisplay(mDisplays) != null; }
+    boolean hasSecondDisplay() { return findDisplay(mActivity, mDisplays) != null; }
 
     void setEnabled(boolean on) {
         mPrefs.edit().putBoolean(KEY_ON, on).apply();
-        update();
+        update(null);
     }
 
     void resume() {
         mResumed = true;
         if (mDisplays != null) mDisplays.registerDisplayListener(this, mHandler);
-        update();
+        update("resume");
     }
 
     void pause() {
         mResumed = false;
         if (mDisplays != null) mDisplays.unregisterDisplayListener(this);
-        update();
+        update(null);
     }
 
-    /** The second screen: the first presentation display, else any non-default display, or null. */
-    static Display findDisplay(DisplayManager displays) {
-        if (displays == null) return null;
-        Display[] shown = displays.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION);
-        if (shown != null && shown.length > 0) return shown[0];
-        for (Display d : displays.getDisplays()) {
-            if (d.getDisplayId() != Display.DEFAULT_DISPLAY) return d;
-        }
-        return null;
+    /** The second screen: the Thor's built-in bottom screen (never an external / cast display), or null. */
+    static Display findDisplay(Context context, DisplayManager displays) {
+        return BottomScreen.find(context, displays);
     }
 
-    private void update() {
-        Display d = mResumed ? findDisplay(mDisplays) : null;
+    /** why: the log line's reason (BottomScreen), null for none. */
+    private void update(String why) {
+        Display d = mResumed ? BottomScreen.find(mActivity, mDisplays, why) : null;
         if (d != null && !wanted(mPrefs, true)) d = null;
         if (mPresentation != null
                 && (d == null || mPresentation.getDisplay().getDisplayId() != d.getDisplayId())) {
@@ -108,7 +103,20 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     }
 
     private void show(Display d) {
-        PanelPresentation p = new PanelPresentation(mActivity, d, mFar);
+        final PanelPresentation p = new PanelPresentation(mActivity, d, mFar);
+        // Presentation dismisses itself when its display goes away or changes size: forget it, look again
+        p.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(android.content.DialogInterface dialog) {
+                if (mPresentation != p) return;
+                mHandler.removeCallbacks(mPoll);
+                Companion.setEnabled(false);
+                mPresentation = null;
+                mHandler.post(new Runnable() {
+                    @Override public void run() { update("panel closed"); }
+                });
+            }
+        });
         try {
             p.show();
         } catch (WindowManager.InvalidDisplayException | IllegalStateException e) {
@@ -123,17 +131,19 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     private void hide() {
         mHandler.removeCallbacks(mPoll);
         Companion.setEnabled(false);
+        PanelPresentation p = mPresentation;
+        mPresentation = null;                           // before dismiss: the dismiss listener ignores it
         try {
-            mPresentation.dismiss();
+            p.dismiss();
         } catch (RuntimeException e) {
             // the display went away
         }
-        mPresentation = null;
     }
 
-    @Override public void onDisplayAdded(int displayId) { update(); }
-    @Override public void onDisplayRemoved(int displayId) { update(); }
-    @Override public void onDisplayChanged(int displayId) { update(); }
+    // A TV / cast display coming or going never moves the panel: find() keeps choosing the built-in screen.
+    @Override public void onDisplayAdded(int displayId) { update("display " + displayId + " added"); }
+    @Override public void onDisplayRemoved(int displayId) { update("display " + displayId + " removed"); }
+    @Override public void onDisplayChanged(int displayId) { update(null); }
 
     /** The Presentation window: one full-size CompanionView, never focused or touched. */
     static final class PanelPresentation extends Presentation {

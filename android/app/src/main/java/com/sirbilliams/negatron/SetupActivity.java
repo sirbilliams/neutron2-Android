@@ -104,8 +104,20 @@ public class SetupActivity extends Activity {
         i.putExtra(NegatronActivity.EXTRA_LIB, lib);
         if (testPlay != null) i.putExtra(NegatronActivity.EXTRA_TEST_PLAY, testPlay);
         if (start != null) i.putExtra(NegatronActivity.EXTRA_START, start);
-        startActivity(i);
+        startActivity(i, onTopScreen());
         finish();
+    }
+
+    /** port: the game always opens on the default (top) display, never a TV / cast display, so
+     *  screen mirroring sends the game view to the TV (docs/controls.md "Casting / TV"). */
+    static Bundle onTopScreen() {
+        if (android.os.Build.VERSION.SDK_INT < 26) return null;
+        try {
+            return android.app.ActivityOptions.makeBasic()
+                    .setLaunchDisplayId(android.view.Display.DEFAULT_DISPLAY).toBundle();
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     // ------------------------------------------------------------------ port: the launcher menu
@@ -279,7 +291,7 @@ public class SetupActivity extends Activity {
 
     private LauncherModel.Page settingsPage() {
         android.content.SharedPreferences p = prefs();
-        boolean second = CompanionPanel.findDisplay(displays()) != null;
+        boolean second = CompanionPanel.findDisplay(this, displays()) != null;
         return LauncherPages.settings(p.getBoolean(PREF_WIDESCREEN, true), p.getBoolean(PREF_BILLS_UI, true),
                 p.getString(PREF_ENERGY, "a"), CompanionPanel.wanted(p, second), second,
                 boxArtFile().isFile(),
@@ -321,7 +333,7 @@ public class SetupActivity extends Activity {
             p.edit().putBoolean(PREF_BILLS_UI, !p.getBoolean(PREF_BILLS_UI, true)).commit();
             mMenu.replace(settingsPage());
         } else if (id.equals("panel")) {
-            boolean second = CompanionPanel.findDisplay(displays()) != null;
+            boolean second = CompanionPanel.findDisplay(this, displays()) != null;
             p.edit().putBoolean(CompanionPanel.KEY_ON, !CompanionPanel.wanted(p, second)).commit();
             mMenu.replace(settingsPage());
             showBottom();
@@ -641,8 +653,10 @@ public class SetupActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        mResumed = true;
+        if (displays() != null) displays().registerDisplayListener(mDisplayWatch, ui);
         if (mTop != null) {
-            showBottom();
+            showBottom("launcher");
             ui.removeCallbacks(mTick);
             ui.post(mTick);
         }
@@ -650,6 +664,8 @@ public class SetupActivity extends Activity {
 
     @Override
     protected void onPause() {
+        mResumed = false;
+        if (displays() != null) displays().unregisterDisplayListener(mDisplayWatch);
         ui.removeCallbacks(mTick);
         hideBottom();
         super.onPause();
@@ -658,11 +674,28 @@ public class SetupActivity extends Activity {
     /** On a dual-screen device (and the dual screen setting on) the bottom screen shows the page's
      *  options and the selected item's details / save-slot preview. */
     private void showBottom() {
-        android.view.Display d = CompanionPanel.findDisplay(displays());
+        showBottom(null);
+    }
+
+    /** why: the display log line's reason (BottomScreen), null for none. */
+    private void showBottom(String why) {
+        android.view.Display d = BottomScreen.find(this, displays(), why);
         boolean want = mMenu != null && d != null && CompanionPanel.wanted(prefs(), true);
         if (!want) { hideBottom(); return; }
-        if (mBottom != null) return;
-        LauncherPresentation b = new LauncherPresentation(this, d, mMenu);
+        if (mBottom != null && mBottom.getDisplay().getDisplayId() == d.getDisplayId()) return;
+        hideBottom();
+        final LauncherPresentation b = new LauncherPresentation(this, d, mMenu);
+        // Presentation dismisses itself when its display goes away or changes size: forget it, look again
+        b.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(android.content.DialogInterface dialog) {
+                if (mBottom != b) return;
+                mBottom = null;
+                ui.post(new Runnable() {
+                    @Override public void run() { if (mResumed) showBottom("launcher panel closed"); }
+                });
+            }
+        });
         try {
             b.show();
         } catch (android.view.WindowManager.InvalidDisplayException | IllegalStateException ex) {
@@ -673,13 +706,23 @@ public class SetupActivity extends Activity {
 
     private void hideBottom() {
         if (mBottom == null) return;
+        LauncherPresentation b = mBottom;
+        mBottom = null;                                 // before dismiss: the dismiss listener ignores it
         try {
-            mBottom.dismiss();
+            b.dismiss();
         } catch (RuntimeException ex) {
             // the display went away
         }
-        mBottom = null;
     }
+
+    /** port: a TV / cast display coming or going never moves the launcher's bottom page (BottomScreen). */
+    private boolean mResumed;
+    private final android.hardware.display.DisplayManager.DisplayListener mDisplayWatch =
+            new android.hardware.display.DisplayManager.DisplayListener() {
+        @Override public void onDisplayAdded(int id) { if (mTop != null) showBottom("launcher, display " + id + " added"); }
+        @Override public void onDisplayRemoved(int id) { if (mTop != null) showBottom("launcher, display " + id + " removed"); }
+        @Override public void onDisplayChanged(int id) { }
+    };
 
     /** The bottom screen's window: one LauncherView, never focused or touched (the pad stays here). */
     static final class LauncherPresentation extends android.app.Presentation {
@@ -731,11 +774,28 @@ public class SetupActivity extends Activity {
         } catch (IOException e) {
             text = "No log yet (" + e.getMessage() + "). Run Play first.";
         }
+        text += displayLog();
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("text/plain");
         i.putExtra(Intent.EXTRA_SUBJECT, "Negatron log");
         i.putExtra(Intent.EXTRA_TEXT, text);
         startActivity(Intent.createChooser(i, "Share log"));
+    }
+
+    /** port: the end of display-log.txt (BottomScreen: the displays seen, the bottom screen chosen). */
+    private String displayLog() {
+        File f = new File(getExternalFilesDir(null), BottomScreen.LOG_FILE);
+        if (!f.isFile()) return "";
+        try (FileInputStream in = new FileInputStream(f)) {
+            long len = f.length(), max = 8 * 1024;
+            if (len > max) in.skip(len - max);
+            byte[] b = new byte[(int) Math.min(len, max)];
+            int n = 0, r;
+            while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
+            return "\n\n--- displays (" + BottomScreen.LOG_FILE + ") ---\n" + new String(b, 0, n, "UTF-8");
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     // ------------------------------------------------------------------ UI

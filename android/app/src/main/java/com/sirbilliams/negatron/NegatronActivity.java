@@ -75,6 +75,12 @@ public class NegatronActivity extends SDLActivity {
         // port: the bottom-screen companion panel, for the game only (docs/controls.md)
         String lib = getIntent() != null ? getIntent().getStringExtra(EXTRA_LIB) : null;
         if ("negatron".equals(lib)) mPanel = new CompanionPanel(this);
+        // port: the game runs on the default (top) display, so casting mirrors it (docs/controls.md
+        // "Casting / TV"; the launcher opens it there). The log says where it really is.
+        android.view.Display on = getWindowManager().getDefaultDisplay();
+        int id = on != null ? on.getDisplayId() : -1;
+        BottomScreen.log(this, "game on display " + id
+                + (id == android.view.Display.DEFAULT_DISPLAY ? " (the top screen)" : " - NOT the top screen"));
     }
 
     // ------------------------------------------------------------------ port: companion panel
@@ -157,7 +163,7 @@ public class NegatronActivity extends SDLActivity {
         if (ending) {
             Intent i = new Intent(this, SetupActivity.class);
             i.putExtra(SetupActivity.EXTRA_FROM_GAME, true);
-            startActivity(i);
+            startActivity(i, SetupActivity.onTopScreen());
             android.os.Process.killProcess(android.os.Process.myPid());
         }
     }
