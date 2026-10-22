@@ -18,6 +18,9 @@
 #include "../lab/C3DSwingDoor.h"
 #include "../levels/CLoadLevel.h"
 #include "../pickups/C3DPickupItem.h"
+#include "../pickups/C3DRedNeutron.h"
+#include "../C3DGoddard.h"
+#include "../CanvasWrapper.h"
 #include "../objects/C3DArrow.h"
 #include "../objects/C3DNeutron.h"
 #include "../objects/C3DCheckPoint.h"
@@ -56,6 +59,7 @@ float				s_clock = 0;			// since the first tick
 float				s_since_build = 1.0f;
 float				s_since_log = 0;
 float				s_since_dump = 0;
+float				s_level_time = 0;		// game time played in this level
 SDL_mutex			*s_mutex = SDL_CreateMutex();	// (created at load: SDL mutexes need no SDL_Init)
 std::string			s_snapshot;				// guarded by s_mutex
 
@@ -486,6 +490,7 @@ void MapTick()
 	if (key != s_map_key)
 	{
 		s_map_key = key;
+		s_level_time = 0;
 		if (s_geo) { if (s_worker) s_geo_retired.push_back(s_geo); else delete s_geo; }
 		s_geo = shapes.empty() ? NULL : CopyTerrain(shapes, shown);
 		const int gen = s_map.gen;
@@ -550,7 +555,7 @@ std::vector<int>	s_icons_new;			// game thread: loaded since the last dump
 
 std::set<int>		s_icons_real;			// game thread: loaded and bigger than a placeholder
 // Icons drawn by the game's own objects (their sprite canvas), keyed above the screens.omt ids.
-enum { kIconNeutron = 0x10000, kIconObjective, kIconCheckpoint, kIconExit };
+enum { kIconNeutron = 0x10000, kIconObjective, kIconCheckpoint, kIconExit, kIconGadget = 0x10100 };
 
 // Copies a canvas for the panel once under `key`; true when it is a real picture (the menu pages
 // use 2 x 2 canvases for items with no picture).
@@ -660,6 +665,14 @@ void Position(CGameObject *o, float &x, float &z)
 	z = p[2];
 }
 
+// A pickup is collected when its savegame object state is set (CPickupType::v260 0x496de0 hides
+// it then); one without a state slot (PickupIndex 0) counts as collected while hidden.
+bool Collected(CPickupType *p)
+{
+	if (p->m_pickup_index > 0 && p->m_pickup_index < 4200) return g_object_states[p->m_pickup_index] != 0;
+	return !Visible(p);
+}
+
 // The canvas id of item `item` of menu page `page` (-1 = none).
 int ItemIcon(int page, int item)
 {
@@ -734,57 +747,43 @@ void Build(std::string &o)
 	// the HUD's neutron energy picture: screens.omt canvas 0x17, placed at (32, 0) beside the
 	// energy bar by the C2DInGameMenu constructor (0x401380)
 	Key(o, "energy_icon"); Int(o, NeedIcon(0x17) ? 0x17 : -1);
-	Key(o, "lives"); Int(o, g_lives);
 	Key(o, "score"); Int(o, g_score);
 
-	// gadgets: the inventory page (page 0, items 0..10, built in code by CreateMenuPages; the
-	// item type is the menu state SetItemState gives it, 0 = not owned). The game has no gadget
-	// names, only the items' pictures (screens.omt), which are sent as icons; items with no
-	// picture (9 and 10 are the page's buttons) are left out.
+	// the current gadget (C3DJimmy::ActivateMenuItem, 0 = none) with its HUD picture: the
+	// gadget sprites g_menu_item_sprites[gadget] the C2DInGameMenu constructor sets up (screens.omt
+	// 80 x 70 canvases), and its charge: the gadget bar's height while it shows (0x404d60 sizes it
+	// to count * 1.04 / 480 of the screen; red when empty)
 	Key(o, "gadget"); Int(o, g_cur_gadget);
+	if (g_menu && g_cur_gadget > 0 && g_cur_gadget < 14 && g_menu_item_sprites[g_cur_gadget])
+		{ Key(o, "gadget_icon"); Int(o, ObjectIcon(kIconGadget + g_cur_gadget, NULL, g_menu_item_sprites[g_cur_gadget]->get_canvas())); }
+	if (g_menu && g_gadget_bar && g_gadget_bar_on && g_screen_h > 0)
+	{
+		const float unit = (float)(short)g_screen_h * 0.00208333344f * 1.04f;
+		Key(o, "gadget_charge"); Num(o, unit > 0 ? g_gadget_bar->get_height() / unit : 0);
+	}
+	// time in this level (game time while playing)
+	Key(o, "time"); Num(o, s_level_time);
+
+	// the inventory sheet (the pickups page Jimmy opens: page 2, built by CreateMenuPages): every
+	// item with a picture, how many Jimmy has (g_pickup_counts), whether he has it (the item's
+	// menu state) and where the page puts it (640 x 480 page coordinates)
 	if (g_menu)
 	{
-		C2DInGameMenu::MenuPage *inv = C2DInGameMenu::Page(C2DInGameMenu::MENU_INV);
-		Key(o, "gadgets"); o += '[';
+		C2DInGameMenu::MenuPage *pk = C2DInGameMenu::Page(C2DInGameMenu::MENU_PICKUPS);
+		Key(o, "sheet"); o += '[';
 		bool first = true;
-		for (int i = 0; inv && i < C2DInGameMenu::MENU_ITEMS; i++)
+		for (int i = 0; pk && i < C2DInGameMenu::MENU_ITEMS; i++)
 		{
-			const int icon = inv->items[i].active_id;
+			const int icon = pk->items[i].active_id;
 			if (!NeedIcon(icon)) continue;
 			if (!first) o += ',';
 			first = false;
-			o += '['; Int(o, i); o += ','; Int(o, inv->items[i].type); o += ','; Int(o, icon); o += ']';
-		}
-		o += ']';
-
-		// the pickups page: what Jimmy has collected (type != 0) and how many (g_pickup_counts)
-		C2DInGameMenu::MenuPage *pk = C2DInGameMenu::Page(C2DInGameMenu::MENU_PICKUPS);
-		Key(o, "items"); o += '[';
-		first = true;
-		for (int i = 0; pk && i < C2DInGameMenu::MENU_ITEMS; i++)
-		{
-			if (!pk->items[i].type) continue;
-			int icon = pk->items[i].active_id;
-			if (!NeedIcon(icon)) icon = -1;
-			if (!first) o += ',';
-			first = false;
-			o += '['; Int(o, i); o += ','; Int(o, g_pickup_counts[i * 2]); o += ','; Int(o, icon); o += ']';
+			o += '['; Int(o, i); o += ','; Int(o, g_pickup_counts[i * 2]); o += ','; Int(o, icon);
+			o += ','; Int(o, pk->items[i].type ? 1 : 0); o += ','; Int(o, (long)pk->items[i].x);
+			o += ','; Int(o, (long)pk->items[i].y); o += ']';
 		}
 		o += ']';
 	}
-
-	Key(o, "tasks"); o += '[';
-	{
-		bool first = true;
-		for (std::list<Task *>::iterator i = g_tasks.begin(); i != g_tasks.end(); ++i)
-		{
-			if (!*i) continue;
-			if (!first) o += ',';
-			first = false;
-			o += '['; Str(o, (*i)->name); o += ','; Int(o, (*i)->state); o += ']';
-		}
-	}
-	o += ']';
 
 	std::string cap;
 	Caption(cap);
@@ -793,6 +792,7 @@ void Build(std::string &o)
 	// objects: counts, the boss, map points
 	int pk_got = 0, pk_all = 0, ne_got = 0, ne_all = 0, ck_got = 0, ck_all = 0;
 	int s_icon_neutron = -1;
+	std::map<int, std::pair<int, int> > kinds;		// the level's pickups by menu item: collected, all
 	std::string pts = "[";
 	C3DHerman *boss = NULL;
 	CGameObject *jimmy = g_jimmy;
@@ -804,10 +804,22 @@ void Build(std::string &o)
 		{
 			if (p->m_is_ambient) continue;
 			pk_all++;
-			if (!Visible(g)) { pk_got++; continue; }
+			std::pair<int, int> &k = kinds[p->m_pic_number];
+			k.second++;
+			if (Collected(p)) { pk_got++; k.first++; continue; }
+			if (!Visible(g)) continue;					// not there yet (its task holds it back)
 			int icon = p->m_pic_number >= 0 ? ItemIcon(C2DInGameMenu::MENU_PICKUPS, p->m_pic_number) : -1;
 			if (!NeedIcon(icon)) icon = -1;
 			Point(pts, 'p', g, icon, NULL);
+		}
+		else if (C3DRedNeutron *rn = dynamic_cast<C3DRedNeutron *>(g))
+		{
+			std::pair<int, int> &k = kinds[46];			// its menu pickup item (C3DRedNeutron.h)
+			k.second++;
+			if (Collected(rn)) { k.first++; continue; }
+			if (!Visible(g)) continue;
+			int icon = ItemIcon(C2DInGameMenu::MENU_PICKUPS, 46);
+			Point(pts, 'r', g, NeedIcon(icon) ? icon : -1, NULL);
 		}
 		else if (C3DNeutron *ne = dynamic_cast<C3DNeutron *>(g))
 		{
@@ -827,6 +839,10 @@ void Build(std::string &o)
 		{
 			boss = h;
 			if (Visible(g)) Point(pts, 'e', g, -1, NULL);
+		}
+		else if (dynamic_cast<C3DGoddard *>(g))
+		{
+			if (Visible(g)) Point(pts, 'g', g, -1, NULL);
 		}
 		else if (dynamic_cast<C3DFriends *>(g))
 		{
@@ -853,7 +869,17 @@ void Build(std::string &o)
 	pts += ']';
 	Key(o, "pickups"); o += '['; Int(o, pk_got); o += ','; Int(o, pk_all); o += ']';
 	Key(o, "neutrons"); o += '['; Int(o, ne_got); o += ','; Int(o, ne_all); o += ','; Int(o, s_icon_neutron); o += ']';
-	Key(o, "checkpoints"); o += '['; Int(o, ck_got); o += ','; Int(o, ck_all); o += ']';
+	Key(o, "checkpoints"); o += '['; Int(o, ck_got); o += ','; Int(o, ck_all); o += ','; Int(o, ObjectIcon(kIconCheckpoint, NULL)); o += ']';
+	Key(o, "collect"); o += '[';
+	for (std::map<int, std::pair<int, int> >::iterator k = kinds.begin(); k != kinds.end(); ++k)
+	{
+		int icon = k->first >= 0 ? ItemIcon(C2DInGameMenu::MENU_PICKUPS, k->first) : -1;
+		if (!NeedIcon(icon)) icon = -1;
+		if (k != kinds.begin()) o += ',';
+		o += '['; Int(o, k->first); o += ','; Int(o, k->second.first); o += ','; Int(o, k->second.second);
+		o += ','; Int(o, icon); o += ']';
+	}
+	o += ']';
 	if (boss)
 	{
 		Key(o, "boss"); o += '{';
@@ -1060,6 +1086,7 @@ void neg::CompanionTick(float dt)
 	}
 	if (!SDL_AtomicGet(&s_enabled) || !s_mutex) return;
 	if (dt > 0 && dt < 1.0f) s_clock += dt;
+	if (dt > 0 && dt < 1.0f && g_game_mode == 5) s_level_time += dt;
 	s_since_build += dt;
 	if (s_since_build < 0.1f) return;			// at most 10 a second
 	s_since_build = 0;

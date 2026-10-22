@@ -7,6 +7,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 src=$here/../../android/app/src/main/java/com/sirbilliams/negatron/CompanionView.java
 build=${TMPDIR:-/tmp}/neg-companion-render
 rm -rf "$build"; mkdir -p "$build"
-javac -nowarn -d "$build" $(find "$here/shim" -name '*.java') "$src"
+javac -nowarn -d "$build" $(find "$here/shim" -name '*.java' ! -name RenderMenu.java) "$src"
 NEG_PANEL_CLOCK=${NEG_PANEL_CLOCK:-1500} java -cp "$build" com.sirbilliams.negatron.RenderPanel \
   "$1/$2_snap.json" "$1/$2_map.png" "$1" "$3" $4

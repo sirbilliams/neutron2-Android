@@ -60,14 +60,13 @@ final class CompanionView extends View {
 
     // layout (Thor pixels)
     private static final float LW = 1240, LH = 1080;
-    private static final RectF R_HEAD = new RectF(20, 20, 484, 112);
-    private static final RectF R_GAUGE = new RectF(20, 124, 484, 360);
-    private static final RectF R_COUNT = new RectF(20, 372, 484, 470);
-    private static final RectF R_KIT = new RectF(20, 482, 484, 692);
-    private static final RectF R_TASK = new RectF(20, 704, 484, 1060);
-    private static final RectF R_MAP = new RectF(500, 20, 1220, 1060);
+    private static final RectF R_HEAD = new RectF(20, 20, 424, 104);
+    private static final RectF R_GAUGE = new RectF(20, 116, 424, 326);
+    private static final RectF R_LEVEL = new RectF(20, 338, 424, 570);
+    private static final RectF R_SHEET = new RectF(20, 582, 424, 1060);
+    private static final RectF R_MAP = new RectF(440, 20, 1220, 1060);
     private static final float BEZEL = 22;
-    private static final float DIAL_X = 20 + 124, DIAL_Y = 124 + 108, DIAL_R = 86;
+    private static final float DIAL_X = 20 + 112, DIAL_Y = 116 + 98, DIAL_R = 80;
 
     private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mStroke = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -90,26 +89,29 @@ final class CompanionView extends View {
 
     // --- the parsed snapshot (setSnapshot), read by onDraw
     private boolean mHave;
-    private String mLevel = "", mMode = "", mScore = "0", mLives = "0", mEnergyText = "0";
+    private String mLevel = "", mMode = "", mScore = "0", mEnergyText = "0", mTime = "";
     private boolean mCut, mPlaying;
     private float mEnergy = -1;
     private boolean mBoss;
     private float mBossHp;
     private String mBossName = "";
-    private final int[] mCounts = new int[6];   // pickups, neutrons, checkpoints: got, all
-    private final String[] mCountText = { "", "", "" };
+    // the level's collectables: neutrons, checkpoints, then the pickups by kind (icon, got, all)
+    private int[] mColIcon = new int[0], mColGot = new int[0], mColAll = new int[0];
+    private String[] mColText = new String[0];
     private int mNeutronIcon = -1, mEnergyIcon = -1;
-    private int mGadget;
-    private int[] mGadgets = new int[0];        // item, state, icon triples
-    private int[] mItems = new int[0];          // pickup, count, icon triples
-    private String[] mItemCount = new String[0];
-    private String[] mTaskName = new String[0];
-    private int[] mTaskState = new int[0];
-    private String[] mTaskStage = new String[0];
+    private int mGadget, mGadgetIcon = -1;
+    private float mGadgetCharge = -1;
+    // the inventory sheet: icon, count, owned, grid column, grid row
+    private int[] mShIcon = new int[0], mShCount = new int[0], mShCol = new int[0], mShRow = new int[0];
+    private boolean[] mShOwned = new boolean[0];
+    private String[] mShText = new String[0];
+    private int mShCols = 1, mShRows = 1, mShOwnedCount;
+    private String mShSummary = "";
+    private final HashMap<Integer, Bitmap> mIconsDim = new HashMap<>();
     private String[] mCaption = new String[0];
     private int mMapW, mMapH;
     private float mMapS = 1;
-    private boolean mJimmy;
+    private boolean mJimmy, mGoddard;
     private float mJx, mJy, mHx, mHy;
     private char[] mPtKind = new char[0];
     private float[] mPtX = new float[0], mPtY = new float[0];
@@ -162,7 +164,8 @@ final class CompanionView extends View {
         mEnergyText = String.valueOf(Math.round(d.optDouble("energy", 0)));
         mEnergyIcon = d.optInt("energy_icon", -1);
         mScore = String.valueOf(d.optInt("score", 0));
-        mLives = String.valueOf(d.optInt("lives", 0));
+        int secs = (int) d.optDouble("time", 0);
+        mTime = (secs / 60 < 10 ? "0" : "") + (secs / 60) + ":" + (secs % 60 < 10 ? "0" : "") + (secs % 60);
 
         JSONObject boss = d.optJSONObject("boss");
         mBoss = boss != null && (boss.optInt("bar", 0) == 1 || boss.optDouble("hp", 1) < 1);
@@ -171,68 +174,80 @@ final class CompanionView extends View {
             mBossName = boss.optString("name", "Boss").toUpperCase();
         }
 
-        String[] keys = { "pickups", "neutrons", "checkpoints" };
-        for (int i = 0; i < 3; i++) {
-            JSONArray a = d.optJSONArray(keys[i]);
-            mCounts[i * 2] = a != null ? a.optInt(0, 0) : 0;
-            mCounts[i * 2 + 1] = a != null ? a.optInt(1, 0) : 0;
-            mCountText[i] = mCounts[i * 2] + "/" + mCounts[i * 2 + 1];
-            if (i == 1) mNeutronIcon = a != null ? a.optInt(2, -1) : -1;
-        }
-
-        mGadget = d.optInt("gadget", 0);
-        JSONArray g = d.optJSONArray("gadgets");
+        // collectables of this level: neutrons, checkpoints, then each kind of pickup
+        JSONArray ne = d.optJSONArray("neutrons"), ck = d.optJSONArray("checkpoints"), col = d.optJSONArray("collect");
+        mNeutronIcon = ne != null ? ne.optInt(2, -1) : -1;
         int n = 0;
-        for (int i = 0; g != null && i < g.length(); i++) {
-            JSONArray e = g.optJSONArray(i);
-            if (e != null && e.optInt(1, 0) != 0) n++;
+        if (ne != null && ne.optInt(1, 0) > 0) n++;
+        if (ck != null && ck.optInt(1, 0) > 0) n++;
+        n += col != null ? col.length() : 0;
+        mColIcon = new int[n];
+        mColGot = new int[n];
+        mColAll = new int[n];
+        mColText = new String[n];
+        int k = 0;
+        if (ne != null && ne.optInt(1, 0) > 0) {
+            mColIcon[k] = mEnergyIcon >= 0 ? mEnergyIcon : mNeutronIcon;
+            mColGot[k] = ne.optInt(0, 0);
+            mColAll[k++] = ne.optInt(1, 0);
         }
-        mGadgets = new int[n * 3];
-        n = 0;
-        for (int i = 0; g != null && i < g.length(); i++) {
-            JSONArray e = g.optJSONArray(i);
-            if (e == null || e.optInt(1, 0) == 0) continue;
-            mGadgets[n++] = e.optInt(0, 0);
-            mGadgets[n++] = e.optInt(1, 0);
-            mGadgets[n++] = e.optInt(2, -1);
+        if (ck != null && ck.optInt(1, 0) > 0) {
+            mColIcon[k] = ck.optInt(2, -1) >= 0 ? ck.optInt(2, -1) : -2;      // -2: a drawn flag
+            mColGot[k] = ck.optInt(0, 0);
+            mColAll[k++] = ck.optInt(1, 0);
         }
-        JSONArray it = d.optJSONArray("items");
-        n = it != null ? it.length() : 0;
-        mItems = new int[n * 3];
-        mItemCount = new String[n];
-        for (int i = 0; i < n; i++) {
-            JSONArray e = it.optJSONArray(i);
+        for (int i = 0; col != null && i < col.length(); i++) {
+            JSONArray e = col.optJSONArray(i);
             if (e == null) continue;
-            mItems[i * 3] = e.optInt(0, 0);
-            mItems[i * 3 + 1] = e.optInt(1, 0);
-            mItems[i * 3 + 2] = e.optInt(2, -1);
-            mItemCount[i] = "x" + e.optInt(1, 0);
+            mColIcon[k] = e.optInt(3, -1);
+            mColGot[k] = e.optInt(1, 0);
+            mColAll[k++] = e.optInt(2, 0);
+        }
+        for (int i = 0; i < n; i++) {
+            mColText[i] = mColGot[i] + "/" + mColAll[i];
+            if (mColIcon[i] >= 0) fetchIcon(mColIcon[i]);
         }
 
-        JSONArray t = d.optJSONArray("tasks");
-        n = t != null ? t.length() : 0;
-        mTaskName = new String[n];
-        mTaskState = new int[n];
-        mTaskStage = new String[n];
-        // active tasks first, then the ones not started, each in the game's order
-        int k = 0;
-        for (int pass = 0; pass < 2; pass++) {
-            for (int i = 0; i < n; i++) {
-                JSONArray e = t.optJSONArray(i);
-                if (e == null) continue;
-                int st = e.optInt(1, 0);
-                if ((pass == 0) != (st != 0)) continue;
-                mTaskName[k] = e.optString(0, "?");
-                mTaskState[k] = st;
-                mTaskStage[k] = st != 0 ? String.valueOf(st) : "";
-                k++;
-            }
+        // the current gadget and its HUD bar
+        mGadget = d.optInt("gadget", 0);
+        mGadgetIcon = d.optInt("gadget_icon", -1);
+        mGadgetCharge = (float) d.optDouble("gadget_charge", -1);
+        if (mGadgetIcon >= 0) fetchIcon(mGadgetIcon);
+
+        // the inventory sheet, laid out on the game's own grid (its 640 x 480 page positions)
+        JSONArray sh = d.optJSONArray("sheet");
+        n = sh != null ? sh.length() : 0;
+        if (mShIcon.length != n) {
+            mShIcon = new int[n];
+            mShCount = new int[n];
+            mShCol = new int[n];
+            mShRow = new int[n];
+            mShOwned = new boolean[n];
+            mShText = new String[n];
         }
-        if (k < n) {
-            mTaskName = java.util.Arrays.copyOf(mTaskName, k);
-            mTaskState = java.util.Arrays.copyOf(mTaskState, k);
-            mTaskStage = java.util.Arrays.copyOf(mTaskStage, k);
+        // the game's own order on its page (rows of 40 px, left to right), in a compact grid
+        long[] order = new long[n];
+        mShOwnedCount = 0;
+        for (int i = 0; i < n; i++) {
+            JSONArray e = sh.optJSONArray(i);
+            if (e == null) continue;
+            mShIcon[i] = e.optInt(2, -1);
+            mShCount[i] = e.optInt(1, 0);
+            mShOwned[i] = e.optInt(3, 0) != 0;
+            if (mShOwned[i]) mShOwnedCount++;
+            mShText[i] = mShCount[i] > 1 ? String.valueOf(mShCount[i]) : null;
+            order[i] = ((long) (e.optInt(5, 0) / 40) << 32) | ((long) e.optInt(4, 0) << 8) | i;
+            if (mShIcon[i] >= 0) fetchIcon(mShIcon[i]);
         }
+        java.util.Arrays.sort(order);
+        mShCols = 6;
+        mShRows = Math.max(1, (n + mShCols - 1) / mShCols);
+        for (int k2 = 0; k2 < n; k2++) {
+            int i = (int) (order[k2] & 0xff);
+            mShCol[i] = k2 % mShCols;
+            mShRow[i] = k2 / mShCols;
+        }
+        mShSummary = mShOwnedCount + "/" + n;
 
         String cap = d.optString("caption", "");
         mCaption = cap.isEmpty() ? new String[0] : cap.split("\n");
@@ -276,6 +291,8 @@ final class CompanionView extends View {
             }
             if (mPtIcon[i] >= 0) fetchIcon(mPtIcon[i]);
         }
+        mGoddard = false;
+        for (int i = 0; i < n; i++) if (mPtKind[i] == 'g') mGoddard = true;
         JSONObject pk = d.optJSONObject("picker");
         JSONArray cards = pk != null ? pk.optJSONArray("cards") : null;
         n = cards != null ? cards.length() : 0;
@@ -293,8 +310,6 @@ final class CompanionView extends View {
             if (mPickWire[i] >= 0) fetchIcon(mPickWire[i]);
             if (mPickColour[i] >= 0) fetchIcon(mPickColour[i]);
         }
-        for (int i = 2; i < mGadgets.length; i += 3) fetchIcon(mGadgets[i]);
-        for (int i = 2; i < mItems.length; i += 3) fetchIcon(mItems[i]);
         if (mNeutronIcon >= 0) fetchIcon(mNeutronIcon);
         if (mEnergyIcon >= 0) fetchIcon(mEnergyIcon);
     }
@@ -331,6 +346,13 @@ final class CompanionView extends View {
         int[] px = new int[a[0] * a[1]];
         System.arraycopy(a, 2, px, 0, px.length);
         mIcons.put(id, Bitmap.createBitmap(px, a[0], a[1], Bitmap.Config.ARGB_8888));
+        // and a dark silhouette for the sheet's items Jimmy doesn't have
+        for (int i = 0; i < px.length; i++) {
+            int c = px[i], al = c >>> 24;
+            int l = (((c >> 16) & 0xff) * 30 + ((c >> 8) & 0xff) * 59 + (c & 0xff) * 11) / 100;
+            px[i] = (al * 3 / 4 << 24) | ((l / 6) << 16) | ((l / 4 + 14) << 8) | (l / 6);
+        }
+        mIconsDim.put(id, Bitmap.createBitmap(px, a[0], a[1], Bitmap.Config.ARGB_8888));
     }
 
     // ------------------------------------------------------------------ drawing
@@ -351,9 +373,8 @@ final class CompanionView extends View {
         } else {
             drawHeader(c);
             drawGauges(c);
-            drawCounters(c);
-            drawKit(c);
-            drawTasks(c);
+            drawLevel(c);
+            drawSheet(c);
         }
         if (mPickName.length > 0) drawPicker(c);
         else drawMap(c);
@@ -361,130 +382,110 @@ final class CompanionView extends View {
     }
 
     private void drawHeader(Canvas c) {
-        lcdText(c, mLevel, R_HEAD.left + 34, R_HEAD.top + 58, 32, LED_ON);
+        lcdText(c, mLevel, R_HEAD.left + 32, R_HEAD.top + 54, 30, LED_ON);
         float lx = R_HEAD.right - 190;
-        led(c, lx, R_HEAD.top + 46, 10, mCut ? 2 : 1, mCut ? WARN_YEL : LED_ON);
-        lcdText(c, mMode, lx + 18, R_HEAD.top + 55, 22, mCut ? WARN_YEL : LED_ON);
+        led(c, lx, R_HEAD.top + 32, 8, mCut ? 2 : 1, mCut ? WARN_YEL : LED_ON);
+        lcdText(c, mMode, lx + 16, R_HEAD.top + 39, 18, mCut ? WARN_YEL : LED_ON);
+        if (mPlaying || !mTime.isEmpty()) segText(c, mTime, lx + 14, R_HEAD.top + 46, 20, 0, PHOSPHOR);
     }
 
     private void drawGauges(Canvas c) {
         // energy dial: 240 degrees, zones as the game's own bar (green from 70, yellow from 30)
         float cx = DIAL_X, cy = DIAL_Y, r = DIAL_R;
         dial(c, cx, cy, r, mEnergy);
-        segText(c, mEnergyText, cx - 32, cy + 28, 26, 3, energyColour(mEnergy * 100));
-        engraved(c, "ENERGY", cx, R_GAUGE.bottom - 14, 20, true);
+        segText(c, mEnergyText, cx - 32, cy + 24, 26, 3, energyColour(mEnergy * 100));
+        engraved(c, "ENERGY", cx, R_GAUGE.bottom - 12, 18, true);
         Bitmap hud = mEnergyIcon >= 0 ? mIcons.get(mEnergyIcon) : null;
-        if (hud != null) drawIcon(c, hud, cx, cy - 38, 40);
+        if (hud != null) drawIcon(c, hud, cx, cy - 36, 40);
 
-        float x = R_GAUGE.left + 252, y = R_GAUGE.top + 30;
-        engraved(c, "SCORE", x + 4, y + 2, 18, false);
-        lcd(c, x, y + 10, 196, 60);
-        segText(c, mScore, x + 12, y + 20, 40, 6, LED_ON);
-        y += 92;
-        if (mBoss) {
-            engraved(c, mBossName, x + 4, y + 2, 18, false);
-            lcd(c, x, y + 10, 196, 44);
+        float x = R_GAUGE.left + 222, y = R_GAUGE.top + 22;
+        engraved(c, "SCORE", x + 2, y + 2, 16, false);
+        lcd(c, x, y + 8, 168, 50);
+        segText(c, mScore, x + 10, y + 16, 34, 6, LED_ON);
+        y += 74;
+        if (mBoss) {                                            // the boss's health bar
+            engraved(c, mBossName, x + 2, y + 2, 16, false);
+            lcd(c, x, y + 8, 168, 40);
             float f = Math.max(0, Math.min(1, mBossHp));
             mFill.setShader(null);
             mFill.setColor(WARN_RED);
-            mRect.set(x + 10, y + 20, x + 10 + 176 * f, y + 44);
+            mRect.set(x + 8, y + 16, x + 8 + 152 * f, y + 40);
             c.drawRoundRect(mRect, 6, 6, mFill);
-            for (int i = 1; i < 10; i++) {                         // bar graph cells
+            for (int i = 1; i < 10; i++) {
                 mFill.setColor(LCD_BG);
-                c.drawRect(x + 10 + 17.6f * i - 1.5f, y + 20, x + 10 + 17.6f * i + 1.5f, y + 44, mFill);
+                c.drawRect(x + 8 + 15.2f * i - 1.5f, y + 16, x + 8 + 15.2f * i + 1.5f, y + 40, mFill);
             }
-        } else {
-            engraved(c, "LIVES", x + 4, y + 2, 18, false);
-            lcd(c, x, y + 10, 96, 60);
-            segText(c, mLives, x + 14, y + 20, 40, 2, LED_ON);
+            return;
+        }
+        engraved(c, "GADGET", x + 2, y + 2, 16, false);
+        float bx = x + 34, by = y + 50;
+        Bitmap g = mGadgetIcon >= 0 ? mIcons.get(mGadgetIcon) : null;
+        button(c, bx, by, 30, g != null ? 2 : 0);
+        if (g != null) drawIcon(c, g, bx, by, 50);
+        else lcdText(c, "-", bx - 6, by + 8, 22, LED_DIM);
+        if (mGadgetCharge >= 0) {                               // the HUD's gadget bar (red when empty)
+            float f = Math.max(0, Math.min(1, mGadgetCharge / 100f));
+            lcd(c, x + 80, y + 30, 88, 40);
+            mFill.setShader(null);
+            mFill.setColor(f > 0 ? LED_ON : WARN_RED);
+            mRect.set(x + 86, y + 36, x + 86 + 76 * Math.max(f, 0.04f), y + 64);
+            c.drawRoundRect(mRect, 5, 5, mFill);
+        }
+        led(c, x + 88, y + 92, 6, mGoddard ? 2 : 0, LED_ON);       // Goddard in the level, on the map
+        engraved(c, "GODDARD", x + 100, y + 98, 15, false);
+    }
+
+    /** This level's collectables: the game's picture, collected / all, lit when all are in. */
+    private void drawLevel(Canvas c) {
+        engraved(c, "THIS LEVEL", R_LEVEL.left + 26, R_LEVEL.top + 30, 18, false);
+        float x0 = R_LEVEL.left + 22, y0 = R_LEVEL.top + 42;
+        float tw = (R_LEVEL.width() - 44) / 3, th = 58;
+        int max = 9;
+        if (mColIcon.length == 0) lcdText(c, "NOTHING TO COLLECT", x0 + 6, y0 + 36, 20, LED_DIM);
+        for (int i = 0; i < mColIcon.length && i < max; i++) {
+            float tx = x0 + (i % 3) * tw, ty = y0 + (i / 3) * (th + 6);
+            boolean all = mColAll[i] > 0 && mColGot[i] >= mColAll[i];
+            lcd(c, tx, ty, tw - 8, th);
+            float ix = tx + 28, iy = ty + th / 2;
+            Bitmap b = mColIcon[i] >= 0 ? mIcons.get(mColIcon[i]) : null;
+            if (b != null) drawIcon(c, b, ix - 2, iy, 46);
+            else if (mColIcon[i] == -2) flag(c, ix, iy, 14, LED_ON);
+            else star(c, ix, iy, 16, WARN_YEL);
+            segText(c, mColText[i], tx + 52, ty + 19, 20, 0, all ? WARN_YEL : LED_ON);
+            if (all) led(c, tx + tw - 18, ty + 10, 4, 2, LED_ON);
         }
     }
 
-    private void drawCounters(Canvas c) {
-        float x = R_COUNT.left + 22, y = R_COUNT.top + 16;
-        float cw = 144;
-        for (int i = 0; i < 3; i++) {
-            float bx = x + i * cw;
-            lcd(c, bx, y, cw - 12, 50);
-            float ix = bx + 28, iy = y + 25;
-            // neutrons: the HUD's own neutron picture, else the neutron sprite
-            Bitmap icon = null;
-            if (i == 1 && mEnergyIcon >= 0) icon = mIcons.get(mEnergyIcon);
-            if (i == 1 && icon == null && mNeutronIcon >= 0) icon = mIcons.get(mNeutronIcon);
-            if (icon != null) {
-                drawIcon(c, icon, ix, iy, 44);
-            } else if (i == 1) {
-                atom(c, ix, iy, 16, LED_ON);
-            } else if (i == 0) {
-                star(c, ix, iy, 16, LED_ON);
-            } else {
-                flag(c, ix, iy, 16, LED_ON);
+    /** The inventory sheet (the pickups page Jimmy opens): the game's own pictures on its own
+     *  grid; lit when Jimmy has the item (with how many), a dark silhouette when not. */
+    private void drawSheet(Canvas c) {
+        engraved(c, "INVENTORY", R_SHEET.left + 26, R_SHEET.top + 30, 18, false);
+        engraved(c, mShSummary, R_SHEET.right - 30, R_SHEET.top + 30, 18, false, true);
+        float x0 = R_SHEET.left + 20, y0 = R_SHEET.top + 44;
+        float cw = (R_SHEET.width() - 40) / mShCols, ch = (R_SHEET.bottom - 20 - y0) / mShRows;
+        float size = Math.min(cw, ch) - 6;
+        for (int i = 0; i < mShIcon.length; i++) {
+            float cx = x0 + (mShCol[i] + 0.5f) * cw, cy = y0 + (mShRow[i] + 0.5f) * ch;
+            mRect.set(cx - cw / 2 + 2, cy - ch / 2 + 2, cx + cw / 2 - 2, cy + ch / 2 - 2);
+            mFill.setShader(null);
+            mFill.setColor(mShOwned[i] ? Color.rgb(16, 44, 22) : LCD_BG);
+            c.drawRoundRect(mRect, 8, 8, mFill);
+            if (mShOwned[i]) {
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(2.5f);
+                mStroke.setColor(LED_ON);
+                c.drawRoundRect(mRect, 8, 8, mStroke);
             }
-            boolean all = mCounts[i * 2 + 1] > 0 && mCounts[i * 2] >= mCounts[i * 2 + 1];
-            segText(c, mCountText[i], bx + 54, y + 11, 28, 0, all ? WARN_YEL : LED_ON);
-        }
-        engraved(c, "PICKUPS", x + 66, R_COUNT.bottom - 13, 15, true);
-        engraved(c, "NEUTRONS", x + cw + 66, R_COUNT.bottom - 13, 15, true);
-        engraved(c, "CHECKPOINTS", x + 2 * cw + 66, R_COUNT.bottom - 13, 15, true);
-    }
-
-    private void drawKit(Canvas c) {
-        float x = R_KIT.left + 26, y = R_KIT.top + 40;
-        engraved(c, "GADGETS", R_KIT.left + 26, R_KIT.top + 30, 18, false);
-        if (mGadgets.length == 0) {
-            lcdText(c, "NONE", x + 6, y + 44, 22, LED_DIM);
-        }
-        for (int i = 0, k = 0; i + 2 < mGadgets.length && k < 6; i += 3, k++) {
-            float bx = x + k * 70 + 32, by = y + 34;
-            boolean cur = mGadgets[i] == mGadget;
-            button(c, bx, by, 30, cur ? 2 : 1);
-            Bitmap icon = mIcons.get(mGadgets[i + 2]);
-            if (icon != null) drawIcon(c, icon, bx, by, 44);
-        }
-        y += 86;
-        engraved(c, "ITEMS", R_KIT.left + 26, y + 6, 18, false);
-        for (int i = 0, k = 0; i + 2 < mItems.length && k < 6; i += 3, k++) {
-            float bx = x + k * 70 + 32, by = y + 46;
-            Bitmap icon = mIcons.get(mItems[i + 2]);
-            if (icon != null) drawIcon(c, icon, bx, by, 60);
-            else button(c, bx, by, 24, 1);
-            if (mItems[i + 1] > 1) lcdText(c, mItemCount[i / 3], bx + 8, by + 30, 18, LED_ON);
-        }
-    }
-
-    private void drawTasks(Canvas c) {
-        float x = R_TASK.left + 24, y = R_TASK.top + 22;
-        float colW = (R_TASK.width() - 48) / 2;
-        if (mCaption.length > 0) {
-            int lines = Math.min(3, mCaption.length);
-            float bh = 18 + lines * 28;
-            lcd(c, x, y, R_TASK.width() - 48, bh);
-            for (int i = 0; i < lines; i++) {
-                String s = mCaption[mCaption.length - lines + i];
-                lcdText(c, s, x + 12, y + 34 + i * 28, 22, PHOSPHOR);
-            }
-            y += bh + 14;
-        }
-        engraved(c, "TASKS", x + 2, y + 18, 18, false);
-        y += 30;
-        float rowH = 42;
-        int rows = (int) ((R_TASK.bottom - 16 - y) / rowH);
-        int shown = Math.min(mTaskName.length, rows * 2);
-        for (int i = 0; i < shown; i++) {
-            float bx = x + (i / rows) * (colW + 0), by = y + (i % rows) * rowH;
-            boolean active = mTaskState[i] != 0;
-            pill(c, bx, by, colW - 10, rowH - 8, active);
-            led(c, bx + 20, by + (rowH - 8) / 2, 8, active ? 2 : 1, LED_ON);
-            mText.setTypeface(mBold);
-            mText.setTextAlign(Paint.Align.LEFT);
-            mText.setTextSize(19);
-            mText.setColor(active ? Color.rgb(30, 34, 38) : ENGRAVE);
-            c.drawText(mTaskName[i], bx + 36, by + 24, mText);
-            if (active) {
-                mText.setTextAlign(Paint.Align.RIGHT);
+            Bitmap b = mShIcon[i] >= 0 ? (mShOwned[i] ? mIcons.get(mShIcon[i]) : mIconsDim.get(mShIcon[i])) : null;
+            if (b != null) drawIcon(c, b, cx, cy, size);
+            if (mShOwned[i] && mShText[i] != null) {
+                mFill.setColor(Color.argb(200, 0, 0, 0));
+                c.drawCircle(cx + cw / 2 - 13, cy + ch / 2 - 13, 11, mFill);
                 mText.setTypeface(mMono);
-                mText.setColor(Color.rgb(20, 110, 40));
-                c.drawText(mTaskStage[i], bx + colW - 22, by + 24, mText);
+                mText.setTextAlign(Paint.Align.CENTER);
+                mText.setTextSize(16);
+                mText.setColor(LED_ON);
+                c.drawText(mShText[i], cx + cw / 2 - 13, cy + ch / 2 - 7, mText);
                 mText.setTextAlign(Paint.Align.LEFT);
             }
         }
@@ -559,6 +560,43 @@ final class CompanionView extends View {
         c.drawLine(bx, by - 8, bx, by + 8, mStroke);
         c.drawLine(bx + bar, by - 8, bx + bar, by + 8, mStroke);
         lcdText(c, "1000", bx + bar / 2 - 24, by - 12, 18, PHOSPHOR);
+
+        // the nearest open exit: an arrow towards it and the level it leads to (top left)
+        int ex = -1;
+        float best = Float.MAX_VALUE;
+        for (int i = 0; mJimmy && i < mPtKind.length; i++) {
+            if (mPtKind[i] != 'x') continue;
+            float dx = mPtX[i] - mJx, dy = mPtY[i] - mJy, d2 = dx * dx + dy * dy;
+            if (d2 < best) { best = d2; ex = i; }
+        }
+        if (ex >= 0) {
+            float lx = crt.left + 16, ly = crt.top + 14;
+            lcd(c, lx, ly, 250, 52);
+            float ax = lx + 28, ay = ly + 26;
+            float dx = mPtX[ex] - mJx, dy = mPtY[ex] - mJy, len = (float) Math.sqrt(best);
+            if (len > 1e-3f) { dx /= len; dy /= len; } else { dx = 0; dy = -1; }
+            mFill.setShader(null);
+            mFill.setColor(LED_ON);
+            mPath.reset();
+            mPath.moveTo(ax + dx * 18, ay + dy * 18);
+            mPath.lineTo(ax - dx * 12 - dy * 12, ay - dy * 12 + dx * 12);
+            mPath.lineTo(ax - dx * 5, ay - dy * 5);
+            mPath.lineTo(ax - dx * 12 + dy * 12, ay - dy * 12 - dx * 12);
+            mPath.close();
+            c.drawPath(mPath, mFill);
+            lcdText(c, "EXIT", lx + 56, ly + 22, 15, LED_DIM);
+            lcdText(c, mPtLabel[ex] != null ? mPtLabel[ex] : "", lx + 56, ly + 42, 20, LED_ON);
+        }
+
+        // the caption being typed (the game's own text), along the bottom of the glass
+        if (mCaption.length > 0) {
+            int lines = Math.min(3, mCaption.length);
+            float bh = 16 + lines * 26;
+            float lx = crt.left + 16, ly = crt.bottom - 52 - bh;
+            lcd(c, lx, ly, crt.width() - 32, bh);
+            for (int i = 0; i < lines; i++)
+                lcdText(c, mCaption[mCaption.length - lines + i], lx + 12, ly + 30 + i * 26, 20, PHOSPHOR);
+        }
     }
 
     /** The Vox world picker, in the map's window: one steel card per world, left to right as on
@@ -683,6 +721,24 @@ final class CompanionView extends View {
             case 'f':
                 atom(c, px, py, 11 * sc, Color.rgb(120, 230, 255));
                 break;
+            case 'r':                                           // a red neutron (its menu picture)
+                if (icon != null) {
+                    mFill.setShader(null);
+                    mFill.setColor(Color.argb(150, 0, 0, 0));
+                    c.drawCircle(px, py, 18 * sc, mFill);
+                    drawIcon(c, icon, px, py, 38 * sc);
+                } else atom(c, px, py, 11 * sc, WARN_RED);
+                break;
+            case 'g': {                                         // Goddard: a bone-white paw ring
+                mStroke.setShader(null);
+                mStroke.setStrokeWidth(3);
+                mStroke.setColor(Color.rgb(230, 236, 240));
+                c.drawCircle(px, py, 11, mStroke);
+                mFill.setShader(null);
+                mFill.setColor(Color.rgb(230, 236, 240));
+                c.drawCircle(px, py, 4, mFill);
+                break;
+            }
             case 'e':
                 mFill.setShader(null);
                 mFill.setColor(WARN_RED);
@@ -769,7 +825,7 @@ final class CompanionView extends View {
         c.save();
         c.translate(ox, oy);
         c.scale(u, u);
-        RectF[] plates = { R_HEAD, R_GAUGE, R_COUNT, R_KIT, R_TASK, R_MAP };
+        RectF[] plates = { R_HEAD, R_GAUGE, R_LEVEL, R_SHEET, R_MAP };
         for (RectF r : plates) plate(c, r);
         lcd(c, R_HEAD.left + 18, R_HEAD.top + 18, R_HEAD.width() - 36, R_HEAD.height() - 36);
         // the dial face and the CRT recess
@@ -1002,8 +1058,12 @@ final class CompanionView extends View {
 
     /** Engraved label: dark letters with a light edge below. */
     private void engraved(Canvas c, String s, float x, float y, float size, boolean centre) {
+        engraved(c, s, x, y, size, centre, false);
+    }
+
+    private void engraved(Canvas c, String s, float x, float y, float size, boolean centre, boolean right) {
         mText.setTypeface(mBold);
-        mText.setTextAlign(centre ? Paint.Align.CENTER : Paint.Align.LEFT);
+        mText.setTextAlign(right ? Paint.Align.RIGHT : centre ? Paint.Align.CENTER : Paint.Align.LEFT);
         mText.setTextSize(size);
         mText.setColor(Color.argb(160, 255, 255, 255));
         c.drawText(s, x, y + 1.5f, mText);
@@ -1031,6 +1091,14 @@ final class CompanionView extends View {
             char ch = s.charAt(i);
             if (ch >= '0' && ch <= '9') seg(c, cx, y, w, h, SEGS[ch - '0'], colour);
             else if (ch == '-') seg(c, cx, y, w, h, 0x40, colour);
+            else if (ch == ':') {
+                mFill.setShader(null);
+                mFill.setColor(colour);
+                c.drawCircle(cx + w * 0.2f, y + h * 0.3f, h * 0.07f, mFill);
+                c.drawCircle(cx + w * 0.2f, y + h * 0.7f, h * 0.07f, mFill);
+                cx += w * 0.4f + gap;
+                continue;
+            }
             else if (ch == '/') {
                 mStroke.setShader(null);
                 mStroke.setStrokeWidth(h * 0.1f);
