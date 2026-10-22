@@ -170,7 +170,8 @@ final class LauncherView extends View {
             row(c, p.items.get(k), k == p.sel, y);
         if (first > 0) arrow(c, ROW_X + ROW_W / 2, rowsTop(p) - 14, true);
         if (first + vis < p.items.size()) arrow(c, ROW_X + ROW_W / 2, rowsTop(p) + vis * ROW_STEP - 6, false);
-        engraved(c, "D-PAD / STICK  CHOOSE     A  SELECT     B  BACK", T_MENU.centerX(), T_MENU.bottom - 26, 22, true, false);
+        engraved(c, p.footer != null ? p.footer : "D-PAD / STICK  CHOOSE     A  SELECT     B  BACK",
+                T_MENU.centerX(), T_MENU.bottom - 26, 22, true, false);
 
         // the info window: the game's picture or an atom, then the selected item's help / preview
         RectF crt = new RectF(T_INFO.left + BEZEL, T_INFO.top + BEZEL, T_INFO.right - BEZEL, T_INFO.bottom - BEZEL);
