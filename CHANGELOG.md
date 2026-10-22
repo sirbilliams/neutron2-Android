@@ -25,7 +25,7 @@ Android (it used to be the "Negatron Viewer" level fly-through). You need your o
 - Saves: export all saves (or one slot) to a `.zip`, import them back with a preview before
   anything is replaced. The files are the PC game's own, so saves move between PC and Thor.
 - Your own box art and menu background pictures (Settings).
-- Asset Viewer: look through the game's models and pictures from your copy.
+- Asset Viewer: fly freely through any level (noclip, frozen, no saves touched) or browse all of the game's 3D models.
 - HD texture packs: install a pack of higher-resolution textures from Settings.
 - The game installs from the CD's `.iso` in the app (or from a zip of an installed copy).
 - New name and icon; the version shows on the pause screen.

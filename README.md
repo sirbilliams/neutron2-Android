@@ -48,7 +48,7 @@ choose, A to select, left / right to change a setting, B to go back. Touch works
 | **Load Game** | the game's ten save slots, with level, score and date |
 | **Saves** | export all saves to a `.zip` (Downloads, Drive...) or import them back; Y on a Load Game slot exports just that one. They are the PC game's own save files, so they also work in the PC version's `save` folder and back |
 | **Settings** | see below |
-| **Asset Viewer** | look through the game's own models and pictures from your copy |
+| **Asset Viewer** | fly freely through any level (noclip) or browse the game's 3D models, from your copy |
 | **Quit** | close the app |
 
 When the game ends (the pause menu's Exit), you are back on the launcher.
