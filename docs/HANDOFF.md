@@ -14,7 +14,7 @@ against our port of the OMT 2.5 engine (LGPL), which we moved from Windows/Direc
 - Repo: **github.com/sirbilliams/neutron2-android** (public). Push to `main`.
   - The old repo `sirbilliams/negatron-Android` is retired; Bill will delete it.
 - Every push to main builds on GitHub Actions and replaces the **"latest"** release. Bill installs from:
-  https://github.com/sirbilliams/neutron2-android/releases/download/latest/Negatron-Viewer.apk
+  https://github.com/sirbilliams/neutron2-android/releases/download/latest/Neutron-vs-Negatron.apk (the old name Negatron-Viewer.apk still works)
 - Git identity: `git -c user.name=sirbilliams -c user.email=bravehooves@gmail.com commit`.
   End every commit message with the attribution lines the session asks for.
 
