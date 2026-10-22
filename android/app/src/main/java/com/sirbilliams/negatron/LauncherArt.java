@@ -11,7 +11,7 @@ import android.graphics.RectF;
  * an option is not there yet): atomic-age lab motifs drawn in code as glowing phosphor lines on a
  * 640 x 480 transparent canvas - an atom (New Game), a play arrow in a dial (Continue), a floppy
  * disk (Load Game), a floppy and a PDA (Saves), gears and a gauge (Settings), a flask (Test), a
- * rocket (Quit). Original drawings: no characters, logos or art from the game or the show.
+ * rocket (Quit), a magnifier over a wireframe cube (Asset viewer). Original drawings: no characters, logos or art from the game or the show.
  */
 final class LauncherArt {
     private LauncherArt() {}
@@ -28,6 +28,7 @@ final class LauncherArt {
         else if ("settings".equals(key)) { gear(c, p, 255, 255, 110, 12); gear(c, p, 425, 175, 62, 8); gauge(c, p, 450, 345); }
         else if ("test".equals(key)) flask(c, p);
         else if ("quit".equals(key)) rocket(c, p);
+        else if ("assets".equals(key)) magnifier(c, p);
         else atom(c, p);
     }
 
@@ -180,6 +181,45 @@ final class LauncherArt {
         path(c, p, liquid, true);
         float[][] bub = { { -30, 280, 14 }, { 20, 240, 10 }, { -8, 190, 8 }, { 22, 140, 12 }, { -18, 60, 9 }, { 40, 35, 6 } };
         for (float[] b : bub) circle(c, p, x + b[0], b[1], b[2]);
+    }
+
+    /** Asset viewer: a wireframe cube (front and back faces, dashed hidden edges) under a magnifier. */
+    private static void magnifier(Canvas c, Paint p) {
+        c.save();
+        c.translate(320, 240);
+        c.scale(1.3f, 1.3f);
+        c.translate(-330, -240);
+        float x = 255, y = 265, s = 105, dx = 70, dy = -60;          // the front face's centre, half size, depth
+        float[][] f = { { x - s, y - s }, { x + s, y - s }, { x + s, y + s }, { x - s, y + s } };
+        for (int i = 0; i < 4; i++) {
+            float[] a = f[i], b = f[(i + 1) % 4];
+            line(c, p, a[0], a[1], b[0], b[1]);                     // the front face
+            boolean hidden = i == 2 || i == 3;                      // the back face's lower / left edges
+            if (!hidden) line(c, p, a[0] + dx, a[1] + dy, b[0] + dx, b[1] + dy);
+            if (i != 3) line(c, p, a[0], a[1], a[0] + dx, a[1] + dy);   // the depth edges
+        }
+        float hx = f[3][0] + dx, hy = f[3][1] + dy;                  // the hidden corner, dotted
+        for (int k = 0; k < 3; k++) {
+            float[] to = k == 0 ? f[3] : k == 1 ? new float[] { f[2][0] + dx, f[2][1] + dy } : new float[] { f[0][0] + dx, f[0][1] + dy };
+            float ex = to[0] - hx, ey = to[1] - hy;
+            for (int d = 0; d < 6; d++) line(c, p, hx + ex * d / 6f, hy + ey * d / 6f, hx + ex * (d + 0.45f) / 6f, hy + ey * (d + 0.45f) / 6f);
+        }
+        for (float[] a : f) dot(c, p, a[0], a[1], 6);
+        float mx = 390, my = 205, r = 92;                           // the magnifier: lens, rim, handle
+        fill(p);
+        c.drawCircle(mx, my, r, p);
+        circle(c, p, mx, my, r);
+        circle(c, p, mx, my, r + 14);
+        float hx0 = mx + (r + 14) * 0.7071f, hy0 = my + (r + 14) * 0.7071f;
+        Path h = new Path();
+        h.moveTo(hx0 - 14, hy0 + 8);
+        h.lineTo(hx0 + 8, hy0 - 14);
+        h.lineTo(hx0 + 118, hy0 + 96);
+        h.lineTo(hx0 + 96, hy0 + 118);
+        h.close();
+        path(c, p, h, true);
+        line(c, p, mx - 50, my - 30, mx - 22, my - 58);              // a glint on the glass
+        c.restore();
     }
 
     private static void rocket(Canvas c, Paint p) {

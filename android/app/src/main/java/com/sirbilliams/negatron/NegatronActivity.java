@@ -26,6 +26,8 @@ public class NegatronActivity extends SDLActivity {
     static final String EXTRA_TEST_PLAY = "test_play";
     /** Intent extra: where the game starts (NEG_START: menu, new, continue, load:<slot>; the launcher). */
     static final String EXTRA_START = "start";
+    /** Intent extra: the Asset Viewer explores this level (NEG_ASSET_VIEW, game/src/port/AssetView.h). */
+    static final String EXTRA_ASSET_VIEW = "asset_view";
 
     @Override
     protected String[] getLibraries() {
@@ -43,6 +45,9 @@ public class NegatronActivity extends SDLActivity {
             String start = getIntent() != null ? getIntent().getStringExtra(EXTRA_START) : null;
             if (start != null) Os.setenv("NEG_START", start, true);
             else Os.unsetenv("NEG_START");
+            String view = getIntent() != null ? getIntent().getStringExtra(EXTRA_ASSET_VIEW) : null;
+            if (view != null) Os.setenv("NEG_ASSET_VIEW", view, true);     // port: the Asset Viewer
+            else Os.unsetenv("NEG_ASSET_VIEW");
             // port: the launcher's pictures, saved once by the game (game/src/port/LauncherArt.h)
             if (getExternalFilesDir(null) != null)
                 Os.setenv("NEG_LAUNCHER_ART", new java.io.File(getExternalFilesDir(null), SetupActivity.ART_DIR).getPath(), true);
@@ -165,6 +170,8 @@ public class NegatronActivity extends SDLActivity {
         if (ending) {
             Intent i = new Intent(this, SetupActivity.class);
             i.putExtra(SetupActivity.EXTRA_FROM_GAME, true);
+            if (getIntent() != null && getIntent().getStringExtra(SetupActivity.EXTRA_RETURN) != null)
+                i.putExtra(SetupActivity.EXTRA_RETURN, getIntent().getStringExtra(SetupActivity.EXTRA_RETURN));
             startActivity(i, SetupActivity.onTopScreen());
             android.os.Process.killProcess(android.os.Process.myPid());
         }

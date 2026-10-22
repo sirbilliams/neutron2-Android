@@ -69,6 +69,12 @@ public final class RenderMenu {
         m.push(LauncherPages.test());
         m.push(LauncherPages.levels(Arrays.asList(gams)));
         draw(m, out, "levels");
+        m.pop();
+        m.pop();
+        m.push(LauncherPages.assets());
+        draw(m, out, "assets");
+        m.push(LauncherPages.explore(save, Arrays.asList(gams), "Level3.gam"));
+        draw(m, out, "explore");
     }
 
     static void draw(LauncherModel m, File dir, String name) throws Exception {
