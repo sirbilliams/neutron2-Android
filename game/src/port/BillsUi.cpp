@@ -402,8 +402,9 @@ static void ScopeFrame(float dt, bool show)
 	if (!line2[0])
 	{
 		const char *app = getenv("NEG_APP_VERSION");
-		if (app && *app) snprintf(line2, sizeof line2, "BY SIRBILLIAMS - V%s %s", app, NEG_GIT_COMMIT);
-		else snprintf(line2, sizeof line2, "BY SIRBILLIAMS - %s", NEG_GIT_COMMIT);
+		// Android: v<versionName> (<commit>); desktop: dev (<commit>)
+		if (app && *app) snprintf(line2, sizeof line2, "BY SIRBILLIAMS - V%s (%s)", app, NEG_GIT_COMMIT);
+		else snprintf(line2, sizeof line2, "BY SIRBILLIAMS - DEV (%s)", NEG_GIT_COMMIT);
 	}
 	const char *line1 = "JIMMY NEUTRON VS JIMMY NEGATRON RECOMP";
 	const int font = TextWidth('MED', line1) <= 440 ? 'MED' : 'SMAL';
@@ -510,6 +511,97 @@ void BillsScore(float dt, short x, short y)
 	}
 }
 
+// --------------------------------------------------------------------------- 3. the help pictures
+
+// The help picture of the current gadget (g_elt_544908[g_help_index], bottom left: the mouse and
+// keys, H / F1) and the help keys panel (g_help_menu_elt, bottom right). Bill's UI frames each on a
+// green-hologram plate, the picture's drawn part (its opaque pixels, found once per canvas) centred
+// in it, 10 units in from the window's edges. Vanilla: the original places (the pieces are put
+// back if they were moved).
+struct HelpPiece
+{
+	Deco		plate;
+	InterfaceElt *moved;			// the piece we placed (NULL: at its original place)
+	OMediaCanvasElement *linked;	// the element relinked after the plate (drawn over it)
+	OMediaCanvas *box_of;			// the canvas `box` was measured on
+	int			box[4];				// its opaque pixels: x0, y0, x1, y1 (exclusive); x1 <= x0: none
+};
+static HelpPiece s_help[2];			// 0 the picture (left), 1 the keys (right)
+
+static void MeasureCanvas(HelpPiece &h, OMediaCanvas *c)
+{
+	h.box_of = c;
+	h.box[0] = h.box[1] = 0;
+	h.box[2] = h.box[3] = 0;
+	if (!c || c->get_width() <= 0) return;
+	const int w = c->get_width(), ht = c->get_height();
+	c->lock(omlf_Read);
+	const unsigned char *p = (const unsigned char *)c->get_pixels();
+	if (p)
+	{
+		int x0 = w, y0 = ht, x1 = 0, y1 = 0;
+		for (int y = 0; y < ht; y++)
+			for (int x = 0; x < w; x++)
+				if (p[(y * w + x) * 4 + 3] > 24)
+				{
+					if (x < x0) x0 = x;
+					if (x >= x1) x1 = x + 1;
+					if (y < y0) y0 = y;
+					if (y >= y1) y1 = y + 1;
+				}
+		if (x1 > x0)
+		{
+			h.box[0] = x0; h.box[1] = y0; h.box[2] = x1; h.box[3] = y1;
+		}
+	}
+	c->unlock();
+}
+
+// The original's placement (InterfaceElement.cpp place_on_screen) of a piece's top left (x, y).
+static void PlaceAt(OMediaCanvasElement *ce, float x, float y)
+{
+	const float sx = g_screen_w * (1.0f / 640.0f), sy = g_screen_h * (1.0f / 480.0f);
+	ce->place(sx * x - (float)((short)g_screen_w / 2), ((float)((short)g_screen_h / 2) - ce->get_height()) - sy * y, 0);
+}
+
+static void HelpPieceFrame(HelpPiece &h, InterfaceElt *e, int side, bool on)
+{
+	OMediaCanvasElement *ce = e ? (OMediaCanvasElement *)e->canvas_elt : NULL;
+	const bool shown = ce && ce->getvisible();
+	if (h.moved && (!on || h.moved != e))		// put back where the original has it
+	{
+		if (h.moved->canvas_elt) PlaceAt(h.moved->canvas_elt, (float)h.moved->x + WideShift(h.moved), (float)h.moved->y);
+		h.moved = NULL;
+	}
+	if (!on || !shown)
+	{
+		DecoHide(h.plate);
+		return;
+	}
+	OMediaCanvas *c = ce->get_canvas();
+	if (c != h.box_of) MeasureCanvas(h, c);
+	if (h.box[2] <= h.box[0] || !c)
+	{
+		DecoHide(h.plate);
+		return;
+	}
+	const float sx = g_screen_w * (1.0f / 640.0f);
+	const float f = ce->get_width() / sx / (float)c->get_width();	// 640x480 units per canvas pixel
+	const float cw = (h.box[2] - h.box[0]) * f, chh = (h.box[3] - h.box[1]) * f;
+	const float pad = 8.0f, edge = 10.0f;
+	const float pw = cw + 2 * pad, ph = chh + 2 * pad;
+	const float px = side < 0 ? -WideMargin() + edge : 640.0f + WideMargin() - edge - pw;
+	const float py = 480.0f - edge - ph;
+	ShowPlate(h.plate, 2 + (int)pw * 1000 + (int)ph, px, py, pw, ph);
+	if (h.linked != ce)						// draw the picture after (over) the plate
+	{
+		ce->link_layer(g_layer_hud2d);
+		h.linked = ce;
+	}
+	PlaceAt(ce, px + pad - h.box[0] * f, py + pad - h.box[1] * f);
+	h.moved = e;
+}
+
 // --------------------------------------------------------------------------- per frame
 
 void BillsUiFrame(float dt)
@@ -518,6 +610,8 @@ void BillsUiFrame(float dt)
 	const bool on = BillsUi();
 	if (!on || s_frame - s_sonar_frame > 2) DecoHide(s_sonar_plate);
 	ScopeFrame(dt, on && g_game_mode == 4 && g_menu && g_menu->f_4ce == 3);
+	if (g_help_index >= 0 && g_help_index < 14) HelpPieceFrame(s_help[0], &g_elt_544908[g_help_index], WIDE_LEFT, on);
+	HelpPieceFrame(s_help[1], g_help_menu_elt, WIDE_RIGHT, on);
 	if (!on || (g_game_mode != 5 && g_game_mode != 6))
 	{
 		DecoHide(s_score_halo);
@@ -530,6 +624,13 @@ void BillsUiShutdown(void)
 	DecoFree(s_sonar_plate);
 	DecoFree(s_scope);
 	DecoFree(s_score_halo);
+	for (int i = 0; i < 2; i++)
+	{
+		DecoFree(s_help[i].plate);
+		s_help[i].moved = NULL;
+		s_help[i].linked = NULL;
+		s_help[i].box_of = NULL;
+	}
 }
 
 }

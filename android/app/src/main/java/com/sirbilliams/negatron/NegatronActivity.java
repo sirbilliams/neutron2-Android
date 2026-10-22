@@ -57,7 +57,7 @@ public class NegatronActivity extends SDLActivity {
             // port: the app's version for the pause screen's credit line
             try {
                 android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
-                Os.setenv("NEG_APP_VERSION", pi.versionName + " (" + pi.versionCode + ")", true);
+                Os.setenv("NEG_APP_VERSION", pi.versionName, true);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
                 Os.unsetenv("NEG_APP_VERSION");
             }

@@ -150,9 +150,14 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
 - **Pause screen** (the PDA Main Menu, Esc / Start): its empty green grid shows a scope in the
   grid's phosphor green - a radar sweep with blips over range rings and Jimmy's atom (three orbits
   slowly turning, an electron on each) - and the credit line "Jimmy Neutron vs Jimmy Negatron
-  Recomp - by sirbilliams - <version>" in the game's font. The version: Android's versionName
-  (versionCode) (`NEG_APP_VERSION`, set by NegatronActivity) and the build's git commit, baked in
-  at every build by `engine/cmake/neg_version.cmake` ("-dirty" with uncommitted changes).
+  Recomp - by sirbilliams - <version>" in the game's font. The version: "v<versionName>
+  (<commit>)" on Android (versionName from the APK, `NEG_APP_VERSION`, set by NegatronActivity),
+  "dev (<commit>)" on the desktop; the short git commit is baked in at every build by
+  `engine/cmake/neg_version.cmake`.
+- **Help pictures** (H / F1: the current gadget's mouse / keys picture, bottom left, and the help
+  keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan
+  lines, bright edge with corner brackets), the picture's drawn part (its opaque pixels, measured
+  at run time) centred in it, 10 units in from the screen's edges. Vanilla: the original places.
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
