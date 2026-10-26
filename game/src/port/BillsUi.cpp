@@ -258,7 +258,7 @@ void BillsSonarReadout(int range)
 // (three orbits slowly turning, electrons running round them), in the grid's green phosphor (an
 // additive canvas redrawn every other frame), and the credit line under it in the game's font.
 enum { SCOPE_PX = 320 };
-static const float kScopeX = 230.0f, kScopeY = 96.0f, kScopeSize = 180.0f;	// 640x480 units
+static const float kScopeX = 205.0f, kScopeY = 108.0f, kScopeSize = 230.0f;	// 640x480 units
 static Deco s_scope;
 static float *s_scope_base, *s_scope_buf, *s_scope_ang, *s_scope_r;
 static float s_scope_t, s_scope_fade;
@@ -399,8 +399,8 @@ static void ScopeFrame(float dt, bool show)
 	s_scope.elt->set_diffuse(OMediaFARGBColor(s_scope_fade, 1.0f, 1.0f, 1.0f));
 	DecoPlace(s_scope, kScopeX, kScopeY, kScopeSize, kScopeSize);
 
-	// Keep the credits inside the PDA's central grid instead of one long line below it.
-	// DrawText y is the glyph bottom; stack from the scope down using actual font metrics.
+	// port: footer flush to the PDA CRT's inner bottom/side edges (artwork at 80..560,
+	// y 74..406 in 640x480 space), with an 8-unit inset. Keep it out of the central scope.
 	static char version[64];
 	if (!version[0])
 	{
@@ -408,18 +408,19 @@ static void ScopeFrame(float dt, bool show)
 		if (app && *app) snprintf(version, sizeof version, "VERSION %s", app);
 		else snprintf(version, sizeof version, "DEV BUILD %s", NEG_GIT_COMMIT);
 	}
-	const char *lines[] = { "JIMMY NEUTRON", "VS JIMMY NEGATRON", "BY: SIRBILLIAMS", version };
-	const int font = 'SMAL', h = FontHeight(font);
+	const char *title = "JIMMY NEUTRON VS JIMMY NEGATRON";
+	const int left = 88, right = 552, bottom = 398;
+	const int titleFont = TextWidth('MED', title) <= right - left ? 'MED' : 'SMAL';
 	const int keep = g_text_center;
-	g_text_center = 1;
+	g_text_center = 0;
 	const float rgb[3] = { g_text_rgb[0], g_text_rgb[1], g_text_rgb[2] };
 	g_text_rgb[0] = 0.78f; g_text_rgb[1] = 1.0f; g_text_rgb[2] = 0.82f;
-	const float top = kScopeY + kScopeSize + 8.0f;
-	for (int i = 0; i < 4; ++i)
-	{
-		g_text_alpha = s_scope_fade;
-		DrawText(320, (short)(int)(top + h + i * (h + 3)), font, "%s", lines[i]);
-	}
+	g_text_alpha = s_scope_fade;
+	DrawText(left, (short)(bottom - FontHeight('SMAL') - 8), titleFont, "%s", title);
+	g_text_alpha = s_scope_fade;
+	DrawText(left, bottom, 'SMAL', "BY: SIRBILLIAMS");
+	g_text_alpha = s_scope_fade;
+	DrawText((short)(right - TextWidth('SMAL', version)), bottom, 'SMAL', "%s", version);
 	g_text_rgb[0] = rgb[0]; g_text_rgb[1] = rgb[1]; g_text_rgb[2] = rgb[2];
 	g_text_center = keep;
 }

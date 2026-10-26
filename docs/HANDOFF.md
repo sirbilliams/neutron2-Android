@@ -2,6 +2,124 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
+## Current visual fix — 2026-10-26 Pacific, 1.0.5-rc1 / 105
+
+**Supersedes the failed-inspection blocker and unreleased status below. Actual game now launched.**
+After Bill approved GitHub Mobile sign-in, the browser downloaded the ISO. Its initial returned
+per-download path disappeared, but the completed transfer was present at
+`/workspace/scratch/Jimmy.Neutron.vs.Jimmy.Negatron.iso`. SHA-256 verified exactly:
+`65c8fc3f6811b7f03d9bd16211b4b6089c398fad9d9af8a687bbde8098e38d88`.
+The browser later denied further observation; it was not retried or bypassed. Local inspection used
+only the already-downloaded authorized file. No credentials, game files or captured retail artwork
+were added to the public source repository.
+
+### Actual launch and observed correction
+
+- Built the production desktop `negatron` and `neg_import`; installed ISO to
+  `/workspace/scratch/06ee8e92910a/private-game` (outside the git checkout).
+- Launched Level3 via `NEG_TEST_PLAY`, SDL offscreen video + dummy audio + software OpenGL.
+  Used the existing `OMT_AUTOKEYS` hook to open the actual PDA with Escape at frame100/release102.
+  Production screenshot hook saved frame600. No fake PDA artwork or mock font rendering.
+- Viewed before capture: 1.0.4's four credit rows float centrally under a shrunken scope. Bill had
+  asked for flush alignment to the PDA screen edge. The actual inner CRT bounds are approximately
+  x80..560, y74..406 in the game's 640x480 space.
+- `BillsUi.cpp` now restores original scope x205/y108/size230. Footer: title left x88, By left x88,
+  version right-aligned at x552; lowest baseline y398. Eight-unit inset from inner side/bottom edges.
+  Title uses MED only if it fits 464 units, otherwise SMAL. Title baseline uses actual SMAL font
+  height + eight-unit separation; the game's own fonts are used. Centering is disabled for footer,
+  then restored. Existing phosphor colors/fade retained. Vanilla unaffected.
+- Viewed real after captures at **1280x720 widescreen and 640x480 4:3**: footer sits just inside the
+  CRT lower edge, title/By left, version right; no clipping or scope overlap in these captures.
+- Viewed companion normal/expanded previews using actual native Level3 JSON/map/icon dumps through
+  restored Java2D tools. Full case background correction remains in this release: previously only
+  the left clipped chrome was drawn, so margins became black when the dashboard slid away. The
+  case is now independently size-cached and drawn first, behind moving panels. Map chrome remains
+  cached at its real width; no horizontal stretch. Synthetic and real-state previews are consistent.
+  This is still Java2D preview evidence, not a physical Android display/touch test.
+
+### Reproduce without Xvfb
+
+Local environment lacked cmake/SDL development headers/GL headers and apt setup stalled. Working
+setup: install cmake from its PyPI wheel into `/tmp/visual-build-python`; use official SDL2.30.0
+source headers with installed SDL2.30 runtime `/usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0`; extract
+Ubuntu libgl-dev/libglx-dev 1.7.0-1build1 packages under `/tmp/visual-deps`; unshield1.5.1 source
+matches deps.lock. A temporary SDL2Config.cmake supplies imported SDL2::SDL2 and include path.
+These are temporary build dependencies, not application source changes.
+
+```
+/tmp/visual-build-python/cmake/data/bin/cmake -S engine -B /tmp/neutron-visual-build \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo -DSDL2_DIR=/tmp/visual-deps/sdl-config \
+  -DOPENGL_gl_LIBRARY=/usr/lib/x86_64-linux-gnu/libGL.so.1 \
+  -DOPENGL_INCLUDE_DIR=/tmp/visual-deps/usr/include -DOpenGL_GL_PREFERENCE=LEGACY \
+  -DUNSHIELD_DIR=/tmp/visual-deps/unshield-1.5.1 -DCMAKE_CXX_FLAGS=-I/tmp/visual-deps/usr/include
+/tmp/visual-build-python/cmake/data/bin/cmake --build /tmp/neutron-visual-build --target negatron neg_import -j8
+/tmp/neutron-visual-build/neg_import /workspace/scratch/Jimmy.Neutron.vs.Jimmy.Negatron.iso /workspace/scratch/06ee8e92910a/private-game
+```
+
+From the installed game folder:
+
+```
+SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy LIBGL_ALWAYS_SOFTWARE=1 \
+NEG_TEST_PLAY=Level3.gam NEG_UI=bills NEG_APP_VERSION=1.0.5-rc1 NEG_WIDESCREEN=1 \
+OMT_WINDOW_SIZE=1280x720 OMT_FRAMES=600 OMT_AUTOKEYS='100:+Escape,102:-Escape' \
+OMT_SCREENSHOT=/tmp/neutron-captures/pda-after-wide.bmp \
+timeout 15 /tmp/neutron-visual-build/negatron
+```
+
+Repeat with NEG_WIDESCREEN=0, OMT_WINDOW_SIZE=640x480 and a different screenshot path.
+`NEG_COMPANION_DUMP=/tmp/neutron-captures/dump` on the first run produces real-state panel input;
+`tools/companion/render.sh <dump> Level3 <out.png> [far] [expanded]` renders it. Screenshot hooks
+saved the requested files and all three launches logged CLEAN EXIT. The known test-hook shutdown
+hang may still require timeout; do not claim this unrelated historical issue is fixed.
+
+### Scope, checks, remaining work
+
+Release combines the prior review-branch case-background fix + preview tooling with the measured
+PDA footer. Changed files: CompanionView.java; BillsUi.cpp; Android build.gradle version; preview
+render.sh, RenderPanel and Canvas/View/gesture/animator shims; CHANGELOG and current handoff/controls/
+release-gap documentation. Java2D gesture classes are compile-only and animator is endpoint-only.
+Local Android14 Java compilation and existing HD/native regressions passed; native desktop build
+and real screenshot inspection passed. CI result will be recorded after publication. Source branch
+`fix/companion-background-inspection` preserves the earlier unreleased background fix.
+
+Remaining: Bill should check the footer and metal appearance on Thor, at both aspect settings,
+and test panel transitions/gestures/controller focus. Keep earlier map-detail, height cutoff,
+real-HD-pack, save/update/casting/lid and gameplay checks open. No claim of physical device testing.
+
+## Visual-inspection follow-up — 2026-10-25 Pacific (unreleased branch)
+
+Bill reports that **1.0.4 metal still looks wrong and the PDA credits are worse**. He explicitly
+wants credits flush with the PDA screen edge, not guessed positions in the center, and requests
+that the agent open the game directly. The prior PDA placement is NOT user-accepted or visually verified.
+Do not describe the metal/PDA issues as resolved based on CI success.
+
+Inspection attempted: no installed game data, ISO or runnable native binary exists in the workspace.
+Private ISO release metadata is accessible via the GitHub connector, but its general fetch tool cannot
+transfer binary release assets; unauthenticated direct download returns 404. A temporary private-repo
+branch `inspection/pda-companion-20261025` ran a private-only screenshot workflow (no game data was
+published). Run `40275514782` failed before any job steps/runner assignment; no logs or screenshots
+were generated. Reason not available through supported endpoints; do not assume billing caused it.
+The temporary workflow was then removed on that branch with a skip-CI cleanup commit. Private main
+was untouched. Native local setup also failed (package-manager privilege errors, then stalled downloads).
+**Actual gameplay/PDA menu was not opened.** A local ISO/installed-game ZIP is still needed for that.
+
+What WAS inspected: production CompanionView through the repository's Java2D preview shim with
+synthetic state/no map image, at 1240x1080 in normal and expanded endpoints. This is a panel rendering
+approximation, NOT Android/gameplay/retail-art or animation/input verification. Visible defect: the
+full metal case background was clipped with the sliding info-panel bitmap, leaving black margins
+behind/around the map. Unreleased fix caches/draws the full brushed case before the moving panels;
+normal/expanded previews were viewed before and after, and the black margins are corrected.
+This does not prove every aspect of Bill's reported metal appearance is fixed.
+
+Changes on the follow-up branch: CompanionView adds a separate size-cached case bitmap; existing
+width-correct map chrome remains. Restored desktop preview compilation with minimal View lifecycle,
+clipRect, MotionEvent, ScaleGestureDetector and ValueAnimator shims. Gesture shims are compile-only;
+animator jumps to its endpoint. RenderPanel/render.sh support `far` and `expanded` options together.
+No PDA placement change, APK version bump, public release, or real-game screenshot in this follow-up.
+Java compilation against Android14 and preview compilation/rendering passed; git diff whitespace check
+passed. CHANGELOG records this as unreleased. Next: obtain game data through an authorized binary
+transfer, run the real menu, identify the actual PDA screen edge, and align from measured artwork.
+
 ## Current handoff — 2026-10-25 Pacific: companion exploration and polish
 
 **Read this section before the historical session status below.** Older claims about a cropped map,

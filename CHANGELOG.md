@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.0.5-rc1
+
+- Restore the brushed case background behind the sliding companion panels; preview-verified with
+  synthetic state, not yet confirmed on Thor.
+- Restore Java2D companion previews with compile-only gesture and endpoint-animation shims; support expanded snapshots.
+- Launch the actual desktop game from the verified retail ISO; replace centered PDA credits with
+  a footer inset eight units from the CRT side/bottom edges. Restore the original scope size.
+- Visually inspect real PDA captures at 640x480 and 1280x720. Record setup, evidence and limits in HANDOFF.
+- Version code 105; physical Thor verification remains pending.
+
 ## v1.0.4-rc1
 
 - Render companion metal/bezel artwork at its real width rather than stretching the dashboard cache.

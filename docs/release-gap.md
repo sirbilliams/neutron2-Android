@@ -49,6 +49,14 @@ in this review environment.
   distant terrain at full zoom-out, map coordinates, filters, multi-touch, controller focus, height
   changes, Vox, suspend/resume and casting. Build success is not evidence of these device behaviors.
 
+## 1.0.5 visual verification update
+
+The agent installed the checksum-verified ISO and actually launched the production desktop port.
+Real PDA captures at 640x480 and 1280x720 verified the revised edge-aligned footer. The companion
+case-background fix was viewed with synthetic and actual native-state Java2D previews. These are
+specific desktop checks; physical Thor appearance/touch/display checks remain open. Full source
+changes, reproduction commands and earlier failed setup attempts are recorded in HANDOFF.
+
 ## Smallest next verification step (about 5–10 minutes)
 
 1. Export saves in the current app. Install the new `latest` APK **over** it, without uninstalling.

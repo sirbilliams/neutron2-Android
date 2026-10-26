@@ -215,13 +215,10 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   the radar disc on a small green-hologram plate. (Both modes: the original drew it at y 10 as its
   bottom edge, so it was cut off at the top of the screen; Vanilla now has it at the top right,
   fully on screen, moving to the right edge with the disc in widescreen.)
-- **Pause screen** (the PDA Main Menu, Esc / Start): its empty green grid shows a scope in the
-  grid's phosphor green - a radar sweep with blips over range rings and Jimmy's atom (three orbits
-  slowly turning, an electron on each) - and the credit line "Jimmy Neutron vs Jimmy Negatron
-  Recomp - by sirbilliams - <version>" in the game's font. The version: "v<versionName>
-  build <commit>" on Android (versionName from the APK, `NEG_APP_VERSION`, set by NegatronActivity),
-  "dev build <commit>" on the desktop (the game's fonts have no parentheses); the short git commit is baked in at every build by
-  `engine/cmake/neg_version.cmake`.
+- **Pause screen** (the PDA Main Menu, Esc / Start): its empty green grid shows a radar scope and
+  Jimmy's atom. The title and By credit sit along the inside lower-left CRT edge; the version is
+  right-aligned along the bottom. All use the game's font. Android shows VERSION <versionName>
+  from `NEG_APP_VERSION`; desktop falls back to DEV BUILD <commit> from `neg_version.cmake`.
 - **Help pictures** (H / F1: the current gadget's mouse / keys picture, bottom left, and the help
   keys panel, bottom right): each framed on a green-hologram plate (dark translucent panel, scan
   lines, bright edge with corner brackets), the picture's drawn part (its opaque pixels, measured
@@ -251,6 +248,10 @@ Bill's UI adds, all drawn in code (only the game's own fonts and pictures are re
   gun / burp gun once collected, other gadgets once used in the level, and the current one.
 - **Score**: counts up to its new value (about half a second) and, as points come in, pops (the
   digits grow for a moment) with a green glow behind it.
+The PDA main page's Bill's UI credits sit flush inside its CRT border with an eight-unit inset:
+game title and By credit on the left, version right-aligned along the bottom. The original scope
+size is retained. Desktop visual captures cover 4:3 and 16:9; confirm on the Thor too.
+
 ## How the game starts: NEG_START and save\slots.txt (port; launcher interface)
 
 The original has no menu before the game (manual p. 6-7; CEditor::UpdateGame 0x4a5c70): the
