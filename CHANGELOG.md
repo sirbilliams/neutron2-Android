@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.0.2-rc1
+
+- Bound HD PNG working memory before large allocations; validate PNG CRCs, colour/depth combinations,
+  methods, filters and palette indices. Unusable replacements fall back to original textures.
+- Add HD rendering on/off and LOW / BALANCED / HIGH memory and scale presets (next launch).
+- Add Diagnostics to the launcher and in-game Back menu: rendered FPS, resident game memory, HD
+  accounting, display/controller detection, timestamped samples and Share report with logs.
+- Keep side-positioned score pop-ups anchored in widescreen throughout the animation.
+- Add native synthetic PNG and 4:3/widescreen coordinate regression checks to the CI release gate.
+- Version code 102; physical Thor verification remains open. No game data or HD artwork bundled.
+
 ## v1.0.1-rc1
 
 Thor verification candidate; device checks remain in [docs/release-gap.md](docs/release-gap.md).

@@ -21,6 +21,7 @@
 #include "../C3DJimmy.h"
 #include "../C3DRadar.h"
 #include "../port/Widescreen.h"
+#include "../port/HudLayout.h"
 #include "../port/BillsUi.h"
 #include "OMediaCanvas.h"
 #include "OMediaCanvasElement.h"
@@ -105,13 +106,12 @@ static void DrawScoreHud(float dt)
 		{
 			const bool aside = !g_camera || g_545dd4;
 			if ((double)g_score_popup_time > 0.2)			// 0x4d6c38
-				DrawText(aside ? 450 : 300, 210, 'BIG', "%d", g_score_popup);
+				DrawText((short)ScorePopupX(aside, g_score_popup_time, WideMargin()), 210, 'BIG', "%d", g_score_popup);
 			else
 			{
 				const double k = 0.2 - (double)g_score_popup_time;
 				const int y = (int)(k * 1000.0 + 210.0);	// 0x506f98, 0x506f90
-				int x = aside ? (int)(k * 400.0 + 450.0) : (int)(k * 1500.0 + 300.0);	// 0x506f78 / 0x506f70, 0x506f88 / 0x506f80
-				x += (int)(neg::WideMargin() * (float)(k / 0.2));	// port: widescreen, it flies to the score at the right edge
+				const int x = ScorePopupX(aside, g_score_popup_time, WideMargin()); // port: anchored throughout the flight
 				DrawText((short)x, (short)y, 'MED', "%d", g_score_popup);
 			}
 		}

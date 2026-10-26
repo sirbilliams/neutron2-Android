@@ -63,6 +63,15 @@ public class NegatronActivity extends SDLActivity {
                     .getString(SetupActivity.PREF_ENERGY, "a"), true);
             Os.setenv("NEG_UI_HOLO", getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE)
                     .getString(SetupActivity.PREF_HOLO, "a"), true);
+            // port: bounded HD working memory and optional rendering, read once per game process.
+            android.content.SharedPreferences hd = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
+            int preset = HdQuality.valid(hd.getInt(SetupActivity.PREF_HD_QUALITY, 1));
+            Os.setenv("NEG_HD_ENABLED", hd.getBoolean(SetupActivity.PREF_HD_ON, true) ? "1" : "0", true);
+            Os.setenv("NEG_HD_BUDGET_MB", String.valueOf(HdQuality.textureMb(preset)), true);
+            Os.setenv("NEG_HD_DECODE_MB", String.valueOf(HdQuality.decodeMb(preset)), true);
+            Os.setenv("NEG_HD_MAX_SCALE", String.valueOf(HdQuality.scale(preset)), true);
+            if (getExternalFilesDir(null) != null)
+                Os.setenv("NEG_DIAGNOSTICS", new java.io.File(getExternalFilesDir(null), Diagnostics.FILE).getPath(), true);
             // port: the app's version for the pause screen's credit line
             try {
                 android.content.pm.PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0);
@@ -253,14 +262,15 @@ public class NegatronActivity extends SDLActivity {
         final String holo = prefs.getString(SetupActivity.PREF_HOLO, "a");
         final String[] items = bills
                 ? new String[] { panel, zoom, ui, "Energy meter: " + LauncherPages.energyName(energy),
-                        "Gadget hologram: " + LauncherPages.holoName(holo), "Close" }
-                : new String[] { panel, zoom, ui, "Close" };
+                        "Gadget hologram: " + LauncherPages.holoName(holo), "Diagnostics", "Close" }
+                : new String[] { panel, zoom, ui, "Diagnostics", "Close" };
         new AlertDialog.Builder(this)
                 .setTitle("Negatron")
                 .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface d, int which) {
-                        if (which == 0) mPanel.setEnabled(!on);
+                        if (which == items.length - 2) Diagnostics.show(NegatronActivity.this);
+                        else if (which == 0) mPanel.setEnabled(!on);
                         else if (which == 1) mPanel.setZoomFar(!far);
                         else if (which == 2) {          // port: Bill's UI / Vanilla, applied at once
                             prefs.edit().putBoolean(SetupActivity.PREF_BILLS_UI, !bills).apply();

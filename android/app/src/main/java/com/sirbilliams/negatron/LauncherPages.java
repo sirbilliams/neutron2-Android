@@ -228,7 +228,8 @@ final class LauncherPages {
         i.enabled = GAME_LOADS;
         p.add("saves", "Saves", "Export the game's saves to a file, or import them.");
         p.add("assets", "Asset viewer", "Fly freely through any level, or look at the game's models.");
-        p.add("settings", "Settings", "Widescreen, the bottom screen, box art and background.");
+        p.add("settings", "Settings", "Widescreen, the bottom screen, HD textures, box art and background.");
+        p.add("diagnostics", "Diagnostics", "FPS and memory from the last render sample, displays, controllers and a shareable report.");
         if (test) p.add("test", "Test", "Jump to a level, the model viewer, share the log.");
         p.add("quit", "Quit", "Close the game.");
         for (LauncherModel.Item it : p.items) it.pic = it.id;     // each option its own picture

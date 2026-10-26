@@ -22,6 +22,7 @@ class OMediaStreamOperators;
 
 namespace omhd
 {
+	std::string diagnostics(); // rendering thread only: current HD accounting
 	// Tags the canvas with its pack name ("omt/level1/1234.png") when the pack has that file.
 	void tag(OMediaCanvas *c, const std::string &rel);
 	// Tags a canvas read from a loose file of png/ ("png/<name>.png") - stream is the file it was read from.

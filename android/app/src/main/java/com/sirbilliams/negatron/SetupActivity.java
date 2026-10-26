@@ -335,6 +335,18 @@ public class SetupActivity extends Activity {
     /** The settings page's HD pack items: what is installed, the install's progress. */
     private LauncherModel.Page hdItems(LauncherModel.Page p) {
         if (mHdCount < 0 && mHdProgress < 0) mHdCount = HdPack.count(findReadableData());
+        int pos = 0;
+        while (pos < p.items.size() && !p.items.get(pos).id.equals("hd")) pos++;
+        boolean enabled = prefs().getBoolean(PREF_HD_ON, true);
+        int preset = prefs().getInt(PREF_HD_QUALITY, 1);
+        LauncherModel.Item toggle = new LauncherModel.Item("hd_on", "HD rendering", "Use the installed pack without removing it. Applies next game launch.");
+        toggle.value = enabled ? "ON" : "OFF";
+        p.items.add(pos++, toggle);
+        LauncherModel.Item quality = new LauncherModel.Item("hd_quality", "HD memory preset", "LOW: 256 MB textures / 96 MB decode / 2x. BALANCED: 512 / 192 / 4x. HIGH: 1024 / 256 / 8x. "
+                + "Decode limits skip oversized source PNGs; they do not resize them. Applies next game launch.");
+        quality.value = HdQuality.name(preset);
+        quality.enabled = enabled;
+        p.items.add(pos, quality);
         for (LauncherModel.Item i : p.items) {
             if (i.id.equals("hd")) {
                 i.progress = mHdProgress >= 0 ? mHdProgress / 1000f : -1;
@@ -391,7 +403,15 @@ public class SetupActivity extends Activity {
         else if (id.equals("load")) mMenu.push(LauncherPages.load(LauncherPages.slots(saveDir())));
         else if (id.startsWith("slot:")) launch("negatron", null, "load:" + id.substring(5));
         else if (id.equals("settings")) mMenu.push(settingsPage());
-        else if (id.equals("test")) mMenu.push(LauncherPages.test());
+        else if (id.equals("diagnostics")) Diagnostics.show(this);
+        else if (id.equals("hd_on")) {
+            p.edit().putBoolean(PREF_HD_ON, !p.getBoolean(PREF_HD_ON, true)).commit();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("hd_quality")) {
+            int preset = (HdQuality.valid(p.getInt(PREF_HD_QUALITY, 1)) + mStepDir + 3) % 3;
+            p.edit().putInt(PREF_HD_QUALITY, preset).commit();
+            mMenu.replace(settingsPage());
+        } else if (id.equals("test")) mMenu.push(LauncherPages.test());
         else if (id.equals("quit")) finish();
         else if (id.equals("wide")) {
             p.edit().putBoolean(PREF_WIDESCREEN, !p.getBoolean(PREF_WIDESCREEN, true)).commit();
@@ -1174,6 +1194,8 @@ public class SetupActivity extends Activity {
     static final String PREF_ENERGY = "energy_meter";
     /** port: Bill's UI's gadget hologram, "a" BAY (default) / "b" CONSOLE / "c" WHEEL / "off" (NEG_UI_HOLO). */
     static final String PREF_HOLO = "gadget_hologram";
+    static final String PREF_HD_ON = "hd_enabled";
+    static final String PREF_HD_QUALITY = "hd_quality";
     /** Left / right on a cycling setting: -1 / 1. */
     private int mStepDir = 1;
 

@@ -11,6 +11,7 @@
     This file is compiled into each app (not the static lib) so SDL can always find main. */
 
 #include "OMediaSDLRetarget.h"
+#include "OMediaHDPack.h"
 #include "OMediaSupervisor.h"
 #include "OMediaDefMessages.h"
 #include <unistd.h>
@@ -98,9 +99,46 @@ static void omf_test_hooks(SDL_Window *win)
 #endif
 
 // Called by OMediaGLRenderTarget::flip_buffers before swapping.
+// port: one small atomic snapshot every two seconds, independent of the companion panel.
+// An explicit path enables it; desktop runs and test harnesses remain read-only by default.
+static void omf_diagnostics(SDL_Window *win)
+{
+    const char *path = getenv("NEG_DIAGNOSTICS");
+    if (!path || !*path) return;
+    static Uint32 started = SDL_GetTicks(), frames = 0;
+    const Uint32 now = SDL_GetTicks(), elapsed = now - started;
+    frames++;
+    if (elapsed < 2000) return;
+    const double fps = elapsed > 10000 ? 0 : frames * 1000.0 / elapsed;
+    started = now; frames = 0;
+    const string tmp = string(path) + ".tmp";
+    FILE *f = fopen(tmp.c_str(), "w");
+    if (!f) return;
+    int w = 0, h = 0;
+    SDL_GL_GetDrawableSize(win, &w, &h);
+    fprintf(f, "Rendered FPS (2s sample): %.1f\nDrawable: %dx%d\nLogical: %dx%d\n",
+        fps, w, h, OMediaSDLVideoEngine::logical_width, OMediaSDLVideoEngine::logical_height);
+    FILE *mem = fopen("/proc/self/status", "r");
+    if (mem) {
+        char line[256];
+        while (fgets(line, sizeof line, mem))
+            if (!strncmp(line, "VmRSS:", 6)) fprintf(f, "Game resident memory: %s", line + 7);
+        fclose(mem);
+    }
+    fprintf(f, "%s", omhd::diagnostics().c_str());
+    const int pads = SDL_NumJoysticks();
+    fprintf(f, "SDL controllers: %d\n", pads);
+    for (int i = 0; i < pads; i++) {
+        const char *name = SDL_JoystickNameForIndex(i);
+        fprintf(f, "  %s\n", name ? name : "Unknown");
+    }
+    if (fclose(f) == 0) rename(tmp.c_str(), path);
+}
+
 void omf_SDLFrameHook(SDL_Window *win)
 {
 	omg_frame++;
+	omf_diagnostics(win);
 #ifndef __ANDROID__
 	omf_test_hooks(win);
 #endif

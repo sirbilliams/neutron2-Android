@@ -28,7 +28,9 @@ manifest.tsv) are left out. Android rejects duplicate target names (including ca
 keeps the installed pack until the replacement is staged, and restores it if the final move fails.
 An interrupted swap is recovered when the launcher next checks the installed pack. Free space is
 checked against the expanded bytes with a 64 MB reserve; each picture is limited to 256 MB on disk.
-These installer protections do not bound the native decoder's total working memory. `neg_hdtool extract <game dir> <out> [db.omt ...]` writes the omt canvases
+The native HD decoder also bounds its working-memory estimate before inflating or allocating pixels;
+files over 64 MB (or one quarter of the decode budget) are skipped. Corrupt CRCs, invalid PNG methods,
+row filters and palette references fall back to the original texture, with a log message. `neg_hdtool extract <game dir> <out> [db.omt ...]` writes the omt canvases
 with these names (plus manifest.tsv) for upscaling.
 
 ## How it works (engine/sdl/OMediaHDPack.cpp)
@@ -47,3 +49,24 @@ with these names (plus manifest.tsv) for upscaling.
 - Log: `HD: texture pack with N pictures` at start, `HD: N textures replaced` at exit; `NEG_HD_LOG=1` lists
   each replaced picture; a wrong-size or unreadable picture is logged once and skipped.
 - Without `hd/` nothing changes.
+
+## HD rendering and memory presets (Android)
+
+Settings → HD rendering switches the installed pack on/off without removing it. HD memory preset
+changes startup limits; exit the game and launch it again to apply either setting.
+
+| Preset | Estimated HD upload budget | PNG working-memory budget per picture | Maximum uploaded scale |
+|---|---:|---:|---:|
+| LOW | 256 MB | 96 MB | 2x |
+| BALANCED (default) | 512 MB | 192 MB | 4x |
+| HIGH | 1024 MB | 256 MB | 8x |
+
+These are HD limits, not total app RAM limits; originals, driver allocations and other game systems
+use additional memory. A source PNG over the decode budget is skipped, not resized before decoding.
+For those pictures, supply a smaller upscale. Supported pictures can still be reduced for the GPU
+or preset scale limit. Desktop overrides: `NEG_HD_ENABLED=0`, `NEG_HD_MAX_SCALE`, `NEG_HD_DECODE_MB`
+(clamped to 32–512 MB); the desktop upload default remains 1536 MB unless `NEG_HD_BUDGET_MB` is set.
+
+Diagnostics (launcher or hold Back → Diagnostics in game) reports cumulative upload count, current
+estimated texture bytes, unique warning count and the actual runtime limits. “Rendered FPS” samples
+buffer swaps over two seconds; it includes menus and cut scenes and is not a gameplay benchmark.

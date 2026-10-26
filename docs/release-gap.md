@@ -1,3 +1,26 @@
+# Update: 1.0.2-rc1 verification candidate
+
+- Added bounded HD PNG decoding with format/CRC checks and original-texture fallback. New native
+  regression fixtures cover RGBA, palette alpha, packed grayscale, 16-bit channels, Adam7, row filters,
+  corrupt input and over-budget images. This is a per-image working-memory estimate, not an app RAM cap.
+- Android HD rendering can be disabled without uninstalling the pack; LOW / BALANCED / HIGH presets
+  cap upload memory, decode memory and scale. These apply on next game launch.
+- Diagnostics is visible in the launcher and the in-game Back menu: rendered FPS, resident game memory,
+  HD counts/limits, current displays and controllers, timestamped samples and a shareable report with logs.
+- Side-positioned score pop-ups now keep their right-edge offset throughout the animation; the central
+  pop-up keeps its original starting point. Coordinate regressions cover 4:3 and widescreen. The help
+  icons already register left anchors; no speculative placement change was made.
+- Still requires physical Thor checks: Diagnostics readability/controller navigation and refreshing,
+  native texture appearance/fallbacks with the real pack, LOW/BALANCED/HIGH transitions, saved-game
+  retention, and visual HUD inspection in both UI modes. No game files were used in automated tests.
+
+Smallest next check: install over the previous candidate, Continue with BALANCED, open Diagnostics
+from hold Back, check that FPS/HD figures refresh, then exit, disable HD, Continue and confirm original
+textures return. Share report after any problem. Confirm a score pickup in widescreen and the mouse-help
+icon in Vanilla and Bill's UI. The original report below remains useful historical context.
+
+---
+
 # Release gap: Thor verification candidate
 
 Baseline reviewed: `adf6ddd` (main, 2026-10-22). This report distinguishes code and recorded

@@ -49,6 +49,7 @@ choose, A to select, left / right to change a setting, B to go back. Touch works
 | **Load Game** | the game's ten save slots, with level, score and date |
 | **Saves** | export all saves to a `.zip` (Downloads, Drive...) or import them back; Y on a Load Game slot exports just that one. They are the PC game's own save files, so they also work in the PC version's `save` folder and back |
 | **Settings** | see below |
+| **Diagnostics** | live render FPS, game resident memory and HD counts (last sample in launcher), displays/controllers, and Share report with logs |
 | **Asset Viewer** | fly freely through any level (noclip) or browse the game's 3D models, from your copy |
 | **Quit** | close the app |
 
@@ -65,6 +66,7 @@ When the game ends (the pause menu's Exit), you are back on the launcher.
 | **Gadget hologram: Bay / Console / Wheel / Off** | how the current gadget is shown with Bill's UI |
 | **Box art** | a picture of your own game box for the bottom screen's main menu (choose / clear); none is included |
 | **Menu background** | a picture of your own behind the launcher (choose / clear); brushed steel without one |
+| **HD rendering / memory preset** | keep a pack installed while turning it off; LOW / BALANCED / HIGH limits, applied on the next game launch |
 | **HD texture pack** | install a pack of higher-resolution textures (a `.zip` you supply); none is included |
 
 The UI, energy meter, gadget hologram and dual-screen settings can also be changed during play from
@@ -99,7 +101,8 @@ With dual screen on, the Thor's bottom screen shows the launcher's options and s
 gadget: a map of the level drawn from its own geometry that follows Jimmy (pickups, friends, doors,
 exits, the current objective), his energy and score, the current gadget, the level's collectables
 and the inventory. **Hold Back** (or tap it twice) during play for the port menu: panel on / off,
-map zoom near / far, and the UI settings above.
+map zoom near / far, the UI settings above, and Diagnostics. Diagnostics refreshes every two seconds
+while rendering; the launcher labels the saved sample with its timestamp.
 
 Casting the Thor to a TV shows the game; the bottom-screen panel stays on the Thor.
 Closing the lid or switching apps pauses the game where it is.
@@ -112,7 +115,8 @@ Closing the lid or switching apps pauses the game where it is.
   dinosaurs, Level4b's boss fight, the dock crane's manual controls, a soft lunar-lander landing);
   please report anything that blocks you.
 - In the lab, one of the goof bots can get stuck.
-- Widescreen: the score's "+N" pop-up and the bottom-left mouse help icon still use the 4:3 places.
+- Widescreen: the side score pop-up now follows the right edge throughout its animation. The help
+  icons already have left-edge anchors in code; their appearance still needs confirmation on Thor.
 - The sun behind the Nickelodeon logo at the start is missing.
 - The log is at `Android/data/com.sirbilliams.negatron/files/omt-log.txt` (also Test → Share log:
   press Select / Y on the main menu to show the Test item). Please attach it to a bug report.
