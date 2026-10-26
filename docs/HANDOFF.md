@@ -2,6 +2,40 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
+## Visual-inspection follow-up — 2026-10-25 Pacific (unreleased branch)
+
+Bill reports that **1.0.4 metal still looks wrong and the PDA credits are worse**. He explicitly
+wants credits flush with the PDA screen edge, not guessed positions in the center, and requests
+that the agent open the game directly. The prior PDA placement is NOT user-accepted or visually verified.
+Do not describe the metal/PDA issues as resolved based on CI success.
+
+Inspection attempted: no installed game data, ISO or runnable native binary exists in the workspace.
+Private ISO release metadata is accessible via the GitHub connector, but its general fetch tool cannot
+transfer binary release assets; unauthenticated direct download returns 404. A temporary private-repo
+branch `inspection/pda-companion-20261025` ran a private-only screenshot workflow (no game data was
+published). Run `40275514782` failed before any job steps/runner assignment; no logs or screenshots
+were generated. Reason not available through supported endpoints; do not assume billing caused it.
+The temporary workflow was then removed on that branch with a skip-CI cleanup commit. Private main
+was untouched. Native local setup also failed (package-manager privilege errors, then stalled downloads).
+**Actual gameplay/PDA menu was not opened.** A local ISO/installed-game ZIP is still needed for that.
+
+What WAS inspected: production CompanionView through the repository's Java2D preview shim with
+synthetic state/no map image, at 1240x1080 in normal and expanded endpoints. This is a panel rendering
+approximation, NOT Android/gameplay/retail-art or animation/input verification. Visible defect: the
+full metal case background was clipped with the sliding info-panel bitmap, leaving black margins
+behind/around the map. Unreleased fix caches/draws the full brushed case before the moving panels;
+normal/expanded previews were viewed before and after, and the black margins are corrected.
+This does not prove every aspect of Bill's reported metal appearance is fixed.
+
+Changes on the follow-up branch: CompanionView adds a separate size-cached case bitmap; existing
+width-correct map chrome remains. Restored desktop preview compilation with minimal View lifecycle,
+clipRect, MotionEvent, ScaleGestureDetector and ValueAnimator shims. Gesture shims are compile-only;
+animator jumps to its endpoint. RenderPanel/render.sh support `far` and `expanded` options together.
+No PDA placement change, APK version bump, public release, or real-game screenshot in this follow-up.
+Java compilation against Android14 and preview compilation/rendering passed; git diff whitespace check
+passed. CHANGELOG records this as unreleased. Next: obtain game data through an authorized binary
+transfer, run the real menu, identify the actual PDA screen edge, and align from measured artwork.
+
 ## Current handoff — 2026-10-25 Pacific: companion exploration and polish
 
 **Read this section before the historical session status below.** Older claims about a cropped map,

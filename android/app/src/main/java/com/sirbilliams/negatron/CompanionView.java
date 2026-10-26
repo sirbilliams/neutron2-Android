@@ -84,6 +84,7 @@ final class CompanionView extends View {
     private Source mSource;
     private Bitmap mMapChrome;
     private int mMapChromeWidth;
+    private Bitmap mCase;                   // full brushed case behind the moving panels
     private Bitmap mChrome;                 // the static plates, drawn once per size
     private int mChromeW, mChromeH;
     private Bitmap mMap;                    // the level map, green-tinted
@@ -528,6 +529,7 @@ final class CompanionView extends View {
         float ox = (w - LW * u) / 2, oy = (h - LH * u) / 2;
         R_MAP.left = 440;
         if (mChrome == null || mChromeW != w || mChromeH != h) buildChrome(w, h, u, ox, oy);
+        c.drawBitmap(mCase, 0, 0, null);
         c.save();
         c.clipRect(ox, oy, ox + (440 - 440 * mExpansion) * u, oy + LH * u);
         c.drawBitmap(mChrome, -440 * mExpansion * u, 0, null);
@@ -1007,9 +1009,12 @@ final class CompanionView extends View {
         mChromeW = w;
         mChromeH = h;
 
+        if (mCase != null) mCase.recycle();
+        mCase = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas caseCanvas = new Canvas(mCase);
+        brushed(caseCanvas, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126), 1);
         Canvas c = new Canvas(mChrome);
-        // the case: darker brushed steel
-        brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126), 1);
+        c.drawBitmap(mCase, 0, 0, null);
         c.save();
         c.translate(ox, oy);
         c.scale(u, u);

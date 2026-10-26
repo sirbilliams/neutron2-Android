@@ -10,6 +10,10 @@ public class View {
     public int getHeight() { return mH; }
     public void invalidate() {}
     public void setBackgroundColor(int c) {}
+    public void setContentDescription(String s) {}
+    public boolean onTouchEvent(MotionEvent e) { return false; }
+    public boolean performClick() { return true; }
+    protected void onDetachedFromWindow() {}
     protected void onDraw(Canvas c) {}
     public void drawForTest(Canvas c) { onDraw(c); }
 }

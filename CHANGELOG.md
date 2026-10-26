@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — visual inspection follow-up
+
+- Restore the brushed case background behind the sliding companion panels; preview-verified with
+  synthetic state, not yet confirmed on Thor.
+- Restore Java2D companion previews with compile-only gesture and endpoint-animation shims; support expanded snapshots.
+- Record failed actual-game inspection setup and the still-unresolved PDA screen-edge alignment in HANDOFF.
+
 ## v1.0.4-rc1
 
 - Render companion metal/bezel artwork at its real width rather than stretching the dashboard cache.
