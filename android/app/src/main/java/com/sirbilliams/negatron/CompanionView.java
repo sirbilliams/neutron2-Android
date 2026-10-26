@@ -9,10 +9,14 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.SystemClock;
 import android.view.View;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.animation.ValueAnimator;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -64,7 +68,7 @@ final class CompanionView extends View {
     private static final RectF R_GAUGE = new RectF(20, 116, 424, 326);
     private static final RectF R_LEVEL = new RectF(20, 338, 424, 570);
     private static final RectF R_SHEET = new RectF(20, 582, 424, 1060);
-    private static final RectF R_MAP = new RectF(440, 20, 1220, 1060);
+    private final RectF R_MAP = new RectF(440, 20, 1220, 1060);
     private static final float BEZEL = 22;
     private static final float DIAL_X = 20 + 112, DIAL_Y = 116 + 98, DIAL_R = 80;
 
@@ -79,16 +83,122 @@ final class CompanionView extends View {
     private final Typeface mMono = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
 
     private Source mSource;
+    private final Rect mMapChromeSrc = new Rect();
     private Bitmap mChrome;                 // the static plates, drawn once per size
     private int mChromeW, mChromeH;
     private Bitmap mMap;                    // the level map, green-tinted
-    private int mMapGen;
+    private int mMapGen, mWantedMapGen;
     private final HashMap<Integer, Bitmap> mIcons = new HashMap<>();
     private boolean mFar;
+    private boolean mExplore;
+    private float mExpansion, mPanX, mPanY, mTouchX, mTouchY, mDownX, mDownY;
+    private float mExploreZoom = 1;
+    private boolean mMoved;
+    private final boolean[] mFilters = {true, true, true, true};
+    private final String[] mFilterNames = {"ITEMS", "ENEMIES", "CHECKPOINTS", "EXITS"};
+    private final ScaleGestureDetector mPinch;
+    private ValueAnimator mSlide;
+
+    private void explore(boolean on) {
+        mExplore = on;
+        mPanX = mPanY = 0;
+        mExploreZoom = 1;
+        if (mSlide != null) mSlide.cancel();
+        mSlide = ValueAnimator.ofFloat(mExpansion, on ? 1 : 0);
+        mSlide.setDuration(250);
+        mSlide.addUpdateListener(a -> {
+            mExpansion = (Float) a.getAnimatedValue();
+            invalidate();
+        });
+        mSlide.start();
+    }
+
+    private float layoutScale() { return Math.min(getWidth() / LW, getHeight() / LH); }
+    private float layoutX(float x) { float u = layoutScale(); return (x - (getWidth() - LW * u) / 2) / u; }
+    private float layoutY(float y) { float u = layoutScale(); return (y - (getHeight() - LH * u) / 2) / u; }
+
+    @Override public boolean onTouchEvent(MotionEvent e) {
+        if (layoutScale() <= 0) return false;
+        mPinch.onTouchEvent(e);
+        float x = layoutX(e.getX()), y = layoutY(e.getY());
+        switch (e.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownX = mTouchX = x; mDownY = mTouchY = y; mMoved = false;
+                return true;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                mMoved = true;
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (Math.hypot(x - mDownX, y - mDownY) > 12) mMoved = true;
+                if (mExplore && mPickName.length == 0 && e.getPointerCount() == 1
+                        && !mPinch.isInProgress() && mDownY > 180) {
+                    mPanX += x - mTouchX; mPanY += y - mTouchY;
+                    invalidate();
+                }
+                mTouchX = x; mTouchY = y;
+                return true;
+            case MotionEvent.ACTION_POINTER_UP:
+                mMoved = true;
+                int remaining = e.getActionIndex() == 0 ? 1 : 0;
+                mTouchX = layoutX(e.getX(remaining)); mTouchY = layoutY(e.getY(remaining));
+                return true;
+            case MotionEvent.ACTION_UP:
+                if (!mMoved && mPickName.length == 0) {
+                    float left = R_MAP.left + BEZEL + 12;
+                    if (y >= 80 && y <= 140 && x >= left && x <= left + 190) explore(!mExplore);
+                    else if (mExplore && y >= 80 && y <= 140 && x >= left + 210 && x <= left + 400) {
+                        mPanX = mPanY = 0; mExploreZoom = 1; invalidate();
+                    } else if (mExplore && y >= 148 && y <= 202) {
+                        int filter = (int) ((x - left) / 270);
+                        if (x >= left && filter >= 0 && filter < mFilters.length) {
+                            mFilters[filter] = !mFilters[filter]; invalidate();
+                        }
+                    }
+                    performClick();
+                }
+                return true;
+            case MotionEvent.ACTION_CANCEL: mMoved = true; return true;
+            default: return true;
+        }
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        if (mSlide != null) mSlide.cancel();
+        super.onDetachedFromWindow();
+    }
+
+    @Override public boolean performClick() { super.performClick(); return true; }
+
+    private boolean showMarker(char kind) {
+        if (!mExplore) return true;
+        if (kind == 'p' || kind == 'n' || kind == 'r') return mFilters[0];
+        if (kind == 'e') return mFilters[1];
+        if (kind == 'c') return mFilters[2];
+        if (kind == 'd' || kind == 'x' || kind == 'X') return mFilters[3];
+        return true;
+    }
+
+    private void mapControls(Canvas c) {
+        if (mPickName.length > 0) return;
+        float x = R_MAP.left + BEZEL + 12;
+        lcd(c, x, 80, 190, 60);
+        lcdText(c, mExplore ? "< DASHBOARD" : "EXPAND MAP >", x + 10, 119, 20, LED_ON);
+        if (!mExplore) return;
+        lcd(c, x + 210, 80, 190, 60);
+        lcdText(c, "RECENTER", x + 225, 119, 22, LED_ON);
+        lcdText(c, "DRAG TO PAN / PINCH TO ZOOM", x + 420, 119, 19, PHOSPHOR);
+        for (int i = 0; i < mFilters.length; i++) {
+            lcd(c, x + i * 270, 148, 254, 54);
+            lcdText(c, (mFilters[i] ? "[+] " : "[-] ") + mFilterNames[i],
+                    x + i * 270 + 10, 182, 20, mFilters[i] ? LED_ON : LED_DIM);
+        }
+    }
+
     private String mLast;
 
     // --- the parsed snapshot (setSnapshot), read by onDraw
     private boolean mHave;
+    private String mLevelFile = "";
     private String mLevel = "", mMode = "", mScore = "0", mEnergyText = "0", mTime = "";
     private boolean mCut, mPlaying;
     private float mEnergy = -1;
@@ -125,6 +235,19 @@ final class CompanionView extends View {
     CompanionView(Context c) {
         super(c);
         setBackgroundColor(STEEL_MID);
+        setContentDescription("Companion map. Expand map for touch pan, zoom and marker filters.");
+        mPinch = new ScaleGestureDetector(c, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override public boolean onScale(ScaleGestureDetector detector) {
+                if (!mExplore || mPickName.length > 0) return false;
+                mMoved = true;
+                float old = mExploreZoom;
+                mExploreZoom = Math.max(0.35f, Math.min(4f, old * detector.getScaleFactor()));
+                float ratio = mExploreZoom / old;
+                mPanX *= ratio; mPanY *= ratio;
+                invalidate();
+                return true;
+            }
+        });
     }
 
     void setSource(Source s) { mSource = s; }
@@ -139,10 +262,14 @@ final class CompanionView extends View {
 
     /** New snapshot (JSON) from the poll; parsed only when it changed. */
     void setSnapshot(String json) {
-        if (json == null || json.isEmpty() || json.equals(mLast)) return;
-        mLast = json;
+        if (json == null || json.isEmpty()) return;
+        if (json.equals(mLast)) {
+            if (mWantedMapGen != mMapGen) fetchMap(mWantedMapGen);
+            return;
+        }
         try {
             parse(new JSONObject(json));
+            mLast = json;
         } catch (Exception e) {
             return;
         }
@@ -157,6 +284,9 @@ final class CompanionView extends View {
         int dot = level.lastIndexOf('.');
         // the game's own level name (its Load/Save page's), else the file name
         String name = d.optString("name", "");
+        if (!level.equals(mLevelFile)) {
+            mPanX = mPanY = 0; mExploreZoom = 1; mLevelFile = level;
+        }
         mLevel = !name.isEmpty() ? name : (dot > 0 ? level.substring(0, dot) : level).toUpperCase();
         int mode = d.optInt("mode", -1);
         mMode = modeName(mode);
@@ -255,12 +385,16 @@ final class CompanionView extends View {
         mCaption = cap.isEmpty() ? new String[0] : cap.split("\n");
 
         JSONObject map = d.optJSONObject("map");
+        int previousGen = mWantedMapGen;
         int gen = map != null ? map.optInt("gen", 0) : 0;
         mMapW = map != null ? map.optInt("w", 0) : 0;
         mMapH = map != null ? map.optInt("h", 0) : 0;
         mMapS = map != null ? (float) map.optDouble("s", 1) : 1;
+        mWantedMapGen = gen;
         if (gen != mMapGen) fetchMap(gen);
 
+        float previousX = mJx, previousY = mJy;
+        boolean hadJimmy = mJimmy;
         JSONArray j = d.optJSONArray("jimmy");
         mJimmy = j != null && j.length() >= 4;
         if (mJimmy) {
@@ -268,6 +402,13 @@ final class CompanionView extends View {
             mJy = (float) j.optDouble(1, 0);
             mHx = (float) j.optDouble(2, 0);
             mHy = (float) j.optDouble(3, -1);
+            if (mExplore && hadJimmy && previousGen == gen) {
+                float pixelsPerMapUnit = mMapS / (mFar ? ZOOM_FAR : ZOOM_NEAR) * mExploreZoom;
+                mPanX += (mJx - previousX) * pixelsPerMapUnit;
+                mPanY += (mJy - previousY) * pixelsPerMapUnit;
+            } else if (previousGen != gen) {
+                mPanX = mPanY = 0;
+            }
         }
 
         JSONArray p = d.optJSONArray("pts");
@@ -365,11 +506,18 @@ final class CompanionView extends View {
         if (w <= 0 || h <= 0) return;
         float u = Math.min(w / LW, h / LH);
         float ox = (w - LW * u) / 2, oy = (h - LH * u) / 2;
+        R_MAP.left = 440;
         if (mChrome == null || mChromeW != w || mChromeH != h) buildChrome(w, h, u, ox, oy);
-        c.drawBitmap(mChrome, 0, 0, null);
+        c.save();
+        c.clipRect(ox, oy, ox + (440 - 440 * mExpansion) * u, oy + LH * u);
+        c.drawBitmap(mChrome, -440 * mExpansion * u, 0, null);
+        c.restore();
         c.save();
         c.translate(ox, oy);
         c.scale(u, u);
+        c.save();
+        c.clipRect(0, 0, 440 - 440 * mExpansion, LH);
+        c.translate(-440 * mExpansion, 0);
         if (!mHave) {
             lcdText(c, "WAITING FOR THE GAME", R_HEAD.left + 30, R_HEAD.top + 58, 28, LED_ON);
         } else {
@@ -378,8 +526,13 @@ final class CompanionView extends View {
             drawLevel(c);
             drawSheet(c);
         }
+        c.restore();
+        R_MAP.left = 440 - 420 * mExpansion;
+        // Reuse the original bezel/CRT artwork; no brushed-metal redraw during animation.
+        c.drawBitmap(mChrome, mMapChromeSrc, R_MAP, mBmp);
         if (mPickName.length > 0) drawPicker(c);
         else drawMap(c);
+        mapControls(c);
         c.restore();
     }
 
@@ -505,8 +658,8 @@ final class CompanionView extends View {
         if (mMap == null || !mJimmy) {
             lcdText(c, mHave ? "NO SIGNAL" : "", cx - 70, cy, 30, LED_DIM);
         } else {
-            float k = mMapS / (mFar ? ZOOM_FAR : ZOOM_NEAR);     // layout px per map px
-            float left = cx - mJx * k, top = cy - mJy * k;
+            float k = mMapS / (mFar ? ZOOM_FAR : ZOOM_NEAR) * (mExplore ? mExploreZoom : 1);     // layout px per map px
+            float left = cx - mJx * k + (mExplore ? mPanX : 0), top = cy - mJy * k + (mExplore ? mPanY : 0);
             if (mMapW == mMap.getWidth() && mMapH == mMap.getHeight()) {
                 mRect.set(left, top, left + mMapW * k, top + mMapH * k);
                 c.drawBitmap(mMap, null, mRect, mBmp);
@@ -516,6 +669,7 @@ final class CompanionView extends View {
             for (int i = 0; i < mPtKind.length; i++) {
                 float px = left + mPtX[i] * k, py = top + mPtY[i] * k;
                 char kind = mPtKind[i];
+                if (!showMarker(kind)) continue;
                 float margin = (kind == 'o' || kind == 'x' || kind == 'X') ? -12 : 40;   // marked on the edge when out
                 boolean in = px > crt.left - margin && px < crt.right + margin && py > crt.top - margin && py < crt.bottom + margin;
                 if (!in) {
@@ -524,7 +678,7 @@ final class CompanionView extends View {
                 }
                 drawPoint(c, kind, px, py, mPtIcon[i], mPtLabel[i], iconScale);
             }
-            jimmy(c, cx, cy);
+            jimmy(c, cx + (mExplore ? mPanX : 0), cy + (mExplore ? mPanY : 0));
         }
         // scanlines and the sweep
         mStroke.setShader(null);
@@ -555,7 +709,7 @@ final class CompanionView extends View {
         mPath.close();
         c.drawPath(mPath, mFill);
         lcdText(c, mFar ? "ZOOM FAR" : "ZOOM NEAR", crt.left + 18, crt.bottom - 18, 20, PHOSPHOR);
-        float bar = 1000f / (mFar ? ZOOM_FAR : ZOOM_NEAR);             // 1000 world units
+        float bar = 1000f / (mFar ? ZOOM_FAR : ZOOM_NEAR) * (mExplore ? mExploreZoom : 1);             // 1000 world units
         mStroke.setColor(PHOSPHOR);
         mStroke.setStrokeWidth(3);
         float bx = crt.right - 24 - bar, by = crt.bottom - 26;
@@ -573,7 +727,7 @@ final class CompanionView extends View {
             if (d2 < best) { best = d2; ex = i; }
         }
         if (ex >= 0) {
-            float lx = crt.left + 16, ly = crt.top + 14;
+            float lx = crt.left + 16, ly = crt.top + (mExplore ? 190 : 140);
             lcd(c, lx, ly, 250, 52);
             float ax = lx + 28, ay = ly + 26;
             float dx = mPtX[ex] - mJx, dy = mPtY[ex] - mJy, len = (float) Math.sqrt(best);
@@ -822,6 +976,8 @@ final class CompanionView extends View {
         mChrome = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         mChromeW = w;
         mChromeH = h;
+        mMapChromeSrc.set(Math.round(ox + 440 * u), Math.round(oy + 20 * u),
+                Math.round(ox + 1220 * u), Math.round(oy + 1060 * u));
         Canvas c = new Canvas(mChrome);
         // the case: darker brushed steel
         brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126), 1);

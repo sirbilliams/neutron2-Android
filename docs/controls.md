@@ -152,10 +152,31 @@ quick taps (within 0.35 s), to open a small menu over the game (the game pauses 
   Bill's UI; desktop: the environment variable). See "Bill's UI" below.
 
 A single back tap still reaches the game as Esc, a third of a second late (the menu needs to tell
-a tap from a hold or a double tap). The panel never takes the focus or touches, and only reads
+a tap from a hold or a double tap). The panel never takes controller focus; its touch controls only adjust the companion map. It only reads
 the game state (game/src/port/Companion.h); on the desktop `NEG_COMPANION_LOG=1` logs the same
 snapshot once a second, and `NEG_COMPANION_DUMP=<dir>` writes the map, the snapshot and the icons
 there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel from them.
+
+### Touch map exploration
+
+Tap **EXPAND MAP >** on the bottom-screen map. The left information panel slides offscreen
+in 250 ms and the CRT map expands into its space. Only expanded mode exposes the exploration controls:
+
+- Drag below the controls to pan; pinch to zoom (0.35–4 times the saved Near/Far scale).
+- **RECENTER** restores the default zoom and centers Jimmy at his current position.
+- Toggle **ITEMS**, **ENEMIES**, **CHECKPOINTS**, and **EXITS** to declutter markers. Exits includes doors;
+  objectives, friends, and Goddard remain visible. Filters affect expanded mode only.
+- **< DASHBOARD** slides the information panel back and restores the normal following map.
+
+Exploration changes only the view, never the game state, and does not pause gameplay. The map is
+still the native moving terrain window, not a full-level atlas; a new terrain-map generation
+recenters the view. Level changes also reset pan/zoom. Filters last for the current panel instance.
+The Vox world cards temporarily replace map controls; selection continues through the controller.
+
+Thor verification for this change (not yet device-tested): expand/collapse while moving, drag and
+pinch then lift either finger, recenter, toggle each filter, change levels, use Vox, suspend/resume,
+and cast with the panel expanded. Confirm the controller continues driving the game and the normal
+dashboard returns with its existing gauges, captions, and inventory intact.
 
 ## Casting / TV (port)
 

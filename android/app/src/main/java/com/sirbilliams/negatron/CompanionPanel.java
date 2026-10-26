@@ -17,7 +17,7 @@ import android.view.WindowManager;
  * ({@link BottomScreen}: never a TV / cast / HDMI display, so mirroring shows the game), polling the native snapshot 10 times a second. On by default when a second
  * display is present (off otherwise); a choice the player makes (the port menu, the launcher's
  * settings) is remembered and wins. With no second display it simply shows nothing. The panel
- * never takes focus or touches, so the game keeps the input.
+ * never takes controller focus; touch operates only the map and never changes game state. Controller input stays with the game.
  */
 final class CompanionPanel implements DisplayManager.DisplayListener {
     static final String PREFS = "negatron";
@@ -145,7 +145,7 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
     @Override public void onDisplayRemoved(int displayId) { update("display " + displayId + " removed"); }
     @Override public void onDisplayChanged(int displayId) { update(null); }
 
-    /** The Presentation window: one full-size CompanionView, never focused or touched. */
+    /** The Presentation window: one full-size CompanionView, never focused; touch is confined to companion map controls. */
     static final class PanelPresentation extends Presentation {
         CompanionView view;
         private final boolean mFar;
@@ -159,7 +159,6 @@ final class CompanionPanel implements DisplayManager.DisplayListener {
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                     | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             view = new CompanionView(getContext());
             view.setZoomFar(mFar);

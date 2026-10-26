@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.3-rc1
+
+- Expand the companion map with a sliding left dashboard, touch pan/pinch zoom, Recenter,
+  and marker filters; collapse restores normal player tracking.
+- Keep controller focus with the game and keep all companion interactions read-only.
+- Retry unavailable map images even when the snapshot has not changed.
+- Version code 103; new touch/animation behavior awaits physical Thor testing.
+
 ## v1.0.2-rc1
 
 - Bound HD PNG working memory before large allocations; validate PNG CRCs, colour/depth combinations,
