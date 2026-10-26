@@ -162,15 +162,17 @@ there; `tools/companion/render.sh <dir> <Level> out.png` then draws the panel fr
 Tap **EXPAND MAP >** on the bottom-screen map. The left information panel slides offscreen
 in 250 ms and the CRT map expands into its space. Only expanded mode exposes the exploration controls:
 
-- Drag below the controls to pan; pinch to zoom (0.35–4 times the saved Near/Far scale).
+- Drag below the controls to pan; pinch to zoom (down to the full-level fit scale, up to 4 times the saved Near/Far scale).
 - **RECENTER** restores the default zoom and centers Jimmy at his current position.
 - Toggle **ITEMS**, **ENEMIES**, **CHECKPOINTS**, and **EXITS** to declutter markers. Exits includes doors;
   objectives, friends, and Goddard remain visible. Filters affect expanded mode only.
 - **< DASHBOARD** slides the information panel back and restores the normal following map.
 
-Exploration changes only the view, never the game state, and does not pause gameplay. The map is
-still the native moving terrain window, not a full-level atlas; a new terrain-map generation
-recenters the view. Level changes also reset pan/zoom. Filters last for the current panel instance.
+Exploration changes only the view, never the game state, and does not pause gameplay. The map now
+covers all copied level terrain within a 1536-pixel maximum dimension; large levels use a coarser
+scale rather than a crop. Geometry not loaded by the game is unavailable. **FIT LEVEL** centers
+and fits the entire available terrain image. Expanded mode initially fits the level, and pinch
+zoom can reach that overview scale. A height-based map regeneration recenters the view. Level changes also reset pan/zoom. Filters last for the current panel instance.
 The Vox world cards temporarily replace map controls; selection continues through the controller.
 
 Thor verification for this change (not yet device-tested): expand/collapse while moving, drag and

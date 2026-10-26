@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.4-rc1
+
+- Render companion metal/bezel artwork at its real width rather than stretching the dashboard cache.
+- Fit all copied level terrain into the existing 1536-pixel map budget, with a Fit Level button
+  and zoom range that reaches the full overview. Unloaded geometry remains unavailable.
+- Move title, By credit and version inside the PDA menu in separate readable lines.
+- Version code 104; Thor visual verification pending.
+
 ## v1.0.3-rc1
 
 - Expand the companion map with a sliding left dashboard, touch pan/pinch zoom, Recenter,

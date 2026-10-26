@@ -9,7 +9,6 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
-import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.os.SystemClock;
@@ -83,7 +82,8 @@ final class CompanionView extends View {
     private final Typeface mMono = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
 
     private Source mSource;
-    private final Rect mMapChromeSrc = new Rect();
+    private Bitmap mMapChrome;
+    private int mMapChromeWidth;
     private Bitmap mChrome;                 // the static plates, drawn once per size
     private int mChromeW, mChromeH;
     private Bitmap mMap;                    // the level map, green-tinted
@@ -103,6 +103,7 @@ final class CompanionView extends View {
         mExplore = on;
         mPanX = mPanY = 0;
         mExploreZoom = 1;
+        if (on) fitMap();
         if (mSlide != null) mSlide.cancel();
         mSlide = ValueAnimator.ofFloat(mExpansion, on ? 1 : 0);
         mSlide.setDuration(250);
@@ -111,6 +112,21 @@ final class CompanionView extends View {
             invalidate();
         });
         mSlide.start();
+    }
+
+    private float fitZoom() {
+        if (mMapW <= 0 || mMapH <= 0 || mMapS <= 0) return 1;
+        float pixelsPerMapPixel = Math.min((1156f - 48) / mMapW, (996f - 250) / mMapH);
+        return Math.max(0.0001f, Math.min(4f, pixelsPerMapPixel * (mFar ? ZOOM_FAR : ZOOM_NEAR) / mMapS));
+    }
+
+    private void fitMap() {
+        mExploreZoom = fitZoom();
+        float k = mMapS / (mFar ? ZOOM_FAR : ZOOM_NEAR) * mExploreZoom;
+        mPanX = (mJx - mMapW / 2f) * k;
+        // Leave room above the map for the exploration toolbar.
+        mPanY = (mJy - mMapH / 2f) * k + 75;
+        invalidate();
     }
 
     private float layoutScale() { return Math.min(getWidth() / LW, getHeight() / LH); }
@@ -148,6 +164,8 @@ final class CompanionView extends View {
                     if (y >= 80 && y <= 140 && x >= left && x <= left + 190) explore(!mExplore);
                     else if (mExplore && y >= 80 && y <= 140 && x >= left + 210 && x <= left + 400) {
                         mPanX = mPanY = 0; mExploreZoom = 1; invalidate();
+                    } else if (mExplore && y >= 80 && y <= 140 && x >= left + 420 && x <= left + 610) {
+                        fitMap();
                     } else if (mExplore && y >= 148 && y <= 202) {
                         int filter = (int) ((x - left) / 270);
                         if (x >= left && filter >= 0 && filter < mFilters.length) {
@@ -186,7 +204,9 @@ final class CompanionView extends View {
         if (!mExplore) return;
         lcd(c, x + 210, 80, 190, 60);
         lcdText(c, "RECENTER", x + 225, 119, 22, LED_ON);
-        lcdText(c, "DRAG TO PAN / PINCH TO ZOOM", x + 420, 119, 19, PHOSPHOR);
+        lcd(c, x + 420, 80, 190, 60);
+        lcdText(c, "FIT LEVEL", x + 435, 119, 22, LED_ON);
+        lcdText(c, "DRAG / PINCH", x + 630, 119, 19, PHOSPHOR);
         for (int i = 0; i < mFilters.length; i++) {
             lcd(c, x + i * 270, 148, 254, 54);
             lcdText(c, (mFilters[i] ? "[+] " : "[-] ") + mFilterNames[i],
@@ -241,7 +261,7 @@ final class CompanionView extends View {
                 if (!mExplore || mPickName.length > 0) return false;
                 mMoved = true;
                 float old = mExploreZoom;
-                mExploreZoom = Math.max(0.35f, Math.min(4f, old * detector.getScaleFactor()));
+                mExploreZoom = Math.max(Math.min(0.35f, fitZoom()), Math.min(4f, old * detector.getScaleFactor()));
                 float ratio = mExploreZoom / old;
                 mPanX *= ratio; mPanY *= ratio;
                 invalidate();
@@ -528,8 +548,18 @@ final class CompanionView extends View {
         }
         c.restore();
         R_MAP.left = 440 - 420 * mExpansion;
-        // Reuse the original bezel/CRT artwork; no brushed-metal redraw during animation.
-        c.drawBitmap(mChrome, mMapChromeSrc, R_MAP, mBmp);
+        // Cache at the current width; redraw only while resizing, then reuse without stretching.
+        int mapWidth = Math.round(R_MAP.width());
+        if (mMapChrome == null || mMapChromeWidth != mapWidth) {
+            if (mMapChrome != null) mMapChrome.recycle();
+            mMapChromeWidth = mapWidth;
+            mMapChrome = Bitmap.createBitmap(mapWidth, 1040, Bitmap.Config.ARGB_8888);
+            Canvas chrome = new Canvas(mMapChrome);
+            chrome.translate(-R_MAP.left, -R_MAP.top);
+            plate(chrome, R_MAP);
+            drawMapChrome(chrome);
+        }
+        c.drawBitmap(mMapChrome, null, R_MAP, mBmp);
         if (mPickName.length > 0) drawPicker(c);
         else drawMap(c);
         mapControls(c);
@@ -976,8 +1006,7 @@ final class CompanionView extends View {
         mChrome = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         mChromeW = w;
         mChromeH = h;
-        mMapChromeSrc.set(Math.round(ox + 440 * u), Math.round(oy + 20 * u),
-                Math.round(ox + 1220 * u), Math.round(oy + 1060 * u));
+
         Canvas c = new Canvas(mChrome);
         // the case: darker brushed steel
         brushed(c, 0, 0, w, h, Color.rgb(150, 156, 163), Color.rgb(112, 118, 126), 1);
@@ -989,6 +1018,12 @@ final class CompanionView extends View {
         lcd(c, R_HEAD.left + 18, R_HEAD.top + 18, R_HEAD.width() - 36, R_HEAD.height() - 36);
         // the dial face and the CRT recess
         dialFace(c, DIAL_X, DIAL_Y, DIAL_R);
+        drawMapChrome(c);
+        c.restore();
+    }
+
+    /** Map chrome is rasterised at its actual width, so screws, grain and corners never stretch. */
+    private void drawMapChrome(Canvas c) {
         RectF crt = new RectF(R_MAP.left + BEZEL, R_MAP.top + BEZEL, R_MAP.right - BEZEL, R_MAP.bottom - BEZEL);
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         p.setColor(Color.rgb(40, 44, 48));
@@ -1008,8 +1043,8 @@ final class CompanionView extends View {
         for (int i = 1; i <= 3; i++) c.drawCircle(crt.centerX(), crt.centerY(), crt.width() * 0.16f * i, p);
         c.drawLine(crt.left, crt.centerY(), crt.right, crt.centerY(), p);
         c.drawLine(crt.centerX(), crt.top, crt.centerX(), crt.bottom, p);
-        c.restore();
     }
+
 
     /** Brushed steel: a vertical gradient with fine horizontal streaks (same seed every time). */
     private void brushed(Canvas c, float l, float t, float r, float b, int top, int bottom, float u) {

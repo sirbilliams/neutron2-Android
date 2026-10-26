@@ -8,7 +8,7 @@
     thread. Nothing here writes game state.
 
     The map: when a level's terrain is there (C3DTerrain shapes, the polygons the physics terrain
-    grid uses), it is drawn once seen from above into an ARGB image of at most 1024 x 1024: the
+    grid uses), it is drawn once seen from above into an ARGB image of at most 1536 x 1536, fitting all copied level terrain: the
     floors (normal.y >= 0.7, the physics' own limit) coloured from their textures (a 32 x 32 box-
     filtered copy, sampled at the polygon's UVs) times their material colour, the highest floor
     winning, shaded by height and slope; ledges (height steps) and the walls' top edges outlined.

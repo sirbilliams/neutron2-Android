@@ -70,8 +70,6 @@ std::string			s_snapshot;				// guarded by s_mutex
 // --------------------------------------------------------------------------- the map image
 
 enum { kMapMax = 1536 };					// longest side in pixels
-const float kMapScale = 6.0f;				// world units per pixel at most; a bigger level gets a
-											// window of the map around Jimmy, moved as he goes
 const float kFloorY = 0.7f;					// physics: |normal.y| below this is a wall (Physics.cpp kSteep)
 const float kNoHeight = -1e30f;
 const float kCutAbove = 350.0f;				// floors this far above Jimmy's feet are left out (roofs,
@@ -443,15 +441,15 @@ MapGeom MapWindow(const Geo &geo, bool have_jimmy, float cx, float cy, float cz)
 {
 	MapGeom g;
 	g.gen = s_map.gen + 1;
+	// Fit all copied terrain within the existing pixel budget. A moving crop cannot reveal
+	// the rest of a level when the user zooms out or pans the expanded map.
 	const float ext = std::max(geo.maxx - geo.minx, geo.maxz - geo.minz);
-	g.s = std::max(2.0f, std::min(kMapScale, ext / (float)(kMapMax - 4)));
-	const float half = 0.5f * (float)kMapMax * g.s, m = 2 * g.s;
-	if (!have_jimmy) { cx = 0.5f * (geo.minx + geo.maxx); cz = 0.5f * (geo.minz + geo.maxz); }
-	// the level's box, cut to a window of kMapMax pixels around the centre
-	g.x0 = std::max(geo.minx - m, std::min(cx - half, geo.maxx + m - 2 * half));
-	g.z1 = std::min(geo.maxz + m, std::max(cz + half, geo.minz - m + 2 * half));
-	g.w = std::max(1, std::min((int)kMapMax, (int)ceilf((geo.maxx + m - g.x0) / g.s)));
-	g.h = std::max(1, std::min((int)kMapMax, (int)ceilf((g.z1 - (geo.minz - m)) / g.s)));
+	g.s = std::max(2.0f, ext / (float)(kMapMax - 4));
+	const float margin = 2 * g.s;
+	g.x0 = geo.minx - margin;
+	g.z1 = geo.maxz + margin;
+	g.w = std::max(1, std::min((int)kMapMax, (int)ceilf((geo.maxx - geo.minx) / g.s) + 4));
+	g.h = std::max(1, std::min((int)kMapMax, (int)ceilf((geo.maxz - geo.minz) / g.s) + 4));
 	g.cut = have_jimmy;
 	g.cut_y = cy + kCutAbove;
 	return g;
@@ -516,13 +514,8 @@ void MapTick()
 		if (have_jimmy != s_map.cut) want = true;
 		else if (have_jimmy)
 		{
-			float mx, my;
-			WorldToMap(jp[0], jp[2], mx, my);
-			const float edge = 0.2f * (float)kMapMax;
-			const bool cut_x = s_map.w >= kMapMax, cut_y = s_map.h >= kMapMax;
-			want = (cut_x && (mx < edge || mx > (float)s_map.w - edge))
-				|| (cut_y && (my < edge || my > (float)s_map.h - edge))
-				|| fabsf(jp[1] + kCutAbove - s_map.cut_y) > kCutMove;
+			// The complete level no longer needs rebuilding as Jimmy approaches its edges.
+			want = fabsf(jp[1] + kCutAbove - s_map.cut_y) > kCutMove;
 		}
 	}
 	else if (!want && s_map.w == 0) want = true;
