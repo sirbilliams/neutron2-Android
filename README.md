@@ -18,9 +18,10 @@ reads what it needs from your copy when it runs.
 ## Installing on the AYN Thor
 
 1. On the Thor, download the APK of the newest release:
-   **https://github.com/sirbilliams/neutron2-android/releases/latest/download/Neutron-vs-Negatron.apk**
-   (or the development build, rebuilt on every change:
-   https://github.com/sirbilliams/neutron2-android/releases/download/latest/Neutron-vs-Negatron.apk).
+   **https://github.com/sirbilliams/neutron2-android/releases/latest** (open its APK asset).
+   For the newest verification candidate, rebuilt on main changes:
+   https://github.com/sirbilliams/neutron2-android/releases/download/latest/Neutron-vs-Negatron.apk.
+   This development APK is a prerelease; see [release gaps and the Thor smoke test](docs/release-gap.md).
    Open it and allow installing from your browser / file manager when Android asks.
 2. Copy an image of the game's CD onto the Thor (e.g. `Jimmy Neutron vs. Jimmy Negatron.iso` into
    Downloads).
@@ -105,6 +106,8 @@ Closing the lid or switching apps pauses the game where it is.
 
 ## Known issues
 
+- The Asset Viewer was desktop-tested; the real HD pack and texture-limit fallbacks still need
+  Thor verification. See [the release-gap checklist](docs/release-gap.md).
 - Some objectives were checked with test shortcuts rather than a full manual play-through (Level5f's
   dinosaurs, Level4b's boss fight, the dock crane's manual controls, a soft lunar-lander landing);
   please report anything that blocks you.
@@ -150,4 +153,6 @@ On a PC, `build/neg_import game.iso folder/` installs the game from the `.iso` t
 
 **Signing.** CI signs with the key in the `NEG_KEYSTORE_B64` / `NEG_KEYSTORE_PASSWORD` repository
 secrets (base64 of a keystore whose key alias is `negatron`), so each APK installs over the last;
-without them it falls back to a one-off debug key.
+published builds require them. Non-publishing test builds may use a one-off debug key.
+CI builds the Linux target and runs `bash tools/test/hdpack.sh` before building Android; release assets
+include an APK SHA-256 checksum.

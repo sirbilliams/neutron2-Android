@@ -447,10 +447,10 @@ public class SetupActivity extends Activity {
                 toast("No file picker on this device.");
             }
         } else if (id.equals("hd_remove")) {
-            HdPack.remove(findReadableData());
+            boolean removed = HdPack.remove(findReadableData());
             mHdCount = -1;
             hdRefresh();
-            toast("HD texture pack removed.");
+            toast(removed ? "HD texture pack removed." : "Couldn't remove the HD pack. Please try again.");
         } else if (id.equals("boxart")) pickPicture(PICK_BOXART);
         else if (id.equals("bg")) pickPicture(PICK_BACKGROUND);
         else if (id.equals("bg_clear")) {

@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Locale;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -35,8 +37,10 @@ final class HdPack {
     }
 
     /** The number of pictures installed (0 without a pack). */
-    static int count(File data) {
-        return data == null ? 0 : countPng(new File(data, DIR), 0);
+    static synchronized int count(File data) {
+        if (data == null) return 0;
+        try { recover(data); } catch (IOException ex) { /* Keep the backup for a later retry. */ }
+        return countPng(new File(data, DIR), 0);
     }
 
     private static int countPng(File dir, int depth) {
@@ -50,39 +54,55 @@ final class HdPack {
         return n;
     }
 
-    static void remove(File data) {
-        if (data != null) deleteTree(new File(data, DIR));
+    static synchronized boolean remove(File data) {
+        if (data == null) return false;
+        // Remove the backup first so a later recovery cannot resurrect a removed pack.
+        return deleteTree(new File(data, DIR + ".previous")) && deleteTree(new File(data, DIR));
     }
 
     /** A zip entry's place in the pack ("omt/level1/1234.png", "png/sub.png", "grn/jimmybase_0.png"), or
      *  null for anything else (README, manifest). Leading folders before omt/png/grn are dropped. */
     static String packPath(String name) {
-        String[] parts = name.replace('\\', '/').split("/");
+        if (name == null || name.isEmpty()) return null;
+        String normalized = name.replace('\\', '/');
+        if (normalized.startsWith("/") || normalized.endsWith("/")) return null;
+        String[] parts = normalized.split("/", -1);
+        for (String part : parts)
+            if (part.isEmpty() || part.equals(".") || part.equals("..") || part.indexOf(':') >= 0)
+                return null;
         int n = parts.length;
         String file = parts[n - 1], low = file.toLowerCase(Locale.ROOT);
         if (!low.endsWith(".png") || low.length() <= 4) return null;
         String stem = file.substring(0, file.length() - 4);
         if (n >= 3 && parts[n - 3].equalsIgnoreCase("omt") && stem.matches("\\d+") && !parts[n - 2].isEmpty())
             return "omt/" + parts[n - 2].toLowerCase(Locale.ROOT) + "/" + stem + ".png";
-        if (n >= 2 && parts[n - 2].equalsIgnoreCase("png")) return "png/" + file;
-        if (n >= 2 && parts[n - 2].equalsIgnoreCase("grn") && stem.matches(".+_\\d+")) return "grn/" + file;
+        if (n >= 2 && parts[n - 2].equalsIgnoreCase("png")) return "png/" + stem + ".png";
+        if (n >= 2 && parts[n - 2].equalsIgnoreCase("grn") && stem.matches(".+_\\d+")) return "grn/" + stem + ".png";
         return null;
     }
 
     /** Unpacks the zip into data/hd (replacing a pack already there). Runs on a worker thread. */
     static Result install(Context ctx, Uri uri, File data, final long total, final Progress progress) {
-        Result r = new Result();
-        File tmp = new File(data, DIR + ".import"), dest = new File(data, DIR);
-        if (total > 0 && data.getUsableSpace() < total + total / 20 + (64L << 20)) {
-            r.error = "Not enough free space for the pack (it needs about " + (total >> 20) + " MB).";
-            return r;
-        }
-        final long[] read = { 0 }, lastUi = { 0 };
         try {
-            deleteTree(tmp);
             InputStream raw = ctx.getContentResolver().openInputStream(uri);
             if (raw == null) throw new IOException("can't open the file");
-            InputStream counting = new FilterInputStream(raw) {
+            return install(raw, data, total, progress);
+        } catch (IOException | SecurityException ex) {
+            Result r = new Result();
+            r.error = "Couldn't install the pack: " + ex.getMessage();
+            return r;
+        }
+    }
+
+    // port: stream entry point also permits regression tests without an Android device.
+    static synchronized Result install(InputStream raw, File data, final long total, final Progress progress) {
+        Result r = new Result();
+        File tmp = new File(data, DIR + ".import"), dest = new File(data, DIR);
+        final long[] read = { 0 }, lastUi = { 0 };
+        try (InputStream source = raw) {
+            recover(data);
+            if (!deleteTree(tmp)) throw new IOException("could not clear the temporary pack");
+            InputStream counting = new FilterInputStream(source) {
                 @Override public int read() throws IOException { int b = super.read(); if (b >= 0) tick(1); return b; }
                 @Override public int read(byte[] b, int off, int len) throws IOException {
                     int k = super.read(b, off, len); if (k > 0) tick(k); return k;
@@ -95,6 +115,7 @@ final class HdPack {
                     }
                 }
             };
+            Set<String> paths = new HashSet<>();
             byte[] buf = new byte[256 * 1024];
             String canon = tmp.getCanonicalPath() + File.separator;
             try (ZipInputStream zip = new ZipInputStream(counting)) {
@@ -103,13 +124,26 @@ final class HdPack {
                     if (e.isDirectory()) continue;
                     String rel = packPath(e.getName());
                     if (rel == null) { r.skipped++; continue; }
+                    // The loader matches case-insensitively; reject ambiguous replacements.
+                    if (!paths.add(rel.toLowerCase(Locale.ROOT)))
+                        throw new IOException("duplicate picture: " + rel);
                     File out = new File(tmp, rel);
                     if (!out.getCanonicalPath().startsWith(canon)) { r.skipped++; continue; }    // zip-slip
                     File parent = out.getParentFile();
-                    if (parent != null) parent.mkdirs();
+                    if (parent != null && !parent.isDirectory() && !parent.mkdirs())
+                        throw new IOException("could not create the pack folder");
                     try (OutputStream os = new BufferedOutputStream(new FileOutputStream(out), 256 * 1024)) {
                         int k;
-                        while ((k = zip.read(buf)) > 0) os.write(buf, 0, k);
+                        long written = 0;
+                        while ((k = zip.read(buf)) != -1) {
+                            written += k;
+                            // Bound individual compressed pictures and check actual expanded bytes,
+                            // not the compressed ZIP size (which can be unknown to a document provider).
+                            if (written > (256L << 20)) throw new IOException("picture exceeds 256 MB: " + rel);
+                            if (data.getUsableSpace() < k + (64L << 20))
+                                throw new IOException("not enough free space for the expanded pack");
+                            os.write(buf, 0, k);
+                        }
                     }
                     if (rel.startsWith("omt/")) r.omt++;
                     else if (rel.startsWith("png/")) r.png++;
@@ -120,8 +154,7 @@ final class HdPack {
                 r.error = "That zip isn't an HD texture pack: no omt/<database>/<id>.png, png/<name>.png "
                         + "or grn/<model>_<n>.png pictures in it.";
             } else {
-                deleteTree(dest);
-                if (!tmp.renameTo(dest)) throw new IOException("could not move the pictures into place");
+                publish(tmp, dest, new File(data, DIR + ".previous"));
             }
         } catch (IOException | SecurityException ex) {
             r.error = "Couldn't install the pack: " + ex.getMessage();
@@ -132,9 +165,29 @@ final class HdPack {
         return r;
     }
 
-    static void deleteTree(File f) {
+    /** Recover an interrupted swap before the launcher counts pictures or installs another pack. */
+    private static void recover(File data) throws IOException {
+        File dest = new File(data, DIR), previous = new File(data, DIR + ".previous");
+        if (previous.exists() && !dest.exists() && !previous.renameTo(dest))
+            throw new IOException("could not restore the previous pack");
+    }
+
+    static void publish(File tmp, File dest, File previous) throws IOException {
+        if (!deleteTree(previous)) throw new IOException("could not clear the previous pack backup");
+        boolean hadPack = dest.exists();
+        if (hadPack && !dest.renameTo(previous)) throw new IOException("could not back up the installed pack");
+        if (!tmp.renameTo(dest)) {
+            if (hadPack && !previous.renameTo(dest))
+                throw new IOException("could not restore the old pack; it is kept in hd.previous");
+            throw new IOException("could not move the pictures into place; old pack kept");
+        }
+        deleteTree(previous); // If cleanup fails, keep it until the next successful operation.
+    }
+
+    static boolean deleteTree(File f) {
+        if (!f.exists()) return true;
         File[] l = f.listFiles();
-        if (l != null) for (File c : l) deleteTree(c);
-        f.delete();
+        if (l != null) for (File c : l) if (!deleteTree(c)) return false;
+        return f.delete();
     }
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.0.1-rc1
+
+Thor verification candidate; device checks remain in [docs/release-gap.md](docs/release-gap.md).
+
+- Android HD pack replacement preserves the old pack until staging succeeds, rolls back failed
+  swaps and recovers interrupted swaps. Check expanded free space even with unknown ZIP size;
+  reject ambiguous duplicate names and malformed paths. Report removal failures accurately.
+- Add synthetic Java installer regression checks, including corrupt archives, low storage and
+  failed swap recovery. Gate Android delivery on these checks and the Linux build.
+- Require stable signing for published APKs, verify signatures and publish SHA-256 checksums.
+- Correct the README's stable download link and document the remaining Thor verification gaps.
+- Version 1.0.1-rc1 / code 101. No game data or HD artwork is bundled.
+
 ## v1.0
 
 The first release of **Neutron vs Negatron**, the *Jimmy Neutron vs. Jimmy Negatron* recomp for

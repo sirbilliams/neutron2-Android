@@ -24,7 +24,11 @@ works (all colour types and bit depths, palette transparency, interlaced).
 - Desktop: `neg_hdtool install <game dir> <pack.zip>`, `neg_hdtool remove <game dir>`.
 
 The zip may have `omt/ png/ grn/` at its top or inside one folder; other files (README,
-manifest.tsv) are left out. `neg_hdtool extract <game dir> <out> [db.omt ...]` writes the omt canvases
+manifest.tsv) are left out. Android rejects duplicate target names (including case-only duplicates),
+keeps the installed pack until the replacement is staged, and restores it if the final move fails.
+An interrupted swap is recovered when the launcher next checks the installed pack. Free space is
+checked against the expanded bytes with a 64 MB reserve; each picture is limited to 256 MB on disk.
+These installer protections do not bound the native decoder's total working memory. `neg_hdtool extract <game dir> <out> [db.omt ...]` writes the omt canvases
 with these names (plus manifest.tsv) for upscaling.
 
 ## How it works (engine/sdl/OMediaHDPack.cpp)
