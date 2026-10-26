@@ -82,6 +82,15 @@ Local Android14 Java compilation and existing HD/native regressions passed; nati
 and real screenshot inspection passed. CI result will be recorded after publication. Source branch
 `fix/companion-background-inspection` preserves the earlier unreleased background fix.
 
+Publication: 1.0.5-rc1/105 source commit `890b85ecfb84880645243a8a0466d15f1ee67c50`.
+[CI 40284723379](https://github.com/sirbilliams/neutron2-Android/actions/runs/40284723379) passed
+Linux, installer/native regressions, Android arm64 build, stable signing, APK signature verification,
+artifact upload and latest-prerelease publication. Backup `backup/pre-pda-footer-5dfafd4` preserves
+pre-fix main. Screenshot proof `neutron-pda-1.0.5.png` is saved privately for Bill; no retail screenshot
+was committed to this public repo. Local captures: `/tmp/neutron-captures/pda-before.png`,
+`pda-after-wide.png`, `pda-after-43.png`, `companion-normal.png`, `companion-expanded.png`.
+This handoff-only completion commit skips CI because shipped application source is unchanged.
+
 Remaining: Bill should check the footer and metal appearance on Thor, at both aspect settings,
 and test panel transitions/gestures/controller focus. Keep earlier map-detail, height cutoff,
 real-HD-pack, save/update/casting/lid and gameplay checks open. No claim of physical device testing.
