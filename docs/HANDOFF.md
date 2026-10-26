@@ -2,6 +2,125 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
+## Current handoff — 2026-10-25 Pacific: companion exploration and polish
+
+**Read this section before the historical session status below.** Older claims about a cropped map,
+non-touch companion, first-presentation-display selection, and missing diagnostics are historical.
+Bill explicitly requires complete change notes and handoff updates for future agents: every change,
+test result, user observation, unresolved issue, and published build must be recorded; do not leave
+code changes unlogged. Keep this file, CHANGELOG, controls, and release-gap documentation consistent.
+
+### Delivered history and user evidence
+
+| Version / code | Source and evidence | Changes |
+|---|---|---|
+| 1.0.1-rc1 / 101 | Main before d9ba975; earlier session's published APK and automated checks recorded in chat | HD ZIP replacement staging, rollback/interrupted-swap recovery, expanded-byte space checks, case-collision rejection, concurrent import handling; installer regressions and checksum/signature release gate. |
+| 1.0.2-rc1 / 102 | `d9ba975d6006dc25a54135964c13d2cc20ad4396`; published before this session | Bounded native PNG decoding/validation; HD enable toggle and LOW/BALANCED/HIGH startup presets; timestamped Diagnostics and sharing from launcher/port menu; widescreen score animation anchoring. Help icons already left-anchored, so unchanged. |
+| 1.0.3-rc1 / 103 | `de3cf72ddaa36d89e7ecb69b964d01091d5ce1fb`; [CI 40272258114](https://github.com/sirbilliams/neutron2-Android/actions/runs/40272258114) passed Linux, Android, regression checks, signature verification and publication | Sliding dashboard, expanded touch map, pan/pinch, recenter and filters; unchanged snapshots retry missing map images. Bill reports it **functions well**, but metal artwork looked poor. Later reports zooming out cannot show terrain beyond the cropped window. This is limited feature feedback, not a complete suspend/cast/save regression pass. |
+| 1.0.4-rc1 / 104 | `008e21ace4b55411184f59e87351e1143721aa4e`; [CI 40273912157](https://github.com/sirbilliams/neutron2-Android/actions/runs/40273912157) — see build outcome below | Width-correct metal artwork; full copied-terrain map and Fit Level; PDA title/By/version moved inside central panel. These fixes have **not** yet been visually tested on Thor. |
+
+The release named `latest` is mutable. Match its target commit and APK version before testing;
+its workflow title uses UTC (2026-10-26 for this Pacific-evening session).
+
+### Implementation inventory — no omitted changes
+
+**1.0.3: `CompanionView.java`, `CompanionPanel.java`, `docs/controls.md`, `CHANGELOG.md`,
+`android/app/build.gradle`.**
+
+- 250 ms ValueAnimator slides the left information panel left; map bounds expand from
+  x=440..1220 to x=20..1220 in the existing 1240x1080 logical layout. Collapse restores tracking.
+- Touch converts physical coordinates to the letterboxed logical layout. Drag pans below controls;
+  ScaleGestureDetector handles pinch. Multi-touch marks the gesture as moved and tracks the
+  remaining finger on pointer-up to avoid a drag jump or accidental toolbar tap.
+- Expanded-only ITEMS (p/n/r), ENEMIES (e), CHECKPOINTS (c), EXITS (d/x/X) filters; objectives,
+  Goddard and friends stay visible. Normal mode ignores filters. Filters last for this panel instance.
+- Recenter resets pan and zoom. Exploration compensates for Jimmy's movement to hold the viewed
+  terrain steady. Level/map-generation changes reset pan; the panel is recreated on suspend/resume.
+- Window remains FLAG_NOT_FOCUSABLE, but FLAG_NOT_TOUCHABLE was removed. Touch modifies only the
+  companion view; no game-state write JNI was added. Controller focus on real hardware needs regression checks.
+- Desired map generation is tracked separately; identical JSON snapshots now retry missing map
+  images. JSON is marked consumed only after successful parse. Animator is canceled on detach.
+- Near/Far settings, metrics, inventory, captions, map markers, Vox cards and casting-aware display
+  selection remain. Vox temporarily replaces map controls; controller still selects cards.
+- Initially the map chrome was cropped from the cached dashboard and stretched; **superseded in 1.0.4**.
+
+**1.0.4: `CompanionView.java`, `game/src/port/Companion.cpp`, `Companion.h`, `BillsUi.cpp`,
+`docs/controls.md`, `CHANGELOG.md`, `android/app/build.gradle`.**
+
+- Map chrome has its own bitmap cached at the actual current logical width. During resizing it
+  rerasterises at that width; once settled the cache is reused. `drawMapChrome` shares bezel/CRT
+  drawing with the dashboard. This avoids horizontally stretching grain, screws and corners.
+  No AI image or retail artwork was added. Check transition smoothness/bitmap churn on Thor.
+- Native MapWindow now fits **all terrain copied from the currently loaded level** into max
+  1536x1536 pixels: scale=max(2, longest extent/1532), with two-pixel margins at each edge.
+  This replaces the six-world-units-per-pixel moving crop. It does not load absent geometry.
+  Worker thread, terrain texture sampling, read-only snapshots and existing height cut remain.
+- Edge-triggered map rebuilds were removed because the map is no longer cropped; level/geometry
+  and height-cut changes still rebuild it. Coarser pixels on large levels are the memory/detail tradeoff.
+- Expanded mode initially fits the level. New FIT LEVEL button centers the available map with room
+  for controls; pinch minimum adapts to the fit scale, maximum remains 4x the Near/Far base.
+  RECENTER remains distinct: Jimmy at normal zoom. Pan remains available to inspect distant terrain.
+- PDA Start/Esc main page (Bill's UI only): scope changes from (205,108), size230 to (230,96),
+  size180 in 640x480 units. Credits become four centered SMAL-font rows below it: title split over
+  two rows, `BY: SIRBILLIAMS`, separate VERSION line (desktop falls back to DEV BUILD + commit).
+  Baselines use FontHeight, 3-unit row gaps, 8-unit scope gap; brighter phosphor text. Vanilla unchanged.
+  Check actual retail font widths and menu overlap at 4:3 and widescreen; no retail assets were available here.
+- Version name/code bumped to 1.0.4-rc1/104; install-over should retain saves with the existing stable key.
+
+### Validation and limits
+
+- Local Java compilation: CompanionView/Panel/bridge/BottomScreen compiled using JDK17 and Android14
+  API classes (`android-all` compile classpath). This is compile verification, not an Android runtime test.
+- `bash tools/test/hdpack.sh` passed with JDK17 on PATH.
+- `bash tools/test/native.sh` passed PNG decoder and HUD 4:3/widescreen regressions.
+- Ad hoc deterministic math check: 10,000 random positive terrain extents spanning 0.01..10^7 checked
+  full-map bounds, 1536 cap, padding coverage and overview fit. This script was a temporary verification,
+  not a checked-in regression or a rendered-map test.
+- `git diff --check` passed. CI compiles the native changes with the actual Linux/Android toolchains.
+- No screenshots or physical device tests were performed for 1.0.4. Existing desktop companion
+  preview shim may need Android animation/touch API support; it was not run in this session.
+- Full-map raster/height buffer memory remains bounded by the old maximum dimensions; CPU cost and
+  coarse-detail quality on large levels still require measurement. Height cutoff can exclude upper
+  storeys, intentionally; this is not a multi-floor atlas. Fit Level cannot reveal unloaded geometry.
+- No pan bounds, waypoint system, marker detail popup, navigation pathfinding, persistent exploration
+  filters, larger caption mode, or low-power mode was implemented; these remain optional future work.
+- HD real-pack, save-preserving install-over, casting/lid resume, Asset Viewer controls, Android libm
+  parity and existing gameplay TODOs are still open unless separately evidenced. Do not close them
+  based on a successful compile or Bill's limited map feedback.
+
+### Next device check / handoff instructions
+
+1. Install 1.0.4-rc1 over the current app without uninstalling; confirm saves and Continue.
+2. In Start/PDA menu, check title, By and version inside the panel at 4:3 and 16:9. Capture a screenshot
+   if clipping/overlap remains; use actual font metrics rather than guessing from source alone.
+3. Expand/collapse the map repeatedly: check metal grain, round corners, screw sizes and frame pacing.
+4. On a large level, Fit Level, zoom out fully, pan to distant exits/terrain, then Recenter and collapse.
+   Check map/player heading and positions. Move vertically to verify height-cut rebuild behavior.
+5. Toggle each filter; test one-finger drag, pinch and lifting either finger. Check controller focus.
+6. Test Vox, level transitions, lid/app suspend and casting while expanded. Export display/diagnostic logs.
+7. Record exact APK version, commit, firmware, level, observation and screenshots/logs in this file.
+
+Backups: `backup/pre-map-exploration-d9ba975` and `backup/pre-map-polish-de3cf72` preserve the prior
+source states. `feature/companion-map-exploration` points to the 1.0.3 source; main has newer polish.
+HTTPS git push has no credentials in this workspace; authenticated GitHub connector Git tree/commit/ref
+calls were used. Compare local/remote tree SHA when using that path (1.0.4 tree
+`949436e9f4560b679c58cc00675a9d4ed5bb24a9` matched exactly). Never force-push over unrelated changes.
+
+### Build outcome
+
+[CI 40273912157](https://github.com/sirbilliams/neutron2-Android/actions/runs/40273912157) completed
+successfully: Linux engine/game build, Java HD installer checks, native PNG/HUD checks, Android arm64
+APK build, stable-key signing, APK signature verification, artifact upload and latest-prerelease
+publication. Verified release target is `008e21ace4b55411184f59e87351e1143721aa4e`; APK size is
+20,278,705 bytes. [APK](https://github.com/sirbilliams/neutron2-Android/releases/download/latest/Neutron-vs-Negatron.apk)
+and adjacent `.apk.sha256` are published. No physical 1.0.4 Thor tests have been reported yet.
+
+This documentation-only follow-up updates HANDOFF, README exploration instructions and release-gap
+status to match the shipped source. Its `[skip ci]` commit leaves the above APK/source target intact;
+no application code changed after that build. Future application changes must carry matching handoff
+and changelog updates before publication.
+
+
 ## The project
 
 Bill (GitHub `sirbilliams`) wants the 2002 PC game **Jimmy Neutron vs. Jimmy Negatron**

@@ -36,6 +36,19 @@ in this review environment.
 | Original limitations | README still lists the stuck lab bot, widescreen score/help placement and missing logo sun. It conservatively lists dinosaur/boss/crane/lander checks despite the later full-story report. | Keep these open until specific observed results resolve each one. Android libm Granny parity and the desktop NEG_TEST_PLAY shutdown hang also remain in HANDOFF. |
 | Delivery | Main pushes build an APK and publish the `latest` prerelease. This candidate gates Android on Linux build + installer regression checks, requires stable signing for publication, verifies APK signatures and includes SHA-256. | CI success proves build/signing, not device playability. Verify install-over on Thor. The existing `Final` release has a differently named APK, so README now links its release page rather than assuming an asset filename. |
 
+## Current update (2026-10-25 Pacific) — supersedes historical gaps above
+
+- 1.0.2-rc1 already added bounded PNG decoding, HD presets/on-off, timestamped diagnostics and
+  widescreen score anchoring. The older unbounded-decode and score-placement recommendations are historical.
+- 1.0.3-rc1 (`de3cf72`) passed CI and was published. Bill reports expanded touch-map functionality
+  works, with poor stretched metal appearance and cropped-map coverage reported afterward.
+- 1.0.4-rc1 (`008e21a`) fixes chrome width, fits copied terrain to the existing 1536-pixel map budget,
+  adds Fit Level/adaptive zoom, and moves PDA credits inside the panel. Physical visual verification
+  remains pending. Build results and complete implementation handoff: [HANDOFF.md](HANDOFF.md).
+- Next test is install-over/save retention, PDA credits at both aspect ratios, metal animation,
+  distant terrain at full zoom-out, map coordinates, filters, multi-touch, controller focus, height
+  changes, Vox, suspend/resume and casting. Build success is not evidence of these device behaviors.
+
 ## Smallest next verification step (about 5–10 minutes)
 
 1. Export saves in the current app. Install the new `latest` APK **over** it, without uninstalling.

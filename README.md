@@ -107,6 +107,11 @@ while rendering; the launcher labels the saved sample with its timestamp.
 Casting the Thor to a TV shows the game; the bottom-screen panel stays on the Thor.
 Closing the lid or switching apps pauses the game where it is.
 
+Tap **Expand Map** on the companion to slide the info panel away. Drag/pinch to explore, toggle
+marker filters, use **Fit Level** for all available level terrain or **Recenter** for Jimmy, then
+**Dashboard** to restore the normal panel. Large levels use a coarser overview within the map
+image-size limit; geometry not loaded by the game cannot appear. New 1.0.4 visuals await Thor testing.
+
 ## Known issues
 
 - The Asset Viewer was desktop-tested; the real HD pack and texture-limit fallbacks still need
