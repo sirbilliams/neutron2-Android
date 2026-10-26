@@ -2,6 +2,26 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
+## Open HD corruption report — 2026-10-26 Pacific
+
+Bill supplied a Thor photo: enabling his upscaled pack produces multicolored noise over terrain
+surfaces (walls/floor) and some UI areas; Jimmy and portions of the HUD remain recognizable.
+Do not classify this as ordinary AI sharpening, a proven bad pack, or a confirmed driver bug.
+Exact installed upscale ZIP and runtime diagnostic log have not yet been provided.
+
+Read-only inspection covered OMediaHDPack::read_png/load, bounded PNG decoder, canvas pixel type
+(unsigned int, four bytes), and HD GL upload/mipmap paths. Local production decoder probe compiled
+with g++; four source sample PNGs were independently resized 2x with Pillow and saved as RGBA PNG.
+All four production-decoder outputs matched Pillow dimensions and complete RGBA CRCs. This checks
+those decoded files only; it does NOT validate the user's actual upscaled PNGs, HD canvas upload,
+gl4es/Adreno behavior, mipmaps, or the full installed pack. No application code fix or new APK yet.
+
+Next: get the EXACT installed upscale ZIP (the original negatron-textures.zip is insufficient).
+View representative terrain PNGs directly, compare production decode pixels against an independent
+decoder, then reproduce with those same files in the native game and isolate upload/mipmap behavior.
+Ask for Diagnostics -> Share report if available. Temporary workaround: HD rendering OFF, exit
+and relaunch; preserve the pack for investigation. Record whether original rendering returns.
+
 ## Current visual fix — 2026-10-26 Pacific, 1.0.5-rc1 / 105
 
 **Supersedes the failed-inspection blocker and unreleased status below. Actual game now launched.**
