@@ -3,6 +3,7 @@ package com.sirbilliams.negatron;
 import java.io.*;
 import java.nio.file.*;
 import java.util.zip.*;
+import java.util.concurrent.*;
 
 /** Synthetic fixtures only. Exercises the production installer, no game files or Android SDK. */
 public final class HdPackTest {
@@ -81,6 +82,24 @@ public final class HdPackTest {
             check(HdPack.count(data) == 3, "installed count");
             check(!new File(data, "hd/png/old.png").exists(), "replacement retained stale picture");
             check(!new File(data, "hd.previous").exists(), "successful swap retained backup");
+            CountDownLatch reading = new CountDownLatch(1), release = new CountDownLatch(1);
+            InputStream slow = new ByteArrayInputStream(zip("png/later.png")) {
+                @Override public synchronized int read(byte[] b, int off, int len) {
+                    reading.countDown();
+                    try { release.await(); } catch (InterruptedException ex) { throw new RuntimeException(ex); }
+                    return super.read(b, off, len);
+                }
+            };
+            Thread importing = new Thread(() -> HdPack.install(slow, data, -1, p -> {}));
+            importing.start();
+            check(reading.await(2, TimeUnit.SECONDS), "import did not start");
+            ExecutorService ui = Executors.newSingleThreadExecutor();
+            try {
+                check(ui.submit(() -> HdPack.count(data)).get(1, TimeUnit.SECONDS) == 3, "count during import");
+                check(!ui.submit(() -> HdPack.remove(data)).get(1, TimeUnit.SECONDS), "remove raced import");
+            } finally { release.countDown(); importing.join(3000); ui.shutdownNow(); }
+            check(!importing.isAlive(), "import did not finish");
+            check(HdPack.count(data) == 1, "queued import completion");
             check(HdPack.remove(data) && HdPack.count(data) == 0, "remove");
             System.out.println("HD pack regression checks passed");
         } finally { HdPack.deleteTree(data); }
