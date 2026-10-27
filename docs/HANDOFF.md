@@ -2,7 +2,89 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
-## Open HD corruption report — 2026-10-26 Pacific
+## HD pack corruption resolved in desktop reproduction — 2026-10-26 Pacific
+
+**Supersedes the initial report below. Exact damaged ZIP was supplied and inspected.**
+Bill requested a fix with HD enabled, not a disable-HD workaround. The damaged replacement PNGs
+already contain the neon noise outside the game. `omt/level3/1.png` is a clean lab-console atlas in
+the original export, but random multicolored RGB with alpha entirely zero in the upscaled archive.
+`omt/level3/36.png` and `omt/objects/14.png` also show damaged RGB. ZIP CRC integrity and correct
+2x dimensions do not establish that generated image pixels are correct.
+
+### Inputs and audit
+
+- Original `negatron-textures.zip`, SHA-256
+  `fdd5a5cb58669b0117eddef46063e44d4f7ca457e617cb42666398a09375932c`.
+- Damaged `negatron-textures-x2.zip`, SHA-256
+  `2bb8f5807d024e271102bc0f2de8445cd64f3be9863d0fa29bbc42fecf6f9f1f`.
+- Repeated full Pillow audit: 2,481 matching real PNGs; all dimensions exactly 2x. 1,327 replacements
+  have entirely zero alpha, including **1,108 originally fully opaque pictures**. Some originals
+  intentionally have zero alpha, so all-transparent data alone must not become a runtime rejection rule.
+- This establishes corrupt pack content. The exact Real-ESRGAN/GPU failure that generated those
+  bytes has not been isolated; do not claim the generator or GPU driver itself was repaired.
+
+### Delivered pack and complete source changes
+
+- Rebuilt every real PNG from the clean originals, using no pixels from the damaged upscale.
+  Delivered privately as `negatron-textures-clean-2x.zip`, 189,159,326 bytes (about 180.4 MiB), SHA-256
+  `e0e1ca85dcbeb7633de1f57562fdb9b1b0c4c82774392d4cd2717bf5d851ef13`.
+  All 2,481 PNGs are exact 2x RGBA. This is **resampling, not AI enhancement**. Font atlases use
+  nearest-neighbor; other art uses Lanczos with premultiplied cutout alpha, hard binary alpha and
+  preserved hidden RGB. `png/Vulture.png` is Paint Shop Pro data, not PNG, and is skipped/reported.
+- Added `tools/hd/rebuild_pack.py`: original ZIP to new private ZIP; safe path/case-collision checks,
+  staged build, new-output requirement, exact dimensions/mode/PNG roundtrip/opaque-alpha validation,
+  optional production-decoder RGBA CRC check. Output includes README and per-texture rebuild report.
+- Added `tools/test/hd_rebuild_test.py`: opaque + hidden RGB, font/cutout, soft alpha, archive/skip/
+  overwrite behavior, unsafe/case-collision paths. Five tests pass. Cutout RGB checks allow one value
+  of premultiplication rounding; alpha and nearest-font checks are exact.
+- Updated `docs/hd-pack.md`, `docs/release-gap.md`, CHANGELOG and this handoff with diagnosis,
+  rebuilding, installation, evidence and remaining limits. No engine, Java or Android version change.
+  No new APK needed: the supplied image data was replaced. Latest app remains 1.0.5-rc1 / 105.
+- Backup source branch: `backup/pre-hd-pack-rebuild-5657a4d`. Tool/docs commit skips APK CI because
+  shipped application code is unchanged. No game artwork, ISO, pack or capture is in git.
+
+### Validation and actual game reproduction
+
+- All 2,481 rebuilt PNGs roundtrip byte-for-byte and decode identically through the production
+  `OMediaHDPng.cpp` probe versus Pillow (dimensions + complete RGBA CRC), at 96 MB decode budget.
+  Final ZIP integrity check passes. Representative originals/damaged/rebuilt raw RGB were viewed.
+- Production desktop `neg_hdtool install` also accepted the delivered ZIP: 2,216 OMT + 180 loose PNG
+  + 85 model pictures = all 2,481 replacements; only README/report metadata was left out.
+- `python3 tools/test/hd_rebuild_test.py`, `bash tools/test/native.sh` and
+  `bash tools/test/hdpack.sh` pass. The local JRE includes `jdk.compiler` but lacks a javac binary;
+  a temporary wrapper invokes `java -m jdk.compiler/com.sun.tools.javac.Main`. No repo change for it.
+- Rebuilt production desktop `negatron`, `neg_import` and `neg_hdtool` against current main, using
+  SDL2.30 headers/runtime, system GL, unshield1.5.1 and temporary cmake wheel as documented above.
+  Imported the already-authorized checksum-verified ISO into a fresh private game install.
+- Launched Level3 twice with the actual engine: damaged pack reproduces the photo's neon noise;
+  rebuilt pack restores clean lab walls, floor, console panels, door and HUD while HD stays ON.
+  Viewed both actual 1280x720 frame600 captures. Clean run logs 2,481 pack pictures and 76 textures
+  replaced, no HD warnings. Both runs logged CLEAN EXIT and exited 0. Missing JOY mappings are expected
+  without a physical controller; these are not HD decode warnings. No shutdown-hang fix is claimed.
+
+Reproduction uses the build recipe above, substituting `/tmp/hd-game-build` and `/tmp/hd-visual-deps`.
+Prepare pack folders by retaining `omt/png/grn` beneath each root. From the private installed game:
+
+```sh
+SDL_VIDEODRIVER=offscreen SDL_AUDIODRIVER=dummy LIBGL_ALWAYS_SOFTWARE=1 \
+NEG_TEST_PLAY=Level3.gam NEG_UI=bills NEG_APP_VERSION=1.0.5-rc1 NEG_WIDESCREEN=1 \
+NEG_HD_DIR=/private/pack-root NEG_HD_ENABLED=1 NEG_HD_LOG=1 NEG_HD_BUDGET_MB=512 \
+NEG_HD_DECODE_MB=96 NEG_HD_MAX_SCALE=2 OMT_WINDOW_SIZE=1280x720 OMT_FRAMES=600 \
+OMT_SCREENSHOT=/private/hd-check.bmp /tmp/hd-game-build/negatron
+```
+
+Private local captures/logs: conversation workspace `private-captures/{bad,clean}.{bmp,png,log}`.
+Source archives are under `input/`, separate normalized packs under `private-hd-{bad,clean}/`.
+The clean ZIP was saved privately for Bill. These scratch paths may be pruned; use the delivered
+ZIP/original archive for recovery. Never commit retail images to preserve evidence.
+
+Next physical check: install the clean ZIP via Settings -> HD texture pack: install, keep HD rendering
+ON, exit/relaunch, Continue into the lab. Verify alpha/cutouts/HUD and other levels with Diagnostics.
+Thor driver behavior, long-session memory/load times, LOW/BALANCED/HIGH and complete gameplay remain
+unverified by these desktop tests. A separate future AI build must validate RGB and alpha against the
+originals before shipping; merely exiting successfully or producing valid PNGs is insufficient.
+
+## Initial HD corruption report — 2026-10-26 Pacific (historical; superseded above)
 
 Bill supplied a Thor photo: enabling his upscaled pack produces multicolored noise over terrain
 surfaces (walls/floor) and some UI areas; Jimmy and portions of the HUD remain recognizable.

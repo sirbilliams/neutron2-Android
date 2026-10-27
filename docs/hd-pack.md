@@ -33,6 +33,38 @@ files over 64 MB (or one quarter of the decode budget) are skipped. Corrupt CRCs
 row filters and palette references fall back to the original texture, with a log message. `neg_hdtool extract <game dir> <out> [db.omt ...]` writes the omt canvases
 with these names (plus manifest.tsv) for upscaling.
 
+## Rebuild a damaged pack from clean originals
+
+A syntactically valid PNG can already contain corrupted RGB or alpha. CRC validation cannot
+identify that kind of image damage. Inspect the replacement itself outside the game and compare
+it with the original export before changing the renderer. In Bill's October 2026 pack,
+`omt/level3/1.png` already contained the same neon noise visible in game, and 1,108 originally
+opaque pictures had become fully transparent. Replacing those pixels fixes the supplied pack;
+there is no evidence here requiring a change to the runtime PNG decoder.
+
+`tools/hd/rebuild_pack.py` makes a clean **2x resampled** pack from an original export ZIP.
+It does not run Real-ESRGAN and does not claim to add AI detail. Requires Python 3 and Pillow.
+Font atlases under `omt/alpha` use nearest-neighbor. Other pictures use Lanczos, with premultiplied
+alpha for cutouts, nearest-neighbor binary alpha, and preservation of hidden RGB on transparent
+canvases. Archive names are normalized to the installer's case-insensitive matching. Duplicate and
+unsafe paths are rejected. Non-PNG files mislabeled `.png` are reported and skipped (the supplied
+export has a Paint Shop Pro file at `png/Vulture.png`). Output must be a new filename.
+
+```sh
+# Optional but recommended: validate every generated pixel through the production decoder.
+g++ -std=c++98 -Iengine/sdl engine/sdl/OMediaHDPng.cpp \
+  tools/test/native/hd_png_probe.cpp -lz -o /tmp/hd-png-probe
+python3 tools/hd/rebuild_pack.py /private/negatron-textures.zip \
+  /private/negatron-textures-clean-2x.zip --probe /tmp/hd-png-probe
+python3 tools/test/hd_rebuild_test.py
+```
+
+Every output is checked for exact 2x dimensions, RGBA PNG write/read agreement and preservation
+of fully opaque source alpha. `--probe` adds complete RGBA CRC comparison against the native
+decoder at the LOW preset's 96 MB decode budget. The ZIP includes a per-texture rebuild report.
+Install it with the existing HD pack installer, keep HD rendering enabled, and exit/relaunch the
+game. Keep both the originals and damaged pack for diagnosis; neither belongs in this repository.
+
 ## How it works (engine/sdl/OMediaHDPack.cpp)
 
 - `hd/` is scanned once at start (`NEG_HD_DIR` overrides the folder).

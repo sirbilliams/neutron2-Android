@@ -85,3 +85,16 @@ minimal Android type stubs: malformed paths, case collisions, corrupt entries, u
 low storage, failed final rename rollback, interrupted swap recovery, successful replacement and removal.
 GitHub Actions also builds the Linux engine/game and the Android arm64 APK. See the exact commit's
 Actions run for results; this document does not claim that a pending run passed.
+
+## HD pack repair verification — 2026-10-26 Pacific
+
+The exact supplied upscale ZIP has now been inspected and reproduced in the production desktop
+Level3 renderer with HD enabled. The same neon noise is already inside its PNGs. A privately
+rebuilt 2x resampled pack from clean originals restores correct lab rendering with HD ON. All
+2,481 rebuilt PNGs match the production decoder's complete RGBA output versus Pillow. Rebuild
+instructions are in [hd-pack.md](hd-pack.md); hashes, source changes and full evidence in HANDOFF.
+This supersedes requests to obtain the exact ZIP and the disable-HD workaround for this report.
+No runtime change or new APK was needed. The Real-ESRGAN/GPU generation failure itself remains
+unisolated; this pack uses Lanczos/nearest resampling, not new AI detail. Thor installation,
+alpha/cutout/HUD appearance across levels and long-session memory checks remain open. Install the
+clean replacement ZIP, keep HD enabled and exit/relaunch before checking Continue in the lab.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased tooling / private HD pack repair (2026-10-26 Pacific)
+
+- Confirm and reproduce neon corruption already present in the supplied upscale PNGs; restore clean
+  HD-enabled desktop Level3 rendering with a privately rebuilt 2x resampled pack (no AI enhancement).
+- Add an original-export-to-2x-pack tool, alpha/path/roundtrip checks, optional full native decoder
+  comparison and five regression tests. Validate all 2,481 rebuilt PNGs through the game decoder.
+- Record exact input/output hashes, desktop evidence, installation and remaining Thor checks in HANDOFF.
+  Application code and published APK remain 1.0.5-rc1 / 105; game artwork stays outside this repo.
+
 ## v1.0.5-rc1
 
 - Restore the brushed case background behind the sliding companion panels; preview-verified with
