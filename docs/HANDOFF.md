@@ -70,8 +70,23 @@ style, shown until completion and reopenable in Settings; it is a proposal, not 
 - Local regression commands: `bash tools/test/native.sh`, `bash tools/test/save-preview.sh`,
   `bash tools/test/launcher.sh`, `bash tools/test/hdpack.sh`. SDL dev flags may be supplied through
   SDL_CFLAGS/SDL_LIBS; local JRE compiler shim described above. Android API jar is temporary only.
-- Backup branch `backup/pre-controls-continue-7b16372` preserves pre-feature main. Publication/CI
-  status will be recorded after the build; do not call a pending APK shipped or device-verified.
+- Additional real OpenGL thumbnail check passed: linked the production OMediaSDLMain helper and
+  libomt into a temporary standalone SDL offscreen test (renamed only the object's entry symbol).
+  A synthetic red/blue framebuffer verifies aspect384x288 for640x480, vertical flip, RGB colors and
+  restoration of GL_PACK_ALIGNMENT=8. This checks actual GL readback, not just the SDL thumbnail stub;
+  it remains software desktop GL, not gl4es/Thor or a real checkpoint. Temporary harness
+  `/tmp/thumbnail-gl-test.cpp`, executable `/tmp/thumbnail-gl-test` (no retail art).
+- Backup branch `backup/pre-controls-continue-7b16372` preserves pre-feature main. Source release
+  commit `630bdee1e752b9f1ee4257fe7fda05584c728fb1` is published. [CI40458269466](https://github.com/sirbilliams/neutron2-Android/actions/runs/40458269466)
+  passed Linux all-target build, HD installer regressions, native PNG/HUD/controller/save-preview
+  regressions, Java launcher regressions, Android arm64 build, stable signing, APK signature
+  verification, artifact upload and latest-prerelease publication. The version-tag release step
+  was skipped because this was a main push, as intended.
+- Verified latest release target is the source commit above. `Neutron-vs-Negatron.apk` is20,300,361
+  bytes, SHA-256 `528189ec415df894afeb115f3e81d4d2f5a8ba4736f76194689939096c20c1d5`.
+  [APK](https://github.com/sirbilliams/neutron2-Android/releases/download/latest/Neutron-vs-Negatron.apk)
+  and adjacent `.apk.sha256` are available. Android version1.0.6-rc1/code106; no physical Thor
+  verification claimed. This handoff-only completion commit uses skip-ci and leaves that APK intact.
 
 Next: install-over on Thor, verify saves/Continue and controller profile persistence, trigger a real
 checkpoint and check thumbnail/current level/playtime, copy/delete a slot, restart and Continue,
