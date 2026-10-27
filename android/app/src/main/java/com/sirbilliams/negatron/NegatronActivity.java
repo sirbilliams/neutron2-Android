@@ -66,6 +66,16 @@ public class NegatronActivity extends SDLActivity {
             // port: bounded HD working memory and optional rendering, read once per game process.
             android.content.SharedPreferences hd = getSharedPreferences(CompanionPanel.PREFS, MODE_PRIVATE);
             int preset = HdQuality.valid(hd.getInt(SetupActivity.PREF_HD_QUALITY, 1));
+            ControlProfile controls = new ControlProfile(hd.getString("control_map", null), hd.getInt("move_dead", 0),
+                    hd.getInt("camera_dead", 20), hd.getInt("camera_speed", 100), hd.getBoolean("invert_y", false));
+            boolean gameControls = "negatron".equals(getIntent().getStringExtra(EXTRA_LIB))
+                    && getIntent().getStringExtra(EXTRA_ASSET_VIEW) == null;
+            if (!gameControls) controls = new ControlProfile();
+            Os.setenv("NEG_CONTROL_MAP", controls.csv(), true);
+            Os.setenv("NEG_MOVE_DEADZONE", String.valueOf(controls.movement), true);
+            Os.setenv("NEG_CAMERA_DEADZONE", String.valueOf(controls.camera), true);
+            Os.setenv("NEG_CAMERA_SPEED", String.valueOf(controls.speed), true);
+            Os.setenv("NEG_CAMERA_INVERT_Y", controls.invert ? "1" : "0", true);
             Os.setenv("NEG_HD_ENABLED", hd.getBoolean(SetupActivity.PREF_HD_ON, true) ? "1" : "0", true);
             Os.setenv("NEG_HD_BUDGET_MB", String.valueOf(HdQuality.textureMb(preset)), true);
             Os.setenv("NEG_HD_DECODE_MB", String.valueOf(HdQuality.decodeMb(preset)), true);

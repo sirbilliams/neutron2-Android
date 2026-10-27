@@ -1,3 +1,4 @@
+#include "port/SavePreview.h"
 /*  CEditor - level loader/saver and developer editor.  Reconstructed from Neutron2.exe.
     See CEditor.h for the overview. Each function names its original address.
 
@@ -227,6 +228,7 @@ static void DeleteFile(const char *dos_path)	// KERNEL32 DeleteFileA
 {
 	if (neg::AssetViewLevel()) return;		// port: the Asset Viewer keeps the saves (level1d.gam wipes the autosaves)
 	remove(omf_SDLResolvePath(dos_path).c_str());
+	neg::SavePreviewDelete(dos_path);
 }
 
 // --- not reconstructed yet
@@ -670,6 +672,7 @@ void CEditor::LoadGame(char *name, int level_id)
 	SetLevel1cLoaded(0);
 	if (strcasecmp(m_level_name, "level1d.gam") == 0)
 	{
+		neg::SavePreviewNewGame();
 		// A new game: forget the autosaves.
 		g_new_game = 1;
 		SetGameState(0);

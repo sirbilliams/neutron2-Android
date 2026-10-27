@@ -26,6 +26,8 @@ public final class RenderMenu {
             }
             m.art = m.pics.get("saves");
         }
+        for (LauncherPages.Slot slot : LauncherPages.slots(save)) if (slot.preview != null)
+            m.pics.put(slot.number == 0 ? "continue" : "slot:" + slot.number, Bitmap.wrap(ImageIO.read(slot.preview)));
         m.reset(LauncherPages.main(LauncherPages.slots(save)[0], true));
         draw(m, out, "main");
         for (int k = 0; k < m.page().items.size(); k++)          // each option's picture
@@ -46,6 +48,9 @@ public final class RenderMenu {
         m.push(LauncherPages.load(LauncherPages.slots(save)));
         m.page().sel = 2;
         draw(m, out, "load");
+        m.pop();
+        m.push(LauncherPages.controls(new ControlProfile()));
+        draw(m, out, "controls");
         m.pop();
         m.push(LauncherPages.saves());
         draw(m, out, "saves");

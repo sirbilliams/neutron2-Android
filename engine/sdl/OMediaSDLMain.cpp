@@ -29,6 +29,34 @@ extern void omt_main(void);
 static int omg_frame = 0;
 static FILE *omg_logfile = NULL;
 
+// port: optional game observer; the engine/viewer has no dependency on savegame code.
+void (*omf_SDLFrameObserver)(SDL_Window *) = NULL;
+SDL_Surface *omf_SDLCaptureThumbnail(SDL_Window *win)
+{
+    int w,h; SDL_GL_GetDrawableSize(win,&w,&h);
+    if (w<=0 || h<=0 || w>4096 || h>4096) return NULL;
+    unsigned char *pixels=(unsigned char*)malloc((size_t)w*h*4);
+    if (!pixels) return NULL;
+    int tw=512, th=h*512/w;
+    if (th>288) { th=288; tw=w*288/h; }
+    if (tw<1) tw=1; if (th<1) th=1;
+    SDL_Surface *s=SDL_CreateRGBSurfaceWithFormat(0,tw,th,24,SDL_PIXELFORMAT_RGB24);
+    if (!s) { free(pixels); return NULL; }
+    GLint alignment; glGetIntegerv(GL_PACK_ALIGNMENT,&alignment);
+    glPixelStorei(GL_PACK_ALIGNMENT,1);
+    glReadPixels(0,0,w,h,GL_RGBA,GL_UNSIGNED_BYTE,pixels);
+    glPixelStorei(GL_PACK_ALIGNMENT,alignment);
+    for (int y=0;y<th;++y) {
+        unsigned char *dest=(unsigned char*)s->pixels+y*s->pitch;
+        int sy=h-1-y*h/th;
+        for (int x=0;x<tw;++x) {
+            unsigned char *src=pixels+((size_t)sy*w+x*w/tw)*4;
+            dest[x*3]=src[0];dest[x*3+1]=src[1];dest[x*3+2]=src[2];
+        }
+    }
+    free(pixels); return s;
+}
+
 static void omf_save_shot(SDL_Window *win, const char *path)
 {
 	int w, h;
@@ -139,6 +167,7 @@ void omf_SDLFrameHook(SDL_Window *win)
 {
 	omg_frame++;
 	omf_diagnostics(win);
+	if (omf_SDLFrameObserver) omf_SDLFrameObserver(win);
 #ifndef __ANDROID__
 	omf_test_hooks(win);
 #endif

@@ -125,7 +125,10 @@ jobs:
       - name: Dependencies
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libgl-dev zlib1g-dev cmake
       - name: Native HD decoder and HUD regression checks
-        run: bash tools/test/native.sh
+        run: |
+          bash tools/test/native.sh
+          bash tools/test/save-preview.sh
+          bash tools/test/launcher.sh
       - name: Build engine, viewer, samples, data test
         run: |
           cmake -S engine -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo

@@ -2,6 +2,84 @@
 
 Read this whole file before doing anything. Then read `docs/decomp-guide.md`, which holds the conventions.
 
+## Controls and Continue preview — 2026-10-26 Pacific, 1.0.6-rc1 / 106
+
+Bill approved customizable controls and a better Continue preview, explicitly prefers the current
+map, and asked how a first-launch guide would work. Map features/geometry/gestures are unchanged.
+The clean 2x pack remains resampled, NOT AI-enhanced; the earlier Real-ESRGAN pack was corrupt.
+Onboarding was explained as Import -> Displays -> Controller check -> Play in the existing PDA/steel
+style, shown until completion and reopenable in Settings; it is a proposal, not implemented here.
+
+### Complete implementation inventory
+
+- `ControlProfile.java`, LauncherPages/SetupActivity: a persistent Controls page, separate movement
+  and camera dead zones (0–35 in 5% steps), camera speed (25–250 in 25% steps), invert-Y, eight
+  face/shoulder/stick-click bindings and Restore Defaults. Selecting an occupied physical button
+  swaps assignments, preserving a permutation. A/touch cycles and left/right goes both directions.
+  Start/Back/Select/d-pad/triggers and launcher navigation remain available/default. Settings apply
+  on the next launch. Invalid stored profiles fall back to defaults.
+- `OMediaControlSettings.h`, OMediaSDLInput: bounded environment parsing and permutation validation;
+  remaps both the game's HID buttons and synthesized Space/R/L keys. Movement dead zone defaults 0
+  to preserve existing input; right-stick default remains 20% and the existing square response.
+  Right-stick camera sensitivity/inversion applies only during gameplay, not menus. Generic raw
+  joystick input stays as before. NegatronActivity sends persisted settings before SDL starts;
+  Asset Viewer uses defaults. Original in-game button hints still name the default controls.
+- `SavePreview.cpp/.h`: active-play dt counter (valid ticks below one second, active play, unpaused),
+  optional version/CRC-bound sidecars and checkpoint thumbnails. Restore follows the save's tracked
+  time, New Game resets it, invalid/legacy metadata starts at zero. No retroactive historical time.
+  After WriteTaskFile closes successfully, record metadata and queue a capture of the next active
+  gameplay frame. No periodic capture. Named-slot copies carry the autosave preview after verifying
+  equal complete save CRCs; deletes clean sidecars. Asset Viewer is guarded throughout.
+- Engine OMediaSDLMain provides a nullable frame observer and GL thumbnail capture (RGBA readback,
+  vertical flip, aspect-preserving max512x288 RGB BMP; rejects drawables above4096x4096 and allocation
+  failures; restores GL pack alignment). Readback is transient full drawable size, not a total game
+  memory cap; profile the checkpoint cost on Thor. Frame observers are registered independently of
+  whether the companion panel is enabled.
+- `SavePreviewInfo.java`, LauncherPages/SetupActivity/LauncherView: validate complete .tsk CRC before
+  attaching tracked time/photo, cap thumbnail file size, load per-slot pictures even while ordinary
+  retail menu pictures remain disabled, preserve aspect and retain the existing illustration fallback.
+  Level/score/date already existed; those were extended rather than invented as new. Runtime retail
+  .tsk bytes and compatibility are unchanged. Metadata/image writes stage temporary files and rename.
+- SaveGame, CEditor and C2DInGameMenu_c hook save/restore/new-game/copy/delete; CompanionTick calls
+  tracking and updates camera mode. These add no map feature changes. New optional sidecars live
+  beside saves, not in public source. Existing ZIP export includes them; existing importer restores
+  only .tsk, so preview/playtime ZIP restoration remains a documented limitation. CRC guards suppress
+  mismatched local sidecars on replacement; an identical imported save may retain matching metadata.
+- Added native controller-settings and production SavePreview regressions, plain-Java launcher/profile/
+  sidecar regressions, and CI invocations for them. Render-menu includes the new plain-Java classes,
+  a Controls page and optional save thumbnails. Android version ->1.0.6-rc1/code106. Updated CHANGELOG,
+  controls, release-gap and this handoff; public repo contains no game art, saves or screenshots.
+
+### Validation and evidence before publication
+
+- Native PNG/HUD/controller-settings regressions pass. Production SavePreview tests pass for active
+  time vs paused/cutscene time, resume/legacy/changed CRC, pending screenshot, copy/delete and viewer
+  write guards, using synthetic .tsk bytes and an SDL thumbnail stub (not actual GPU capture).
+- Plain Java profile/preview/legacy-save regressions pass. All Android Java sources plus pinned
+  SDL2.30 Java sources compile against Android14 API classes with JDK17. This is compile evidence,
+  not Android runtime evidence. Existing HD installer regressions are included in the final checks.
+- Production desktop negatron builds. Real Level3 launch with SDL offscreen/software GL and an SDL
+  virtual controller: physical B emitted Space down/up with A/B swapped; screenshot frame400 saved;
+  CLEAN EXIT and exit0. Test used movement15, camera dead10/speed150/invertON. This proves remapped
+  key delivery and runnable game, not all analog settings/physical controllers or Android driver behavior.
+- Viewed actual LauncherView through Java2D: Controls page at1920x1080; Continue thumbnail, level,
+  score, tracked1:01:01 and date fit without overlap. Continue preview used a synthetic save/CRC sidecar
+  fixture plus an actual prior gameplay screenshot; it is NOT a real checkpoint capture test. Local
+  previews `/tmp/control-menu-preview` and `/tmp/continue-preview-render`, fixture under
+  `/tmp/continue-preview-fixture`. Native run `/tmp/controls-game.{bmp,log}`; build `/tmp/hd-game-build`.
+- Local regression commands: `bash tools/test/native.sh`, `bash tools/test/save-preview.sh`,
+  `bash tools/test/launcher.sh`, `bash tools/test/hdpack.sh`. SDL dev flags may be supplied through
+  SDL_CFLAGS/SDL_LIBS; local JRE compiler shim described above. Android API jar is temporary only.
+- Backup branch `backup/pre-controls-continue-7b16372` preserves pre-feature main. Publication/CI
+  status will be recorded after the build; do not call a pending APK shipped or device-verified.
+
+Next: install-over on Thor, verify saves/Continue and controller profile persistence, trigger a real
+checkpoint and check thumbnail/current level/playtime, copy/delete a slot, restart and Continue,
+check remapped held/released buttons and defaults, camera inversion and drift boundaries, no menu
+lockout, checkpoint frame-time/memory with HD ON, lid/casting and both-screen behavior. Exported ZIP
+preview restoration, historical playtime and the proposed setup wizard are not implemented. Keep
+other pre-existing gameplay/HD/companion device gaps open. No claim that v1.0.6 fixes the AI generator.
+
 ## HD pack corruption resolved in desktop reproduction — 2026-10-26 Pacific
 
 **Supersedes the initial report below. Exact damaged ZIP was supplied and inspected.**

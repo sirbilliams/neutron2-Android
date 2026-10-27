@@ -98,3 +98,13 @@ No runtime change or new APK was needed. The Real-ESRGAN/GPU generation failure 
 unisolated; this pack uses Lanczos/nearest resampling, not new AI detail. Thor installation,
 alpha/cutout/HUD appearance across levels and long-session memory checks remain open. Install the
 clean replacement ZIP, keep HD enabled and exit/relaunch before checking Continue in the lab.
+
+## 1.0.6 controls / Continue preview candidate
+
+Adds persistent controller remapping/dead zones/camera settings and CRC-bound checkpoint thumbnails
+with tracked playtime, without modifying the retail save format. Detailed implementation and test
+limits are in HANDOFF; usage in controls.md. Native/Java regressions and Android Java compilation
+pass locally; launcher previews were viewed. A virtual-controller desktop run verified remapped
+key delivery and clean exit. Physical checkpoint capture, analog behavior, install-over, both-screen
+and suspend/casting checks remain open. Old playtime cannot be recovered; save ZIP import currently
+restores .tsk only, not optional preview metadata. The map is unchanged and onboarding is a proposal.

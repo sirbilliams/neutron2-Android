@@ -31,6 +31,8 @@ final class LauncherPages {
         long score = -1;
         long time;                  // ms
         boolean present;
+        long trackedSeconds = -1;
+        File preview;
 
         /** The level as the player knows it: the game's own name, else the .gam file. */
         String level() {
@@ -45,6 +47,7 @@ final class LauncherPages {
             d.add(title);
             d.add("LEVEL  " + level().toUpperCase(Locale.ROOT));
             if (score >= 0) d.add("SCORE  " + score);
+            if (trackedSeconds >= 0) d.add("TRACKED PLAY  " + SavePreviewInfo.duration(trackedSeconds));
             if (time > 0) d.add("SAVED  " + new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(new Date(time)));
             return d.toArray(new String[0]);
         }
@@ -78,10 +81,20 @@ final class LauncherPages {
             } catch (IOException e) {
                 // as if empty
             }
+            attachPreviews(saveDir, out);
             return out;
         }
         for (int n = 0; n <= SLOTS; n++) readTsk(saveDir, out[n]);
+        attachPreviews(saveDir, out);
         return out;
+    }
+
+    private static void attachPreviews(File dir, Slot[] slots) {
+        for (Slot s : slots) if (s.present) {
+            SavePreviewInfo preview = SavePreviewInfo.read(new File(dir, fileName(s.number)));
+            s.trackedSeconds = preview.seconds;
+            s.preview = preview.picture;
+        }
     }
 
     private static int parseInt(String s, int def) {
@@ -256,6 +269,7 @@ final class LauncherPages {
             i.value = s.present && s.score >= 0 ? String.valueOf(s.score) : null;
             i.enabled = s.present && GAME_LOADS;
             i.detail = s.detail();
+            if (s.preview != null) i.pic = "slot:" + n;
         }
         p.add("back", "Back", "Back to the main menu.");
         p.footer = "A  LOAD     Y  EXPORT THIS SLOT     B  BACK";
@@ -311,6 +325,7 @@ final class LauncherPages {
             boolean secondScreen, boolean boxArt, boolean background) {
         LauncherModel.Page p = new LauncherModel.Page("settings", "Settings");
         p.pic = "settings";
+        p.add("controls", "Controls", "Remap buttons, tune stick dead zones and camera speed, or invert camera Y.");
         LauncherModel.Item i = p.add("wide", "Widescreen 16:9", "Fill a 16:9 screen; the HUD moves to the edges. Off: the original 4:3.");
         i.value = wide ? "ON" : "OFF";
         i = p.add("ui", "In-game UI", "Bill's UI: the port's polish (the pause screen's scope, the score "
@@ -347,6 +362,21 @@ final class LauncherPages {
         i = p.add("hd_remove", "HD texture pack: remove", "Delete the installed HD pack (the game goes back to "
                 + "its own pictures).");
         p.add("back", "Back", "Back to the main menu.");
+        return p;
+    }
+
+    static LauncherModel.Page controls(ControlProfile profile) {
+        LauncherModel.Page p = new LauncherModel.Page("controls", "Controls");
+        p.pic = "settings";
+        p.add("move_dead", "Movement dead zone", "Ignore small movement-stick drift. Changes apply on the next game launch.").value = profile.movement + "%";
+        p.add("camera_dead", "Camera dead zone", "Ignore small right-stick drift. Left/right adjusts; A cycles.").value = profile.camera + "%";
+        p.add("camera_speed", "Camera speed", "Right-stick camera speed during gameplay. Menu pointer speed stays unchanged.").value = profile.speed + "%";
+        p.add("invert_y", "Invert camera Y", "Reverse the right stick's vertical camera movement during gameplay.").value = profile.invert ? "ON" : "OFF";
+        for (int n = 0; n < 8; n++) p.add("bind:" + n, ControlProfile.ACTIONS[n],
+                "Choose the physical button for this action. Reassigning swaps bindings so every action stays accessible. Start, Back, d-pad and triggers retain their defaults. Launcher controls stay unchanged.")
+                .value = ControlProfile.NAMES[ControlProfile.index(profile.map[n])];
+        p.add("controls_reset", "Restore default controls", "Restore the original layout, dead zones and camera speed.");
+        p.add("back", "Back", "Back to Settings. Changes apply on the next game launch.");
         return p;
     }
 

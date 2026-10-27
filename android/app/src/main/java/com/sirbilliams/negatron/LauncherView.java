@@ -230,12 +230,17 @@ final class LauncherView extends View {
     /** The picture for key in r with alpha a: the game's own (with scanlines), else the drawing. */
     private void picture(Canvas c, String key, RectF r, float a) {
         if (key == null || a <= 0) return;
-        Object o = GAME_PICTURES ? mModel.pics.get(key) : null;
+        Object o = (GAME_PICTURES || "continue".equals(key) || key.startsWith("slot:")) ? mModel.pics.get(key) : null;
         boolean game = o instanceof Bitmap;
         Bitmap b = game ? (Bitmap) o : drawn(key);
         if (b == null) return;
         mBmp.setAlpha(Math.round(255 * a));
-        c.drawBitmap(b, null, r, mBmp);
+        if (game && ("continue".equals(key) || key.startsWith("slot:"))) {
+            float scale = Math.min(r.width() / b.getWidth(), r.height() / b.getHeight());
+            float w = b.getWidth() * scale, h = b.getHeight() * scale;
+            c.drawBitmap(b, null, new RectF(r.centerX() - w / 2, r.centerY() - h / 2,
+                    r.centerX() + w / 2, r.centerY() + h / 2), mBmp);
+        } else c.drawBitmap(b, null, r, mBmp);
         mBmp.setAlpha(255);
         if (game && a >= 1f) scanlines(c, r);
     }

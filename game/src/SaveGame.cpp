@@ -9,6 +9,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in OMedia3DShape.h)
 #include "SaveGame.h"
 #include "port/StartMode.h"
+#include "port/SavePreview.h"
 #include "port/AssetView.h"
 #include "CGameObject.h"
 #include "CLocalGameObject.h"
@@ -456,6 +457,7 @@ bool neg::RestoreTask(const char *name)
 	g_tasks_applied = 0;
 	SetGameState(5);
 	g_gametype->PauseGame(false);							// vtable +0x110
+	SavePreviewLoad(name);
 	CGameObject *t = FindObjectByTag("LOADEDGAME");
 	if (t && t->NameContains((char *)"C3DAITRIGGER")) AITriggerActivate(t, "LOADEDGAME", 0);
 	return true;
@@ -519,6 +521,7 @@ void neg::WriteTaskFile(const char *name)
 		Local(o)->WriteState(fs);							// slot 284
 	}
 	fs.close();
+	SavePreviewWritten(name);
 	WriteSaveSlotList();									// port: save\slots.txt (StartMode.h)
 }
 

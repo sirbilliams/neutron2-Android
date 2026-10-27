@@ -3,6 +3,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"		// (double constants in the OMT headers)
 #include "Companion.h"
 #include "LauncherArt.h"
+#include "SavePreview.h"
 #include "../C3DJimmy.h"
 #include "../C3DAI.h"
 #include "../C3DTerrain.h"
@@ -51,6 +52,7 @@
 
 std::string omf_SDLResolvePath(const std::string &in);	// engine/sdl: a game path on this system
 
+extern void omf_SDLSetCameraMode(bool playing);
 using namespace neg;
 
 namespace {
@@ -1123,6 +1125,8 @@ int neg::CompanionCopy(char *buf, int size)
 
 void neg::CompanionTick(float dt)
 {
+	SavePreviewTick(dt);
+	omf_SDLSetCameraMode(g_game_mode == 5 && !g_game_paused);
 	LauncherArtTick();							// port: the launcher's pictures (port/LauncherArt.h)
 	if (!s_env_read)
 	{

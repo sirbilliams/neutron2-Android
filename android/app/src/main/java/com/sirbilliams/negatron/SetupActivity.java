@@ -225,6 +225,9 @@ public class SetupActivity extends Activity {
     private void loadPictures() {
         File dir = new File(getExternalFilesDir(null), ART_DIR);
         mMenu.pics.clear();
+        LauncherPages.Slot[] saves = LauncherPages.slots(saveDir());
+        for (LauncherPages.Slot slot : saves) if (slot.preview != null)
+            putPicture(slot.number == 0 ? "continue" : "slot:" + slot.number, slot.preview);
         if (!LauncherView.GAME_PICTURES) {                  // the options show the drawings only
             android.graphics.Bitmap pda = android.graphics.BitmapFactory.decodeFile(new File(dir, "menu.png").getPath());
             mMenu.art = pda;                                // the bottom screen's fallback
@@ -235,7 +238,7 @@ public class SetupActivity extends Activity {
         LauncherPages.Slot auto = LauncherPages.slots(saveDir())[0];
         String gam = auto.gam.toLowerCase(Locale.ROOT);
         if (gam.endsWith(".gam")) gam = gam.substring(0, gam.length() - 4);
-        if (!auto.present || gam.length() == 0 || !putPicture("continue", new File(dir, "level-" + gam + ".png")))
+        if (!mMenu.pics.containsKey("continue") && (!auto.present || gam.length() == 0 || !putPicture("continue", new File(dir, "level-" + gam + ".png"))))
             putPicture("continue", new File(dir, "loading.png"));
         mMenu.art = mMenu.pics.get("saves");                        // the PDA: the bottom screen's fallback
     }
@@ -316,6 +319,12 @@ public class SetupActivity extends Activity {
 
     private LauncherModel.Page mainPage() {
         return LauncherPages.main(LauncherPages.slots(saveDir())[0], mTestShown);
+    }
+
+    private ControlProfile controlProfile() {
+        android.content.SharedPreferences p = prefs();
+        return new ControlProfile(p.getString("control_map", null), p.getInt("move_dead", 0),
+                p.getInt("camera_dead", 20), p.getInt("camera_speed", 100), p.getBoolean("invert_y", false));
     }
 
     private LauncherModel.Page settingsPage() {
@@ -403,6 +412,15 @@ public class SetupActivity extends Activity {
         else if (id.equals("load")) mMenu.push(LauncherPages.load(LauncherPages.slots(saveDir())));
         else if (id.startsWith("slot:")) launch("negatron", null, "load:" + id.substring(5));
         else if (id.equals("settings")) mMenu.push(settingsPage());
+        else if (id.equals("controls")) mMenu.push(LauncherPages.controls(controlProfile()));
+        else if (id.equals("controls_reset") || id.equals("move_dead") || id.equals("camera_dead")
+                || id.equals("camera_speed") || id.equals("invert_y") || id.startsWith("bind:")) {
+            ControlProfile c = id.equals("controls_reset") ? new ControlProfile() : controlProfile();
+            if (!id.equals("controls_reset")) c.step(id, mStepDir);
+            p.edit().putString("control_map", c.csv()).putInt("move_dead", c.movement)
+                    .putInt("camera_dead", c.camera).putInt("camera_speed", c.speed).putBoolean("invert_y", c.invert).commit();
+            mMenu.replace(LauncherPages.controls(c));
+        }
         else if (id.equals("diagnostics")) Diagnostics.show(this);
         else if (id.equals("hd_on")) {
             p.edit().putBoolean(PREF_HD_ON, !p.getBoolean(PREF_HD_ON, true)).commit();
@@ -719,7 +737,9 @@ public class SetupActivity extends Activity {
         else if (act == 3) {                                    // left / right flip a setting
             LauncherModel.Item it = mMenu.selected();
             if (it != null && (it.id.equals("wide") || it.id.equals("ui") || it.id.equals("energy") || it.id.equals("holo")
-                    || it.id.equals("panel"))) {
+                    || it.id.equals("panel") || it.id.equals("hd_on") || it.id.equals("hd_quality")
+                    || it.id.equals("move_dead") || it.id.equals("camera_dead") || it.id.equals("camera_speed")
+                    || it.id.equals("invert_y") || it.id.startsWith("bind:"))) {
                 mStepDir = k == android.view.KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
                 choose();
                 mStepDir = 1;

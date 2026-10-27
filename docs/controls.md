@@ -54,6 +54,46 @@ keyboard or the mouse. Those parts are marked `port:` and do not change game log
 - **Mapped controllers first:** the game takes the first joystick, so SDL game controllers come
   before other joystick devices.
 
+## Custom controls (1.0.6-rc1)
+
+Settings -> Controls persists a profile and applies it on the next game launch. The launcher keeps
+its standard navigation. Left/right adjusts the selected value; A or touch cycles forward.
+
+- Movement dead zone: 0–35%, steps of 5; default 0 preserves the original movement response.
+- Camera dead zone: 0–35%, steps of 5; default 20 preserves the original right-stick response.
+- Camera speed: 25–250%, steps of 25; default 100. Invert camera Y defaults OFF. Speed/inversion
+  apply to right-stick camera movement during active gameplay; menu pointer speed/inversion stay normal.
+- Remap physical A/B/X/Y/L1/R1/L3/R3 to Action/fire, Jump/speed, Brake, Inventory, HUD, Turn around,
+  Headlight and the unused button. Assignment swaps the previous binding to avoid duplicate/missing
+  actions. Both HID button input and the port's synthesized keys use the remap. On-screen original
+  game button hints still describe the default layout. Start, Android Back, Select, d-pad and the
+  yes/no triggers keep their defaults. Restore default controls resets the whole profile.
+- SDL game controllers use the profile; legacy unmapped raw joysticks retain their original path.
+  Asset Viewer starts with the default profile. Desktop equivalents: `NEG_CONTROL_MAP` is an eight-ID
+  SDL permutation in action order (default `0,1,2,3,9,10,7,8`); `NEG_MOVE_DEADZONE`,
+  `NEG_CAMERA_DEADZONE`, `NEG_CAMERA_SPEED`, `NEG_CAMERA_INVERT_Y`. Invalid values fall back safely.
+
+## Continue and save previews (1.0.6-rc1)
+
+Continue retains the saved level, score and date and now shows a gameplay thumbnail and TRACKED PLAY
+time when available. Load Game slots also show matching previews. Time accumulates during active
+play (not pause/cutscenes/loading/suspend) and follows the checkpoint/slot restored. Older saves have
+no historical playtime; tracking starts from this version, rather than inventing elapsed time.
+
+The original `.tsk` format is unchanged. Optional `.tsk.preview` metadata contains version, full save
+CRC32, tracked seconds and image-present flag. `.tsk.bmp` is at most 512x288, aspect preserved. A
+capture is requested after a checkpoint write and taken on the next active gameplay render, with no
+continuous readback or periodic disk writes. Saving to a named slot copies the autosave's matching
+preview, not a photo of the pause menu. New Game resets tracking; slot deletion removes its preview;
+Asset Viewer never writes these files. Missing/unreadable images fall back to the normal illustration.
+A replaced/imported save with a different CRC cannot display stale playtime/art. New metadata and
+images use temporary files and rename; failure never blocks the retail save or Continue.
+
+Save ZIP export includes the optional sidecars, but the current save importer restores `.tsk` files
+only. Playtime/thumbnails are not restored from an exported ZIP in this version; a subsequent new
+checkpoint creates fresh metadata. Single `.tsk` exports remain retail-compatible. Physical Thor
+controller behavior, checkpoint capture cost and install-over/save retention still need device checks.
+
 ## The launcher menu (port)
 
 The app opens on a menu in the bottom-screen panel's style (`LauncherView.java`; drawn in code, no

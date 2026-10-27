@@ -10,6 +10,7 @@
 #include "OMediaDefMessages.h"
 #include "OMediaTimeCounter.h"
 #include <vector>
+#include "OMediaControlSettings.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -188,6 +189,20 @@ void OMediaEventManager::osevent_to_omtevent(void *localevent, OMediaEvent *ev)
 // handles it as "close the app".
 
 static std::vector<SDL_GameController *> omg_pads;
+// port: loaded once per native process; Android launcher persists the profile.
+static omcontrols::Settings &omf_controls() {
+    static omcontrols::Settings settings; static bool read = false;
+    if (!read) { settings.environment(); read = true; }
+    return settings;
+}
+static bool omg_camera_mode = false;
+void omf_SDLSetCameraMode(bool playing) { omg_camera_mode = playing; }
+static Uint8 omf_pad_button(SDL_GameController *gc, SDL_GameControllerButton button) {
+    int index = (int)button;
+    if (index >= 0 && index < 15) index = omf_controls().map[index];
+    return SDL_GameControllerGetButton(gc, (SDL_GameControllerButton)index);
+}
+
 
 static void omf_pad_added(int device_index)
 {
@@ -217,10 +232,7 @@ static float omf_pad_stick(SDL_GameControllerAxis axis)
 	{
 		float a = SDL_GameControllerGetAxis(omg_pads[i], axis) / 32767.0f;
 		if (a > 1) a = 1; else if (a < -1) a = -1;
-		const float dead = 0.2f;
-		if (a > dead) a = (a - dead) / (1 - dead);
-		else if (a < -dead) a = (a + dead) / (1 - dead);
-		else a = 0;
+		a = omcontrols::deadzone(a, omf_controls().camera);
 		v += a * (a < 0 ? -a : a);
 	}
 	return v;
@@ -253,7 +265,7 @@ static void omf_pad_keys(void)
 		bool held = false;
 		for (size_t i = 0; i < omg_pads.size() && !held; i++)
 		{
-			if (m.button >= 0) held = SDL_GameControllerGetButton(omg_pads[i], (SDL_GameControllerButton)m.button) != 0;
+			if (m.button >= 0) held = omf_pad_button(omg_pads[i], (SDL_GameControllerButton)m.button) != 0;
 			else
 			{
 				int v = SDL_GameControllerGetAxis(omg_pads[i], (SDL_GameControllerAxis)m.trigger);
@@ -309,7 +321,8 @@ static void omf_pad_pointer(float dt)
 	OMediaWindow *ow;
 	SDL_Window *w = omf_game_window(&ow);
 	if (!w) return;
-	const float speed = 0.75f * ow->get_width();
+	const float speed = 0.75f * ow->get_width() * (omg_camera_mode ? omf_controls().speed / 100.0f : 1.0f);
+	if (omg_camera_mode && omf_controls().invert) sy = -sy;
 	rest_x += sx * speed * dt;
 	rest_y += sy * speed * dt;
 	int dx = int(rest_x), dy = int(rest_y);
@@ -710,6 +723,8 @@ class OMediaSDLPadElement : public OMediaHIDElement
 			case omsdlpe_GCAxis:			// DirectInput value = SDL value + 32768, range 0..65535
 				data.axis = omf_dx_axis(long(SDL_GameControllerGetAxis(gc, (SDL_GameControllerAxis)idx)) + 32768, 0, 65535);
 				if (axis_type == omhtdat_Y) data.axis = -data.axis;
+                if (idx == SDL_CONTROLLER_AXIS_LEFTX || idx == SDL_CONTROLLER_AXIS_LEFTY)
+                    data.axis = omcontrols::deadzone(data.axis, omf_controls().movement);
 				// Port: a held d-pad direction drives the left stick's X/Y at full travel, as on the
 				// digital PC gamepads of 2002 (DirectInput reported their pads as X/Y axes). The game
 				// only reads the X/Y axes; the hat element below is still there for completeness.
@@ -735,7 +750,7 @@ class OMediaSDLPadElement : public OMediaHIDElement
 				break;
 
 			case omsdlpe_GCButton:
-				data.down = SDL_GameControllerGetButton(gc, (SDL_GameControllerButton)idx) != 0;
+				data.down = omf_pad_button(gc, (SDL_GameControllerButton)idx) != 0;
 				break;
 
 			case omsdlpe_JoyButton:

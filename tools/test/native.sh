@@ -9,3 +9,7 @@ python3 "$ROOT/tools/test/native/png_test.py" "$BUILD/png"
 "${CXX:-g++}" -std=c++98 -Wall -Wextra -Werror -I"$ROOT/game/src/port" \
     "$ROOT/tools/test/native/hud_layout_test.cpp" -o "$BUILD/hud"
 "$BUILD/hud"
+
+"${CXX:-g++}" -std=c++98 -Wall -Wextra -Werror -I"$ROOT/engine/sdl" \
+    "$ROOT/tools/test/native/control_settings_test.cpp" -o "$BUILD/controls"
+"$BUILD/controls"

@@ -1,3 +1,4 @@
+#include "../port/SavePreview.h"
 /*  C2DInGameMenu part c: slots 304..331 (not 311).
     HUD bars (health, gadget charge), the menu pages (load / unload, rollovers, clicks), the main
     menu's item info, the save and options menus and the menu's sound channel.
@@ -869,7 +870,10 @@ void C2DInGameMenu::SaveToSlot(void)									// 0x40e7a0
 	char src[52];
 	strcpy(src, "save\\");
 	strcat(src, "autosave.tsk");
-	if (g_save_slot >= 6 && g_save_slot <= 15) CopyFileDos(src, kSaveFiles[g_save_slot - 6]);
+	if (g_save_slot >= 6 && g_save_slot <= 15) {
+        CopyFileDos(src, kSaveFiles[g_save_slot - 6]);
+        neg::SavePreviewCopy(src, kSaveFiles[g_save_slot - 6]);
+    }
 	neg::WriteSaveSlotList();										// port: save\slots.txt
 	f_5ac = 1.0f;
 	ForceShow(g_game_saved_box);
@@ -878,7 +882,10 @@ void C2DInGameMenu::SaveToSlot(void)									// 0x40e7a0
 
 void C2DInGameMenu::DeleteSaveSlot(void)								// 0x40e6e0
 {
-	if (g_save_slot >= 6 && g_save_slot <= 15) DeleteFileDos(kSaveFiles[g_save_slot - 6]);
+	if (g_save_slot >= 6 && g_save_slot <= 15) {
+        DeleteFileDos(kSaveFiles[g_save_slot - 6]);
+        neg::SavePreviewDelete(kSaveFiles[g_save_slot - 6]);
+    }
 	neg::WriteSaveSlotList();										// port: save\slots.txt
 }
 

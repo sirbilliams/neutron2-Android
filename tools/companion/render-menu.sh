@@ -7,5 +7,5 @@ here=$(cd "$(dirname "$0")" && pwd)
 src=$here/../../android/app/src/main/java/com/sirbilliams/negatron
 build=${TMPDIR:-/tmp}/neg-menu-render
 rm -rf "$build"; mkdir -p "$build"
-javac -nowarn -d "$build" $(find "$here/shim" -name '*.java') "$src/LauncherModel.java" "$src/LauncherPages.java" "$src/LauncherView.java" "$src/LauncherArt.java" "$src/CompanionView.java"
+javac -nowarn -d "$build" $(find "$here/shim" -name '*.java') "$src/LauncherModel.java" "$src/LauncherPages.java" "$src/ControlProfile.java" "$src/SavePreviewInfo.java" "$src/LauncherView.java" "$src/LauncherArt.java" "$src/CompanionView.java"
 NEG_PANEL_CLOCK=${NEG_PANEL_CLOCK:-1500} java -cp "$build" com.sirbilliams.negatron.RenderMenu "$@"

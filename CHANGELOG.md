@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.0.6-rc1
+
+- Add persisted control settings: movement/camera dead zones, right-stick camera speed and invert-Y,
+  eight-button remapping with collision swaps and Restore Defaults. Menu escape controls stay available.
+- Extend Continue and Load Game with checkpoint thumbnails and tracked active playtime. Preserve the
+  retail save format and reject mismatched sidecars after save replacement. Capture only after saves.
+- Add native and Java regressions plus desktop launcher previews; record evidence and remaining device
+  checks in HANDOFF. Version code 106. Onboarding wizard remains a proposal; map behavior is unchanged.
+
 ## Unreleased tooling / private HD pack repair (2026-10-26 Pacific)
 
 - Confirm and reproduce neon corruption already present in the supplied upscale PNGs; restore clean
