@@ -11,6 +11,23 @@ Test page's level picker). On top of the
 original there is an optional 16:9 widescreen mode, a second-screen companion panel and an optional
 refreshed in-game UI ("Bill's UI").
 
+<table>
+<tr>
+<td><img src="docs/screenshots/garden.jpg" alt="Level 1, the garden"></td>
+<td><img src="docs/screenshots/forest.jpg" alt="Level 3, the forest"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/toy-store.jpg" alt="Level 4, the toy store"></td>
+<td><img src="docs/screenshots/egypt.jpg" alt="Level 5, the Egyptian temple"></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/city.jpg" alt="Level 5, the city street"></td>
+<td><img src="docs/screenshots/vr.jpg" alt="The VR bonus level"></td>
+</tr>
+</table>
+
+Screenshots of this reconstruction running (desktop build, 16:9 widescreen, Bill's UI).
+
 **You need your own copy of the game.** Nothing of the game is included in this app or this
 repository: you install it from the game's CD (an `.iso` image of the disc). The reconstructed code
 reads what it needs from your copy when it runs.
@@ -44,7 +61,7 @@ choose, A to select, left / right to change a setting, B to go back. Touch works
 
 | | |
 |---|---|
-| **Continue** | carry on from the autosave |
+| **Continue** | carry on from the autosave (with a checkpoint thumbnail and playtime, 1.0.6-rc1) |
 | **New Game** | start the story from the beginning (asks first: it replaces the autosave, as the original does) |
 | **Load Game** | the game's ten save slots, with level, score and date |
 | **Saves** | export all saves to a `.zip` (Downloads, Drive...) or import them back; Y on a Load Game slot exports just that one. They are the PC game's own save files, so they also work in the PC version's `save` folder and back |
@@ -59,6 +76,7 @@ When the game ends (the pause menu's Exit), you are back on the launcher.
 
 | Setting | |
 |---|---|
+| **Controls** | movement and camera dead zones, right-stick camera speed, invert-Y and remapping of the face / shoulder / stick-click buttons; Restore Defaults. Applies on the next launch (1.0.6-rc1) |
 | **Widescreen 16:9** | fills the screen instead of the original 4:3; the HUD moves to the screen edges. On by default |
 | **Dual screen** | the companion panel on the Thor's bottom screen (below). On by default when a second screen is there |
 | **In-game UI: Bill's UI / Vanilla** | Bill's UI is a refreshed look for the HUD (energy meter, gadget hologram, framed help pictures, a livelier score, a radar scope on the pause screen). Vanilla is the original's look |
@@ -110,7 +128,7 @@ Closing the lid or switching apps pauses the game where it is.
 Tap **Expand Map** on the companion to slide the info panel away. Drag/pinch to explore, toggle
 marker filters, use **Fit Level** for all available level terrain or **Recenter** for Jimmy, then
 **Dashboard** to restore the normal panel. Large levels use a coarser overview within the map
-image-size limit; geometry not loaded by the game cannot appear. New 1.0.4 visuals await Thor testing.
+image-size limit; geometry not loaded by the game cannot appear. The 1.0.4 map visuals and the 1.0.6-rc1 controls and previews await Thor testing.
 
 ## Known issues
 
@@ -136,7 +154,7 @@ their owners; none of it is included here, and you need your own copy of the gam
 
 The engine is our port of the Open Media Toolkit 2.5 by Yves Schmid (LGPL 2.1; its full source is in
 `engine/`), with SDL2, gl4es and unshield: see [THIRD_PARTY.md](THIRD_PARTY.md) for their licences.
-Release notes: [CHANGELOG.md](CHANGELOG.md).
+Release notes: [CHANGELOG.md](CHANGELOG.md). The newest changes (1.0.6-rc1: control settings, Continue and Load Game previews) are on `main` and in the development APK; the latest tagged release is `Final`.
 
 ## For developers
 
