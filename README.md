@@ -5,6 +5,14 @@ THQ), rebuilt as a faithful C++ reconstruction of its original code and running 
 Made for the **AYN Thor** (both screens, its gamepad, its lid), and it runs on other arm64 Android
 devices with a gamepad or touch screen.
 
+## Status
+
+**Status: complete (v1.0), polish updates ongoing.**
+- Full game playable from start to finish.
+- Optional 16:9 support included.
+- Bill's UI implemented for main screen.
+- Second-screen panel functionality added.
+
 The whole story plays, from the logos and the museum to the escape from Negatron's lab and the end,
 with the original's saves, menus, sounds and quirks (the VR bonus level is playable too, from the
 Test page's level picker). On top of the
