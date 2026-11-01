@@ -14,7 +14,7 @@ import java.util.ArrayDeque;
 
 /**
  * Shares the installed game files, read-only, with other sirbilliams apps signed with the same key
- * (Negatron Arena imports from here). Android 11+ forbids reading another app's Android/data, so
+ * (Neutron Arena imports from here). Android 11+ forbids reading another app's Android/data, so
  * the files go through this provider. Guarded by a signature-level read permission.
  *
  *   content://<applicationId>.gamefiles/manifest   query: columns path, size of every game file

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SHA-256 certificate digests of the apps allowed to read the shared game files (Android 12+ knownSigner;
-     older Android falls back to "same signing key"). Negatron Arena's release certificate. -->
+     older Android falls back to "same signing key"). Neutron Arena's release certificate. -->
 <resources>
     <string-array name="known_game_file_readers">
         <item>f0121737d94957ae55ab4f4ef42d7e08c0da36cc2f7ff92636a8d7c54e19055d</item>
