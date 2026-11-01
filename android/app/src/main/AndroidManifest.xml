@@ -14,8 +14,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Lets other sirbilliams apps signed with the same key read the installed game files
-         (GameFilesProvider); the signature level keeps every other app out -->
-    <permission android:name="com.sirbilliams.permission.READ_GAME_FILES"
+         (GameFilesProvider); the signature level keeps every other app out. The name is per app: the
+         two ports are signed with different keys, and a shared permission name would stop them installing together -->
+    <permission android:name="com.sirbilliams.negatron.permission.READ_GAME_FILES"
         android:protectionLevel="signature" />
 
     <application android:label="@string/app_name"
@@ -41,7 +42,7 @@
         <provider android:name=".GameFilesProvider"
             android:authorities="${applicationId}.gamefiles"
             android:exported="true"
-            android:readPermission="com.sirbilliams.permission.READ_GAME_FILES" />
+            android:readPermission="com.sirbilliams.negatron.permission.READ_GAME_FILES" />
 
         <!-- The game runs in its own process, ended when the game quits (back to the launcher) -->
         <activity android:name=".NegatronActivity"

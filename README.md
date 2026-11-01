@@ -156,7 +156,7 @@ image-size limit; geometry not loaded by the game cannot appear. The 1.0.4 map v
 
 The app shares your installed game files, read-only, with other sirbilliams apps signed with the same
 key (for example Negatron Arena, which can import from here instead of an `.iso`). It does this through
-a content provider guarded by the signature permission `com.sirbilliams.permission.READ_GAME_FILES`, so
+a content provider guarded by the signature permission `com.sirbilliams.negatron.permission.READ_GAME_FILES`, so
 no other app can read them.
 
 ## Credits and legal
