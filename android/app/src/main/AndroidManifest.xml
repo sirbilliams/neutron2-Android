@@ -14,10 +14,11 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Lets other sirbilliams apps signed with the same key read the installed game files
-         (GameFilesProvider); the signature level keeps every other app out. The name is per app: the
+         (GameFilesProvider); the signature|knownSigner level (same key, or the certificates listed in res/values/known_game_file_readers.xml) keeps every other app out. The name is per app: the
          two ports are signed with different keys, and a shared permission name would stop them installing together -->
     <permission android:name="com.sirbilliams.negatron.permission.READ_GAME_FILES"
-        android:protectionLevel="signature" />
+        android:protectionLevel="signature|knownSigner"
+        android:knownCerts="@array/known_game_file_readers" />
 
     <application android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
