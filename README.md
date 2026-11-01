@@ -152,6 +152,13 @@ image-size limit; geometry not loaded by the game cannot appear. The 1.0.4 map v
 - The log is at `Android/data/com.sirbilliams.negatron/files/omt-log.txt` (also Test → Share log:
   press Select / Y on the main menu to show the Test item). Please attach it to a bug report.
 
+## Sharing the game files
+
+The app shares your installed game files, read-only, with other sirbilliams apps signed with the same
+key (for example Negatron Arena, which can import from here instead of an `.iso`). It does this through
+a content provider guarded by the signature permission `com.sirbilliams.permission.READ_GAME_FILES`, so
+no other app can read them.
+
 ## Credits and legal
 
 **Jimmy Neutron vs. Jimmy Negatron Recomp** by **sirbilliams**.

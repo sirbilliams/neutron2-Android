@@ -13,6 +13,11 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Lets other sirbilliams apps signed with the same key read the installed game files
+         (GameFilesProvider); the signature level keeps every other app out -->
+    <permission android:name="com.sirbilliams.permission.READ_GAME_FILES"
+        android:protectionLevel="signature" />
+
     <application android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
@@ -32,6 +37,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider android:name=".GameFilesProvider"
+            android:authorities="${applicationId}.gamefiles"
+            android:exported="true"
+            android:readPermission="com.sirbilliams.permission.READ_GAME_FILES" />
 
         <!-- The game runs in its own process, ended when the game quits (back to the launcher) -->
         <activity android:name=".NegatronActivity"
